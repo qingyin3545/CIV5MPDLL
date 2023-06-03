@@ -25116,6 +25116,17 @@ void CvPlayer::processPolicies(PolicyTypes ePolicy, int iChange)
 					it++;
 			}
 		}
+		for (auto it = m_vCityNumberCityYieldModifier.begin(); it != m_vCityNumberCityYieldModifier.end();)
+		{
+			if (it->ePolicy == (PolicyTypes)pPolicy->GetID())
+			{
+					it = m_vCityNumberCityYieldModifier.erase(it);
+			}
+			else
+			{
+					it++;
+			}
+		}
 		for (auto it = m_vCityResourcesFromPolicy.begin(); it != m_vCityResourcesFromPolicy.end();)
 		{
 			if (it->ePolicy == (PolicyTypes)pPolicy->GetID())
@@ -25137,6 +25148,10 @@ void CvPlayer::processPolicies(PolicyTypes ePolicy, int iChange)
 		for (const auto& info : pPolicy->GetTradeRouteCityYieldModifier())
 		{
 			m_vTradeRouteCityYieldModifier.push_back(info);
+		}
+		for (const auto& info : pPolicy->GetCityNumberCityYieldModifier())
+		{
+			m_vCityNumberCityYieldModifier.push_back(info);
 		}
 		for (const auto& info : pPolicy->GetCityResources())
 		{
@@ -26398,6 +26413,8 @@ void CvPlayer::Read(FDataStream& kStream)
 
 	kStream >> m_vCityWithWorldWonderYieldModifier;
 	kStream >> m_vTradeRouteCityYieldModifier;
+	kStream >> m_vCityNumberCityYieldModifier;
+
 	kStream >> m_vCityResourcesFromPolicy;
 
 #ifdef MOD_SPECIALIST_RESOURCES
@@ -26948,6 +26965,8 @@ void CvPlayer::Write(FDataStream& kStream) const
 
 	kStream << m_vCityWithWorldWonderYieldModifier;
 	kStream << m_vTradeRouteCityYieldModifier;
+	kStream << m_vCityNumberCityYieldModifier;
+
 	kStream << m_vCityResourcesFromPolicy;
 
 #ifdef MOD_SPECIALIST_RESOURCES
@@ -30063,6 +30082,11 @@ std::vector<PolicyYieldInfo>& CvPlayer::GetCityWithWorldWonderYieldModifier()
 std::vector<PolicyYieldInfo>& CvPlayer::GetTradeRouteCityYieldModifier()
 {
 	return m_vTradeRouteCityYieldModifier;
+}
+
+std::vector<PolicyYieldInfo>& CvPlayer::GetCityNumberCityYieldModifier()
+{
+	return m_vCityNumberCityYieldModifier;
 }
 
 std::vector<PolicyResourceInfo>& CvPlayer::GetCityResourcesFromPolicy()
