@@ -540,6 +540,11 @@
         <Type>UpdateDatabase</Type>
         <FileName>DB/TECHS/TechQuickRazing.sql</FileName>
       </Action>
+      <Action>
+        <Set>OnModActivated</Set>
+        <Type>UpdateDatabase</Type>
+        <FileName>DB/POLICIES/Policy_CityResources.sql</FileName>
+      </Action>
     </ModActions>
     <ModReferences />
     <ModBlockers>
@@ -927,6 +932,10 @@
       <ImportIntoVFS>False</ImportIntoVFS>
     </Content>
     <Content Include="DB\NewTableChanges.sql">
+      <SubType>Lua</SubType>
+      <ImportIntoVFS>False</ImportIntoVFS>
+    </Content>
+    <Content Include="DB\POLICIES\Policy_CityResources.sql">
       <SubType>Lua</SubType>
       <ImportIntoVFS>False</ImportIntoVFS>
     </Content>

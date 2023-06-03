@@ -281,6 +281,9 @@ public:
 
 	std::vector<PolicyYieldInfo>& GetCityWithWorldWonderYieldModifier();
 	std::vector<PolicyYieldInfo>& GetTradeRouteCityYieldModifier();
+
+	std::vector<PolicyResourceInfo>& GetCityResources();
+
 	int GetGlobalHappinessFromFaithPercent() const;
 	int GetHappinessInWLTKDCities() const;
 
@@ -523,6 +526,8 @@ private:
 	std::vector<PolicyYieldInfo> m_vTradeRouteCityYieldModifier;
 	int m_iGlobalHappinessFromFaithPercent = 0;
 	int m_iHappinessInWLTKDCities = 0;
+
+	std::vector<PolicyResourceInfo> m_vCityResources;
 };
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
