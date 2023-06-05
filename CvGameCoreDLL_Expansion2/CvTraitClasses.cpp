@@ -2729,7 +2729,7 @@ void CvPlayerTraits::Reset()
 		m_iYieldChangeIncomingTradeRoute[iYield] = 0;
 		m_iYieldRateModifier[iYield] = 0;
 #ifdef MOD_TRAITS_GOLDEN_AGE_YIELD_MODIFIER
-		m_iGoldenAgeYieldRateModifier[0] = 0;
+		m_iGoldenAgeYieldRateModifier[iYield] = 0;
 #endif
 
 		for(int iImprovement = 0; iImprovement < GC.getNumImprovementInfos(); iImprovement++)
