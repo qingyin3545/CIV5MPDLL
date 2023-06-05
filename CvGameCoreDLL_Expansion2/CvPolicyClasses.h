@@ -279,6 +279,8 @@ public:
 	int GetIdeologyUnhappinessModifier() const;
 #endif
 
+	int GetInstantFoodThresholdPercent() const;
+
 	std::vector<PolicyYieldInfo>& GetCityWithWorldWonderYieldModifier();
 	std::vector<PolicyYieldInfo>& GetTradeRouteCityYieldModifier();
 	std::vector<PolicyYieldInfo>& GetCityNumberCityYieldModifier();
@@ -517,6 +519,8 @@ private:
 	int m_iIdeologyPressureModifier = 0;
 	int m_iIdeologyUnhappinessModifier = 0;
 #endif
+
+	int m_iInstantFoodThresholdPercent = 0;
 
 #ifdef MOD_API_TRADE_ROUTE_YIELD_RATE
 	Firaxis::Array<int, YieldTypes::NUM_YIELD_TYPES> m_piMinorsTradeRouteYieldRate;

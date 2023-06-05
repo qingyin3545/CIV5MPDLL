@@ -24909,6 +24909,8 @@ void CvPlayer::processPolicies(PolicyTypes ePolicy, int iChange)
 	int iNumCitiesFreeCultureBuilding = pPolicy->GetNumCitiesFreeCultureBuilding();
 	int iNumCitiesFreeFoodBuilding = pPolicy->GetNumCitiesFreeFoodBuilding();
 
+	int iInstanceFoodThresholdPercent = pPolicy->GetInstantFoodThresholdPercent();
+
 	// Loop through Cities
 	int iLoop;
 	for(pLoopCity = firstCity(&iLoop); pLoopCity != NULL; pLoopCity = nextCity(&iLoop))
@@ -25087,9 +25089,16 @@ void CvPlayer::processPolicies(PolicyTypes ePolicy, int iChange)
 #endif
 
 #ifdef MOD_GLOBAL_CITY_SCALES
-	if (MOD_GLOBAL_CITY_SCALES)
-		pLoopCity->UpdateScaleBuildings();
+		if (MOD_GLOBAL_CITY_SCALES)
+		{
+			pLoopCity->UpdateScaleBuildings();
+		}
 #endif
+
+		if (iInstanceFoodThresholdPercent > 0 && iChange > 0)
+		{
+			pLoopCity->changeFoodTimes100(iInstanceFoodThresholdPercent * pLoopCity->growthThreshold());
+		}
 	}
 
 	if (iChange < 0)

@@ -464,6 +464,8 @@ bool CvPolicyEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 	m_iIdeologyUnhappinessModifier = kResults.GetInt("IdeologyUnhappinessModifier");
 #endif
 
+	m_iInstantFoodThresholdPercent = kResults.GetInt("InstantFoodThresholdPercent");
+
 	const char* szFreeBuilding = kResults.GetText("FreeBuildingOnConquest");
 	if(szFreeBuilding)
 	{
@@ -2543,6 +2545,11 @@ int CvPolicyEntry::GetIdeologyUnhappinessModifier() const
 	return m_iIdeologyUnhappinessModifier;
 }
 #endif
+
+int CvPolicyEntry::GetInstantFoodThresholdPercent() const
+{
+	return m_iInstantFoodThresholdPercent;
+}
 
 std::vector<PolicyYieldInfo>& CvPolicyEntry::GetCityWithWorldWonderYieldModifier()
 {
