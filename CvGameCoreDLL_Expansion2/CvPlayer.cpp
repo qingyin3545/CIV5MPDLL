@@ -20686,6 +20686,7 @@ int CvPlayer::getNumResourceTotal(ResourceTypes eIndex, bool bIncludeImport) con
 		int iLoop = 0;
 		int iCityPOPResource = 0;
 		int iCityResourceFromPolicy = 0;
+		int iCityImprovementResource = 0;
 		for (pLoopCity = firstCity(&iLoop); pLoopCity != NULL; pLoopCity = nextCity(&iLoop))
 		{
 			if (pLoopCity != NULL)
@@ -20694,6 +20695,15 @@ int CvPlayer::getNumResourceTotal(ResourceTypes eIndex, bool bIncludeImport) con
 				{
 					iCityPOPResource += (pLoopCity->getPopulation() * pLoopCity->GetResourceQuantityFromPOP(eIndex));
 				}
+
+				ImprovementTypes eImprovement;
+				int iNumImprovementInfos = GC.getNumImprovementInfos();
+				for (int iImprovementLoop = 0; iImprovementLoop < iNumImprovementInfos; iImprovementLoop++)
+				{
+					eImprovement = (ImprovementTypes)iImprovementLoop;
+					iCityImprovementResource += pLoopCity->CountResourceFromImprovement(eImprovement, eIndex);
+				}
+
 				for (const auto& info : GetCityResourcesFromPolicy())
 				{
 					if (info.eResource == eIndex && MeetCityResourceRequirement(info, pLoopCity, this))
@@ -20705,6 +20715,7 @@ int CvPlayer::getNumResourceTotal(ResourceTypes eIndex, bool bIncludeImport) con
 		}
 
 		iTotalNumResource += iCityPOPResource / 100;
+		iTotalNumResource += iCityImprovementResource;
 		iTotalNumResource += iCityResourceFromPolicy;
 #endif
 
