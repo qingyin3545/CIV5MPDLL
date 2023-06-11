@@ -19616,7 +19616,7 @@ int CvCity::CountWorkedImprovement(ImprovementTypes iImprovementType) const
 		}
 
 		// Not being worked by this city
-		if (pLoopPlot->getWorkingCity() != this || !pLoopPlot->isBeingWorked() ) {
+		if (pLoopPlot->getWorkingCity() != this || !pLoopPlot->isBeingWorked() || pLoopPlot->IsImprovementPillaged()) {
 			continue;
 		}
 
@@ -19942,16 +19942,19 @@ void CvCity::ChangeSiegeKillCitizensModifier(int iChange)
 
 
 
-
-
 #if defined(MOD_ROG_CORE)
-int CvCity::CountResourceFromImprovement(BuildingTypes eBuilding, ImprovementTypes iImprovementType, ResourceTypes eResource) const
+int CvCity::CountResourceFromImprovement(ImprovementTypes iImprovementType, ResourceTypes eResource) const
 {
 
 	int iCount = 0;
 	int iBuilding = 0;
 	int iImprovement = 0;
 	int iValue = 0;
+
+	int iNumBuildingInfos = GC.getNumBuildingInfos();
+	for (int iI = 0; iI < iNumBuildingInfos; iI++)
+	{
+		const BuildingTypes eBuilding = static_cast<BuildingTypes>(iI);
 
 		CvBuildingEntry* pkBuildingInfo = GC.getBuildingInfo(eBuilding);
 		if (pkBuildingInfo)
@@ -19969,7 +19972,8 @@ int CvCity::CountResourceFromImprovement(BuildingTypes eBuilding, ImprovementTyp
 				}
 			}
 		}
-	
+	}
+
 	return iCount;
 }
 #endif
