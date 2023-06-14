@@ -5163,6 +5163,22 @@ void CvUnitCombat::DoHeavyChargeEffects(CvUnit* attacker, CvUnit* defender, CvPl
 void CvUnitCombat::DoInstantYieldFromCombat(const CvCombatInfo & kCombatInfo)
 {
 	if (!MOD_PROMOTION_NEW_EFFECT_FOR_SP) return;
+	if (!ShouldDoNewBattleEffects(kCombatInfo)) return;
+	CvUnit* pAttackerUnit = kCombatInfo.getUnit(BATTLE_UNIT_ATTACKER);
+	CvUnit* pDefenderUnit = kCombatInfo.getUnit(BATTLE_UNIT_DEFENDER);
+	// Only work when unit vs unit
+	if (pAttackerUnit == nullptr || pDefenderUnit == nullptr) return;
+	int iAttackDamage = kCombatInfo.getDamageInflicted(BATTLE_UNIT_ATTACKER);
+	bool bEmenyDeath = iAttackDamage >= pDefenderUnit->GetCurrHitPoints();
+	iAttackDamage = iAttackDamage < pDefenderUnit->GetCurrHitPoints() ? iAttackDamage : pDefenderUnit->GetCurrHitPoints();
+
+	//Get Instant Yield Output From Attack Damage
+	DoInstantYieldFromCombat(pAttackerUnit,kCombatInfo,iAttackDamage);
+}
+
+void CvUnitCombat::DoBounsFromCombatDamageWhenFinish(const CvCombatInfo& kCombatInfo)
+{
+	if (!MOD_PROMOTION_NEW_EFFECT_FOR_SP) return;
 #if !defined(SHOW_PLOT_POPUP)
 	float fDelay = GC.getPOST_COMBAT_TEXT_DELAY() * 3;
 #endif
