@@ -17082,18 +17082,17 @@ bool CvUnit::isInvisible(TeamTypes eTeam, bool bDebug, bool bCheckCargo) const
 		}
 	}
 
-	
+	if(m_eInvisibleType == NO_INVISIBLE)
+	{
+		return false;
+	}
+
 #if defined(MOD_PROMOTION_FEATURE_INVISIBLE)
 	if(IsInvisibleInvalid())
 	{
 		return false;
 	}
 #endif
-
-	if(m_eInvisibleType == NO_INVISIBLE)
-	{
-		return false;
-	}
 
 	return !(plot()->isInvisibleVisible(eTeam, getInvisibleType()));
 }
