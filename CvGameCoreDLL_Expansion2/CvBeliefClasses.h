@@ -123,6 +123,9 @@ public:
 	int GetPlotYieldChange(int i, int j) const;
 #endif
 #if defined(MOD_BELIEF_NEW_EFFECT_FOR_SP)
+	bool IsGreatPersonPointsCapital() const;
+	bool IsGreatPersonPointsPerCity() const;
+	int GetGreatPersonPoints(int i, bool bCapital) const;
 	int GetFreePromotionForProphet() const;
 	int GetLandmarksTourismPercent() const;
 	int GetHolyCityUnitExperence() const;
@@ -185,6 +188,9 @@ protected:
 	int m_iInquisitorPressureRetention;
 	int m_iFaithBuildingTourism;
 #if defined(MOD_BELIEF_NEW_EFFECT_FOR_SP)
+	bool m_bGreatPersonPointsCapital;
+	bool m_bGreatPersonPointsPerCity;
+	int* m_piGreatPersonPoints;
 	int m_iFreePromotionForProphet;
 	int m_iLandmarksTourismPercent;
 	int m_iHolyCityUnitExperence;
@@ -407,6 +413,10 @@ public:
 	}
 
 #if defined(MOD_BELIEF_NEW_EFFECT_FOR_SP)
+	bool HasGreatPersonPoints() const
+	{
+		return m_bGreatPersonPoints;
+	}
 	const std::vector<int>& GetFreePromotionForProphet() const
 	{
 		return m_vFreePromotionForProphet;
@@ -495,6 +505,7 @@ public:
 	int GetPlotYieldChange(PlotTypes ePlot, YieldTypes eYieldType) const;
 #endif
 #if defined(MOD_BELIEF_NEW_EFFECT_FOR_SP)
+	int GetGreatPersonPoints(GreatPersonTypes eGreatPersonTypes, bool bCapital) const;
 	int GetYieldPerBirth(YieldTypes eYieldType) const;
 #endif
 	int GetResourceHappiness(ResourceTypes eResource) const;
@@ -541,6 +552,7 @@ private:
 	int m_iFaithBuildingTourism;
 
 #if defined(MOD_BELIEF_NEW_EFFECT_FOR_SP)
+	bool m_bGreatPersonPoints;
 	std::vector<int> m_vFreePromotionForProphet;
 	int m_iLandmarksTourismPercent;
 	int m_iHolyCityUnitExperence;

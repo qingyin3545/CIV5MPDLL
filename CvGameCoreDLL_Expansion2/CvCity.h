@@ -550,6 +550,7 @@ public:
 	void changeFreeExperience(int iChange);
 
 #if defined(MOD_BELIEF_NEW_EFFECT_FOR_SP)
+	int GetGreatPersonPointsFromReligion(GreatPersonTypes eGreatPersonTypes);
 	int GetReligionExtraMissionarySpreads(ReligionTypes eReligion);
 	int GetBeliefExtraMissionarySpreads(BeliefTypes eBelief);
 #endif	

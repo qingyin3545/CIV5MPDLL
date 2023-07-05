@@ -3281,6 +3281,14 @@ bool CityStrategyAIHelpers::IsTestCityStrategy_GoodGPCity(CvCity* pCity)
 				// GPP from Buildings
 				iGPPChange += pCity->GetCityCitizens()->GetBuildingGreatPeopleRateChanges(eSpecialist) * 100;
 
+#if defined(MOD_BELIEF_NEW_EFFECT_FOR_SP)
+				// GPP from Religion
+				if(MOD_BELIEF_NEW_EFFECT_FOR_SP)
+				{
+					iGPPChange += pCity->GetGreatPersonPointsFromReligion(GetGreatPersonFromSpecialist(eSpecialist)) * 100;
+				}
+#endif
+
 				if (iGPPChange > 0)
 				{
 					int iMod = 0;

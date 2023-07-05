@@ -548,6 +548,9 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 	Method(DoReallocateCitizens);
 	Method(DoVerifyWorkingPlots);
 	Method(IsNoAutoAssignSpecialists);
+#if defined(MOD_BELIEF_NEW_EFFECT_FOR_SP)
+	Method(GetGreatPersonPointFromReligion);
+#endif
 
 	Method(GetFocusType);
 	Method(SetFocusType);
@@ -3854,6 +3857,22 @@ int CvLuaCity::lIsNoAutoAssignSpecialists(lua_State* L)
 	return 1;
 }
 
+//------------------------------------------------------------------------------
+#if defined(MOD_BELIEF_NEW_EFFECT_FOR_SP)
+int CvLuaCity::lGetGreatPersonPointFromReligion(lua_State* L)
+{
+	CvCity* pkCity = GetInstance(L);
+	const SpecialistTypes eSpecialist = (SpecialistTypes)lua_tointeger(L, 2);
+	if(eSpecialist != NO_SPECIALIST)
+	{
+		lua_pushinteger(L, pkCity->GetGreatPersonPointsFromReligion(GetGreatPersonFromSpecialist(eSpecialist)));
+		return 1;
+	}
+
+	lua_pushinteger(L, 0);
+	return 1;
+}
+#endif
 //------------------------------------------------------------------------------
 //int GetFocusType();
 int CvLuaCity::lGetFocusType(lua_State* L)

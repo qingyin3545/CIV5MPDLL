@@ -58,6 +58,9 @@ CvBeliefEntry::CvBeliefEntry() :
 	m_iInquisitorPressureRetention(0),
 	m_iFaithBuildingTourism(0),
 #if defined(MOD_BELIEF_NEW_EFFECT_FOR_SP)
+	m_bGreatPersonPointsCapital(false),
+	m_bGreatPersonPointsPerCity(false),
+	m_piGreatPersonPoints(NULL),
 	m_iFreePromotionForProphet(NO_PROMOTION),
 	m_iLandmarksTourismPercent(0),
 	m_iHolyCityUnitExperence(0),
@@ -676,6 +679,26 @@ int CvBeliefEntry::GetPlotYieldChange(int i, int j) const
 }
 #endif
 #if defined(MOD_BELIEF_NEW_EFFECT_FOR_SP)
+//Great Person Points
+bool CvBeliefEntry::IsGreatPersonPointsCapital() const
+{
+	return m_bGreatPersonPointsCapital;
+}
+bool CvBeliefEntry::IsGreatPersonPointsPerCity() const
+{
+	return m_bGreatPersonPointsPerCity;
+}
+int CvBeliefEntry::GetGreatPersonPoints(int i, bool bCapital) const
+{
+	CvAssertMsg(i < GC.getNumGreatPersonInfos(), "Index out of bounds");
+	CvAssertMsg(i > -1, "Index out of bounds");
+	if(!m_piGreatPersonPoints) return 0;
+	int resValue = 0;
+	resValue += (m_bGreatPersonPointsPerCity ? m_piGreatPersonPoints[i] : 0);
+	resValue += (bCapital && m_bGreatPersonPointsCapital ? m_piGreatPersonPoints[i] : 0);
+
+	return resValue;
+}
 //Extra Free Promotion For Prophet
 int CvBeliefEntry::GetFreePromotionForProphet() const
 {
@@ -849,6 +872,8 @@ bool CvBeliefEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 	m_bConvertsBarbarians			  = kResults.GetBool("ConvertsBarbarians");
 	m_bFaithPurchaseAllGreatPeople	  = kResults.GetBool("FaithPurchaseAllGreatPeople");
 #if defined(MOD_BELIEF_NEW_EFFECT_FOR_SP)
+	m_bGreatPersonPointsCapital	  	  = kResults.GetBool("GreatPersonPointsCapital");
+	m_bGreatPersonPointsPerCity	  	  = kResults.GetBool("GreatPersonPointsPerCity");
 	m_bAllowYieldPerBirth	  		  = kResults.GetBool("AllowYieldPerBirth");
 #endif
 	//References
@@ -876,6 +901,9 @@ bool CvBeliefEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 	kUtility.SetYields(m_piYieldChangeNaturalWonder, "Belief_YieldChangeNaturalWonder", "BeliefType", szBeliefType);
 	kUtility.SetYields(m_piYieldChangeWorldWonder, "Belief_YieldChangeWorldWonder", "BeliefType", szBeliefType);
 	kUtility.SetYields(m_piYieldModifierNaturalWonder, "Belief_YieldModifierNaturalWonder", "BeliefType", szBeliefType);
+#if defined(MOD_BELIEF_NEW_EFFECT_FOR_SP)
+	kUtility.PopulateArrayByValue(m_piGreatPersonPoints, "GreatPersons", "Belief_GreatPersonPoints", "GreatPersonType", "BeliefType", szBeliefType, "Value");
+#endif
 	kUtility.PopulateArrayByValue(m_piMaxYieldModifierPerFollower, "Yields", "Belief_MaxYieldModifierPerFollower", "YieldType", "BeliefType", szBeliefType, "Max");
 	kUtility.PopulateArrayByValue(m_piResourceHappiness, "Resources", "Belief_ResourceHappiness", "ResourceType", "BeliefType", szBeliefType, "HappinessChange");
 	kUtility.PopulateArrayByValue(m_piResourceQuantityModifiers, "Resources", "Belief_ResourceQuantityModifiers", "ResourceType", "BeliefType", szBeliefType, "ResourceQuantityModifier");
@@ -1249,6 +1277,7 @@ CvReligionBeliefs::CvReligionBeliefs(const CvReligionBeliefs& source)
 	m_iFaithBuildingTourism = source.m_iFaithBuildingTourism;
 
 #if defined(MOD_BELIEF_NEW_EFFECT_FOR_SP)
+	m_bGreatPersonPoints = source.m_bGreatPersonPoints;
 	m_vFreePromotionForProphet = source.m_vFreePromotionForProphet;
 	m_iLandmarksTourismPercent = source.m_iLandmarksTourismPercent;
 	m_iHolyCityUnitExperence = source.m_iHolyCityUnitExperence;
@@ -1310,6 +1339,7 @@ void CvReligionBeliefs::Reset()
 	m_iFaithBuildingTourism = 0;
 
 #if defined(MOD_BELIEF_NEW_EFFECT_FOR_SP)
+	m_bGreatPersonPoints = false;
 	m_vFreePromotionForProphet.clear();
 	m_iLandmarksTourismPercent = 0;
 	m_iHolyCityUnitExperence = 0;
@@ -1374,6 +1404,7 @@ void CvReligionBeliefs::AddBelief(BeliefTypes eBelief)
 	m_iFaithBuildingTourism += belief->GetFaithBuildingTourism();
 
 #if defined(MOD_BELIEF_NEW_EFFECT_FOR_SP)
+	m_bGreatPersonPoints = m_bGreatPersonPoints || belief->IsGreatPersonPointsCapital() || belief->IsGreatPersonPointsPerCity();	
 	if(belief->GetFreePromotionForProphet() != NO_PROMOTION)
 	{
 		m_vFreePromotionForProphet.push_back(belief->GetFreePromotionForProphet());
@@ -2121,6 +2152,25 @@ int CvReligionBeliefs::GetPlotYieldChange(PlotTypes ePlot, YieldTypes eYieldType
 #endif
 
 #if defined(MOD_BELIEF_NEW_EFFECT_FOR_SP)
+/// Get Great Person Points from beliefs
+int CvReligionBeliefs::GetGreatPersonPoints(GreatPersonTypes eGreatPersonTypes, bool bCapital) const
+{
+	CvBeliefXMLEntries* pBeliefs = GC.GetGameBeliefs();
+	int rtnValue = 0;
+
+	for (BeliefList::const_iterator i = m_ReligionBeliefs.begin(); i != m_ReligionBeliefs.end(); i++)
+	{
+		CvBeliefEntry* pBeliefEntry = pBeliefs->GetEntry(*i);
+		int iValue = pBeliefEntry->GetGreatPersonPoints(eGreatPersonTypes, bCapital);
+		if (iValue != 0)
+		{
+			rtnValue += iValue;
+		}
+	}
+
+	return rtnValue;
+}
+
 /// Get yield modifier from beliefs from birth
 int CvReligionBeliefs::GetYieldPerBirth(YieldTypes eYieldType) const
 {
@@ -2361,6 +2411,7 @@ void CvReligionBeliefs::Read(FDataStream& kStream)
 	}
 
 #if defined(MOD_BELIEF_NEW_EFFECT_FOR_SP)
+	kStream >> m_bGreatPersonPoints;
 	kStream >> m_vFreePromotionForProphet;
 	kStream >> m_iLandmarksTourismPercent;
 	kStream >> m_iHolyCityUnitExperence;
@@ -2418,6 +2469,7 @@ void CvReligionBeliefs::Write(FDataStream& kStream) const
 	kStream << m_iFaithBuildingTourism;
 
 #if defined(MOD_BELIEF_NEW_EFFECT_FOR_SP)
+	kStream << m_bGreatPersonPoints;
 	kStream << m_vFreePromotionForProphet;
 	kStream << m_iLandmarksTourismPercent;
 	kStream << m_iHolyCityUnitExperence;

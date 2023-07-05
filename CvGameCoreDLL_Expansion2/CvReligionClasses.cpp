@@ -6368,6 +6368,7 @@ int CvReligionAI::ScoreBeliefAtCity(CvBeliefEntry* pEntry, CvCity* pCity)
 	int iFlavorDefense = pFlavorManager->GetPersonalityIndividualFlavor((FlavorTypes)GC.getInfoTypeForString("FLAVOR_DEFENSE"));
 	int iFlavorCityDefense = pFlavorManager->GetPersonalityIndividualFlavor((FlavorTypes)GC.getInfoTypeForString("FLAVOR_CITY_DEFENSE"));
 	int iFlavorHappiness = pFlavorManager->GetPersonalityIndividualFlavor((FlavorTypes)GC.getInfoTypeForString("FLAVOR_HAPPINESS"));
+	int iFlavorGP = pFlavorManager->GetPersonalityIndividualFlavor((FlavorTypes)GC.getInfoTypeForString("FLAVOR_GREAT_PEOPLE"));
 
 	int iHappinessNeedFactor = iFlavorOffense * 2 + iFlavorHappiness - iFlavorDefense;
 	if (iHappinessNeedFactor > 15)
@@ -6440,6 +6441,26 @@ int CvReligionAI::ScoreBeliefAtCity(CvBeliefEntry* pEntry, CvCity* pCity)
 		}
 		iRtnValue += iTempValue;
 	}
+
+#if defined(MOD_BELIEF_NEW_EFFECT_FOR_SP)
+	if(MOD_BELIEF_NEW_EFFECT_FOR_SP && pEntry->IsGreatPersonPointsCapital() || pEntry->IsGreatPersonPointsPerCity())
+	{
+		// Great People
+		iTempValue = 0;
+		for (int iJ = 0; iJ < GC.getNumGreatPersonInfos(); iJ++)
+		{
+			GreatPersonTypes eGP = (GreatPersonTypes)iJ;
+			if (eGP == NO_GREATPERSON)
+				continue;
+
+			if (pEntry->GetGreatPersonPoints(eGP,pCity->isCapital()) > 0)
+			{
+				iTempValue += (pEntry->GetGreatPersonPoints(eGP,pCity->isCapital()) * iFlavorGP) / 10;
+			}
+		}
+		iRtnValue += iTempValue;
+	}
+#endif
 
 	for(int iI = 0; iI < NUM_YIELD_TYPES; iI++)
 	{

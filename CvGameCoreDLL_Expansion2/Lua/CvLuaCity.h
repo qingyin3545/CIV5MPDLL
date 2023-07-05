@@ -468,6 +468,9 @@ protected:
 	static int lDoReallocateCitizens(lua_State* L);
 	static int lDoVerifyWorkingPlots(lua_State* L);
 	static int lIsNoAutoAssignSpecialists(lua_State* L);
+#if defined(MOD_BELIEF_NEW_EFFECT_FOR_SP)
+	static int lGetGreatPersonPointFromReligion(lua_State* L);
+#endif
 
 	static int lGetFocusType(lua_State* L);
 	static int lSetFocusType(lua_State* L);

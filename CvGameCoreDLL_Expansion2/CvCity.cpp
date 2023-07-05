@@ -10089,6 +10089,29 @@ void CvCity::changeFreeExperience(int iChange)
 
 //	--------------------------------------------------------------------------------
 #if defined(MOD_BELIEF_NEW_EFFECT_FOR_SP)
+int CvCity::GetGreatPersonPointsFromReligion(GreatPersonTypes eGreatPersonTypes)
+{
+	VALIDATE_OBJECT
+	int resValue = 0;
+	ReligionTypes eReligion = GetCityReligions()->GetReligiousMajority();
+	if(eReligion != NO_RELIGION)
+	{
+		const CvReligion* pkReligion = GC.getGame().GetGameReligions()->GetReligion(eReligion,getOwner());
+		if(pkReligion->m_Beliefs.HasGreatPersonPoints())
+		{
+			resValue += pkReligion->m_Beliefs.GetGreatPersonPoints(eGreatPersonTypes,isCapital());
+		}
+	}
+	
+	BeliefTypes eBelief = GetCityReligions()->GetSecondaryReligionPantheonBelief();
+	if(eReligion != NO_RELIGION)
+	{
+		resValue +=  GC.GetGameBeliefs()->GetEntry(eBelief)->GetGreatPersonPoints(eGreatPersonTypes,isCapital());
+	}
+
+	return resValue;
+}
+//	--------------------------------------------------------------------------------
 int CvCity::GetReligionExtraMissionarySpreads(ReligionTypes eReligion)
 {
 	VALIDATE_OBJECT
@@ -15774,10 +15797,7 @@ void CvCity::Purchase(UnitTypes eUnitType, BuildingTypes eBuildingType, ProjectT
 				if (MOD_BELIEF_NEW_EFFECT_FOR_SP)
 				{
 					pUnit->GetReligionData()->SetSpreadsLeft(pUnit->GetReligionData()->GetSpreadsLeft()+GetReligionExtraMissionarySpreads(GetCityReligions()->GetReligiousMajority()));
-					if(GetCityReligions()->IsSecondaryReligionActive())
-					{
-						pUnit->GetReligionData()->SetSpreadsLeft(pUnit->GetReligionData()->GetSpreadsLeft()+GetBeliefExtraMissionarySpreads(GetCityReligions()->GetSecondaryReligionPantheonBelief()));
-					}
+					pUnit->GetReligionData()->SetSpreadsLeft(pUnit->GetReligionData()->GetSpreadsLeft()+GetBeliefExtraMissionarySpreads(GetCityReligions()->GetSecondaryReligionPantheonBelief()));
 				}
 #endif
 				pUnit->GetReligionData()->SetReligiousStrength(iReligiousStrength);
