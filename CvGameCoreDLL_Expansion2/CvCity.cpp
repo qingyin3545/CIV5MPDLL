@@ -10104,7 +10104,7 @@ int CvCity::GetGreatPersonPointsFromReligion(GreatPersonTypes eGreatPersonTypes)
 	}
 	
 	BeliefTypes eBelief = GetCityReligions()->GetSecondaryReligionPantheonBelief();
-	if(eReligion != NO_RELIGION)
+	if(eBelief != NO_BELIEF)
 	{
 		resValue +=  GC.GetGameBeliefs()->GetEntry(eBelief)->GetGreatPersonPoints(eGreatPersonTypes,isCapital());
 	}
