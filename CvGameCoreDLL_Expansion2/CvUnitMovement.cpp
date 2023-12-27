@@ -135,6 +135,7 @@ void CvUnitMovement::GetCostsForMove(const CvUnit* pUnit, const CvPlot* pFromPlo
 			if (pToPlot->isWater())
 			{
 				int iTempCost = pToPlot->getWorkingCity()->getWaterTileMovementReduce();
+				iTempCost += GET_PLAYER(pOwner->getOwner()).GetWaterTileMovementReduceGlobal();
 				if (iTempCost > 0)
 				{
 					iRegularCost += iMoveDenominator * iTempCost;
@@ -144,6 +145,7 @@ void CvUnitMovement::GetCostsForMove(const CvUnit* pUnit, const CvPlot* pFromPlo
 			else
 			{
 				int iTempCost = pToPlot->getWorkingCity()->getLandTileMovementReduce();
+				iTempCost += GET_PLAYER(pOwner->getOwner()).GetLandTileMovementReduceGlobal();
 				if (iTempCost > 0)
 				{
 				  iRegularCost += iMoveDenominator * iTempCost;

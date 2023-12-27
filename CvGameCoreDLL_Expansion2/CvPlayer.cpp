@@ -389,6 +389,12 @@ CvPlayer::CvPlayer() :
 	, m_iGlobalCityStrengthMod("CvPlayer::m_iGlobalCityStrengthMod", m_syncArchive)
 	, m_iGlobalRangedStrikeModifier("CvPlayer::m_iGlobalRangedStrikeModifier", m_syncArchive)
 	, m_iLiberatedInfluence("CvPlayer::m_iLiberatedInfluence", m_syncArchive)
+	, m_iWaterTileDamageGlobal("CvPlayer::m_iWaterTileDamageGlobal", m_syncArchive)
+	, m_iWaterTileMovementReduceGlobal("CvPlayer::m_iWaterTileMovementReduceGlobal", m_syncArchive)
+	, m_iWaterTileTurnDamageGlobal("CvPlayer::m_iWaterTileTurnDamageGlobal", m_syncArchive)
+	, m_iLandTileDamageGlobal("CvPlayer::m_iLandTileDamageGlobal", m_syncArchive)
+	, m_iLandTileMovementReduceGlobal("CvPlayer::m_iLandTileMovementReduceGlobal", m_syncArchive)
+	, m_iLandTileTurnDamageGlobal("CvPlayer::m_iLandTileTurnDamageGlobal", m_syncArchive)
 #endif
 
 	, m_iPopRushHurryCount("CvPlayer::m_iPopRushHurryCount", m_syncArchive)
@@ -1170,6 +1176,12 @@ void CvPlayer::uninit()
 	m_iGlobalCityStrengthMod = 0;
 	m_iGlobalRangedStrikeModifier = 0;
 	m_iLiberatedInfluence = 0;
+	m_iWaterTileDamageGlobal = 0;
+	m_iWaterTileMovementReduceGlobal = 0;
+	m_iWaterTileTurnDamageGlobal = 0;
+	m_iLandTileDamageGlobal = 0;
+	m_iLandTileMovementReduceGlobal = 0;
+	m_iLandTileTurnDamageGlobal = 0;
 #endif
 
 	m_iBorderObstacleCount = 0;
@@ -5545,6 +5557,7 @@ void CvPlayer::DoUnitReset()
 			{
 
 				int iTempDamage = pUnitPlot->getWorkingCity()->getWaterTileTurnDamage();
+				iTempDamage += GET_PLAYER(pOwner->getOwner()).GetWaterTileTurnDamageGlobal();
 				if (iTempDamage > 0)
 				{
 					pLoopUnit->changeDamage(iTempDamage, pUnitPlot->getOwner(), 0.0f);
@@ -5554,6 +5567,7 @@ void CvPlayer::DoUnitReset()
 			else
 			{
 				int iTempDamage = pUnitPlot->getWorkingCity()->getLandTileTurnDamage();
+				iTempDamage += GET_PLAYER(pOwner->getOwner()).GetLandTileTurnDamageGlobal();
 				if (iTempDamage > 0)
 				{
 					pLoopUnit->changeDamage(iTempDamage, pUnitPlot->getOwner(), 0.0f);
@@ -9852,6 +9866,13 @@ void CvPlayer::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst
 	ChangeCityStrengthMod(pBuildingInfo->GetGlobalCityStrengthMod()* iChange);
 	ChangeGlobalRangedStrikeModifier(pBuildingInfo->GetGlobalRangedStrikeModifier()* iChange);
 	ChangeLiberatedInfluence(pBuildingInfo->GetLiberatedInfluence()* iChange);
+
+	ChangeWaterTileDamageGlobal(pBuildingInfo->GetWaterTileDamageGlobal()* iChange);
+	ChangeWaterTileMovementReduceGlobal(pBuildingInfo->GetWaterTileMovementReduceGlobal()* iChange);
+	ChangeWaterTileTurnDamageGlobal(pBuildingInfo->GetWaterTileTurnDamageGlobal()* iChange);
+	ChangeLandTileDamageGlobal(pBuildingInfo->GetLandTileDamageGlobal()* iChange);
+	ChangeLandTileMovementReduceGlobal(pBuildingInfo->GetLandTileMovementReduceGlobal()* iChange);
+	ChangeLandTileTurnDamageGlobal(pBuildingInfo->GetLandTileTurnDamageGlobal()* iChange);
 #endif
 
 #if defined(MOD_TROOPS_AND_CROPS_FOR_SP)
@@ -29434,6 +29455,127 @@ void CvPlayer::ChangeLiberatedInfluence(int iChange)
 	if (iChange != 0)
 	{
 		SetLiberatedInfluence(GetLiberatedInfluence() + iChange);
+	}
+}
+
+
+
+
+//	--------------------------------------------------------------------------------
+int CvPlayer::GetWaterTileDamageGlobal() const
+{
+	return m_iWaterTileDamageGlobal;
+}
+
+void CvPlayer::SetWaterTileDamageGlobal(int iValue)
+{
+	CvAssert(iValue >= 0);
+	m_iWaterTileDamageGlobal = iValue;
+}
+
+void CvPlayer::ChangeWaterTileDamageGlobal(int iChange)
+{
+	if (iChange != 0)
+	{
+		SetWaterTileDamageGlobal(GetWaterTileDamageGlobal() + iChange);
+	}
+}
+
+//	--------------------------------------------------------------------------------
+int CvPlayer::GetWaterTileMovementReduceGlobal() const
+{
+	return m_iWaterTileMovementReduceGlobal;
+}
+
+void CvPlayer::SetWaterTileMovementReduceGlobal(int iValue)
+{
+	CvAssert(iValue >= 0);
+	m_iWaterTileMovementReduceGlobal = iValue;
+}
+
+void CvPlayer::ChangeWaterTileMovementReduceGlobal(int iChange)
+{
+	if (iChange != 0)
+	{
+		SetWaterTileMovementReduceGlobal(GetWaterTileMovementReduceGlobal() + iChange);
+	}
+}
+//	--------------------------------------------------------------------------------
+int CvPlayer::GetWaterTileTurnDamageGlobal() const
+{
+	return m_iWaterTileTurnDamageGlobal;
+}
+
+void CvPlayer::SetWaterTileTurnDamageGlobal(int iValue)
+{
+	CvAssert(iValue >= 0);
+	m_iWaterTileTurnDamageGlobal = iValue;
+}
+
+void CvPlayer::ChangeWaterTileTurnDamageGlobal(int iChange)
+{
+	if (iChange != 0)
+	{
+		SetWaterTileTurnDamageGlobal(GetWaterTileTurnDamageGlobal() + iChange);
+	}
+}
+
+//	--------------------------------------------------------------------------------
+int CvPlayer::GetLandTileDamageGlobal() const
+{
+	return m_iLandTileDamageGlobal;
+}
+
+void CvPlayer::SetLandTileDamageGlobal(int iValue)
+{
+	CvAssert(iValue >= 0);
+	m_iLandTileDamageGlobal = iValue;
+}
+
+void CvPlayer::ChangeLandTileDamageGlobal(int iChange)
+{
+	if (iChange != 0)
+	{
+		SetLandTileDamageGlobal(GetLandTileDamageGlobal() + iChange);
+	}
+}
+
+//	--------------------------------------------------------------------------------
+int CvPlayer::GetLandTileMovementReduceGlobal() const
+{
+	return m_iLandTileMovementReduceGlobal;
+}
+
+void CvPlayer::SetLandTileMovementReduceGlobal(int iValue)
+{
+	CvAssert(iValue >= 0);
+	m_iLandTileMovementReduceGlobal = iValue;
+}
+
+void CvPlayer::ChangeLandTileMovementReduceGlobal(int iChange)
+{
+	if (iChange != 0)
+	{
+		SetLandTileMovementReduceGlobal(GetLandTileMovementReduceGlobal() + iChange);
+	}
+}
+//	--------------------------------------------------------------------------------
+int CvPlayer::GetLandTileTurnDamageGlobal() const
+{
+	return m_iLandTileTurnDamageGlobal;
+}
+
+void CvPlayer::SetLandTileTurnDamageGlobal(int iValue)
+{
+	CvAssert(iValue >= 0);
+	m_iLandTileTurnDamageGlobal = iValue;
+}
+
+void CvPlayer::ChangeLandTileTurnDamageGlobal(int iChange)
+{
+	if (iChange != 0)
+	{
+		SetLandTileTurnDamageGlobal(GetLandTileTurnDamageGlobal() + iChange);
 	}
 }
 #endif

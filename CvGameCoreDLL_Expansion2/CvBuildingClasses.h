@@ -216,6 +216,14 @@ public:
 	int GetLandTileDamage() const;
 	int GetLandTileMovementReduce() const;
 	int GetLandTileTurnDamage() const;
+
+
+	int GetWaterTileDamageGlobal() const;
+	int GetWaterTileMovementReduceGlobal() const;
+	int GetWaterTileTurnDamageGlobal() const;
+	int GetLandTileDamageGlobal() const;
+	int GetLandTileMovementReduceGlobal() const;
+	int GetLandTileTurnDamageGlobal() const;
 #endif
 
 	int GetYieldPerFriend(int i) const;
@@ -613,12 +621,20 @@ private:
 
 	int m_iGlobalCityStrengthMod;
 	int m_iGlobalRangedStrikeModifier;
+
 	int m_iWaterTileDamage;
 	int m_iWaterTileMovementReduce;
 	int m_iWaterTileTurnDamage;
 	int m_iLandTileDamage;
 	int m_iLandTileMovementReduce;
 	int m_iLandTileTurnDamage;
+
+	int m_iWaterTileDamageGlobal;
+	int m_iWaterTileMovementReduceGlobal;
+	int m_iWaterTileTurnDamageGlobal;
+	int m_iLandTileDamageGlobal;
+	int m_iLandTileMovementReduceGlobal;
+	int m_iLandTileTurnDamageGlobal;
 #endif
 
 	int m_iNukeInterceptionChance;

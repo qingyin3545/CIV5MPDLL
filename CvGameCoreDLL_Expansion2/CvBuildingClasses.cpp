@@ -171,6 +171,13 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_iLandTileDamage(0),
 	m_iLandTileMovementReduce(0),
 	m_iLandTileTurnDamage(0),
+
+	m_iWaterTileDamageGlobal(0),
+	m_iWaterTileMovementReduceGlobal(0),
+	m_iWaterTileTurnDamageGlobal(0),
+	m_iLandTileDamageGlobal(0),
+	m_iLandTileMovementReduceGlobal(0),
+	m_iLandTileTurnDamageGlobal(0),
 #endif
 
 	m_iNukeInterceptionChance(0),
@@ -515,6 +522,13 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	m_iLandTileDamage = kResults.GetInt("LandTileDamage");
 	m_iLandTileMovementReduce = kResults.GetInt("LandTileMovementReduce");
 	m_iLandTileTurnDamage = kResults.GetInt("LandTileTurnDamage");
+
+	m_iWaterTileDamageGlobal = kResults.GetInt("WaterTileDamageGlobal");
+	m_iWaterTileMovementReduceGlobal = kResults.GetInt("WaterTileMovementReduceGlobal");
+	m_iWaterTileTurnDamageGlobal = kResults.GetInt("WaterTileTurnDamageGlobal");
+	m_iLandTileDamageGlobal = kResults.GetInt("LandTileDamageGlobal");
+	m_iLandTileMovementReduceGlobal = kResults.GetInt("LandTileMovementReduceGlobal");
+	m_iLandTileTurnDamageGlobal = kResults.GetInt("LandTileTurnDamageGlobal");
 #endif
 
 	m_iNukeInterceptionChance = kResults.GetInt("NukeInterceptionChance");
@@ -2199,6 +2213,37 @@ int CvBuildingEntry::GetLandTileMovementReduce() const
 int CvBuildingEntry::GetLandTileTurnDamage() const
 {
 	return m_iLandTileTurnDamage;
+}
+
+
+
+
+
+
+int CvBuildingEntry::GetWaterTileDamageGlobal() const
+{
+	return m_iWaterTileDamageGlobal;
+}
+int CvBuildingEntry::GetWaterTileMovementReduceGlobal() const
+{
+	return m_iWaterTileMovementReduceGlobal;
+}
+int CvBuildingEntry::GetWaterTileTurnDamageGlobal() const
+{
+	return m_iWaterTileTurnDamageGlobal;
+}
+
+int CvBuildingEntry::GetLandTileDamageGlobal() const
+{
+	return m_iLandTileDamageGlobal;
+}
+int CvBuildingEntry::GetLandTileMovementReduceGlobal() const
+{
+	return m_iLandTileMovementReduceGlobal;
+}
+int CvBuildingEntry::GetLandTileTurnDamageGlobal() const
+{
+	return m_iLandTileTurnDamageGlobal;
 }
 #endif
 

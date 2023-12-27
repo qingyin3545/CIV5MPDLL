@@ -1692,6 +1692,30 @@ public:
 	int GetLiberatedInfluence() const;
 	void SetLiberatedInfluence(int iValue);
 	void ChangeLiberatedInfluence(int iChange);
+
+	int GetWaterTileDamageGlobal() const;
+	void SetWaterTileDamageGlobal(int iValue);
+	void ChangeWaterTileDamageGlobal(int iChange);
+
+	int GetWaterTileMovementReduceGlobal() const;
+	void SetWaterTileMovementReduceGlobal(int iValue);
+	void ChangeWaterTileMovementReduceGlobal(int iChange);
+
+	int GetWaterTileTurnDamageGlobal() const;
+	void SetWaterTileTurnDamageGlobal(int iValue);
+	void ChangeWaterTileTurnDamageGlobal(int iChange);
+
+	int GetLandTileDamageGlobal() const;
+	void SetLandTileDamageGlobal(int iValue);
+	void ChangeLandTileDamageGlobal(int iChange);
+
+	int GetLandTileMovementReduceGlobal() const;
+	void SetLandTileMovementReduceGlobal(int iValue);
+	void ChangeLandTileMovementReduceGlobal(int iChange);
+
+	int GetLandTileTurnDamageGlobal() const;
+	void SetLandTileTurnDamageGlobal(int iValue);
+	void ChangeLandTileTurnDamageGlobal(int iChange);
 #endif
 
 	int GetCityGrowthMod() const;
@@ -2488,6 +2512,13 @@ protected:
 	FAutoVariable<int, CvPlayer> m_iGlobalCityStrengthMod;
 	FAutoVariable<int, CvPlayer> m_iGlobalRangedStrikeModifier;
 	FAutoVariable<int, CvPlayer> m_iLiberatedInfluence;
+
+	FAutoVariable<int, CvPlayer> m_iWaterTileDamageGlobal;
+	FAutoVariable<int, CvPlayer> m_iWaterTileMovementReduceGlobal;
+	FAutoVariable<int, CvPlayer> m_iWaterTileTurnDamageGlobal;
+	FAutoVariable<int, CvPlayer> m_iLandTileDamageGlobal;
+	FAutoVariable<int, CvPlayer> m_iLandTileMovementReduceGlobal;
+	FAutoVariable<int, CvPlayer> m_iLandTileTurnDamageGlobal;
 #endif
 
 #if defined(MOD_TRAITS_CITY_WORKING) || defined(MOD_BUILDINGS_CITY_WORKING) || defined(MOD_POLICIES_CITY_WORKING) || defined(MOD_TECHS_CITY_WORKING)
