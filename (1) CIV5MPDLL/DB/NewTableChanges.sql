@@ -22,7 +22,7 @@ ALTER TABLE UnitPromotions ADD COLUMN 'ExtraResourceCombatModifier' INTEGER DEFA
 ALTER TABLE UnitPromotions ADD COLUMN 'ExtraResourceCombatModifierMax' INTEGER DEFAULT -1;
 ALTER TABLE UnitPromotions ADD COLUMN 'ExtraHappinessCombatModifier' INTEGER DEFAULT 0;
 ALTER TABLE UnitPromotions ADD COLUMN 'ExtraHappinessCombatModifierMax' INTEGER DEFAULT -1;
-
+ALTER TABLE UnitPromotions ADD COLUMN 'IgnoreDamageChance' INTEGER DEFAULT 0;
 ALTER TABLE UnitPromotions ADD COLUMN 'GetGroundAttackDamage' INTEGER DEFAULT 0;
 ALTER TABLE UnitPromotions ADD AirInterceptRangeChange INTEGER DEFAULT 0;
 ALTER TABLE UnitPromotions ADD COLUMN 'GetGroundAttackRange' INTEGER DEFAULT 0;
