@@ -231,6 +231,15 @@ void CvUnitCombat::GenerateMeleeCombatInfo(CvUnit& kAttacker, CvUnit* pkDefender
 		ctx.piDefenseInflictDamage = &iDefenderDamageInflicted;
 		ctx.bMelee = true;
 		InterveneInflictDamage(&ctx);
+
+		if (pkDefender->GetIgnoreDamageChance() > 0)
+		{
+			int iRand = GC.getGame().getJonRandNum(100, "Ignore Damage Chance");
+			if (iRand <= pkDefender->GetIgnoreDamageChance())
+			{
+				iAttackerDamageInflicted = 0;
+			}
+		}
 #endif
 
 
@@ -751,6 +760,15 @@ void CvUnitCombat::GenerateRangedCombatInfo(CvUnit& kAttacker, CvUnit* pkDefende
 		ctx.piAttackInflictDamage = &iDamage;
 		ctx.bRanged = true;
 		InterveneInflictDamage(&ctx);
+
+		if (pkDefender->GetIgnoreDamageChance() > 0)
+		{
+			int iRand = GC.getGame().getJonRandNum(100, "Ignore Damage Chance");
+			if (iRand <= pkDefender->GetIgnoreDamageChance())
+			{
+				iDamage = 0;
+			}
+		}
 #endif
 
 
@@ -926,6 +944,15 @@ void CvUnitCombat::GenerateRangedCombatInfo(CvCity& kAttacker, CvUnit* pkDefende
 		ctx.piAttackInflictDamage = &iDamage;
 		ctx.bRanged = true;
 		InterveneInflictDamage(&ctx);
+
+		if (pkDefender->GetIgnoreDamageChance() > 0)
+		{
+			int iRand = GC.getGame().getJonRandNum(100, "Ignore Damage Chance");
+			if (iRand <= pkDefender->GetIgnoreDamageChance())
+			{
+				iDamage = 0;
+			}
+		}
 #endif
 
 #if defined(MOD_UNITS_MAX_HP)
@@ -1682,6 +1709,15 @@ void CvUnitCombat::GenerateAirCombatInfo(CvUnit& kAttacker, CvUnit* pkDefender, 
 		ctx.piDefenseInflictDamage = &iDefenderDamageInflicted;
 		ctx.bAirCombat = true;
 		InterveneInflictDamage(&ctx);
+
+		if (pkDefender->GetIgnoreDamageChance() > 0)
+		{
+			int iRand = GC.getGame().getJonRandNum(100, "Ignore Damage Chance");
+			if (iRand <= pkDefender->GetIgnoreDamageChance())
+			{
+				iDefenderDamageInflicted = 0;
+			}
+		}
 #endif
 
 #if defined(MOD_UNITS_MAX_HP)
@@ -4512,16 +4548,6 @@ void UnitDamageChangeInterveneNoCondition(CvUnit* thisUnit, int* enemyInflictDam
 	{
 		*enemyInflictDamage += thisUnit->getChangeDamageValue();
 	}
-
-	if (thisUnit->GetIgnoreDamageChance() > 0 )
-	{
-	    int iRand = GC.getGame().getJonRandNum(100, "Ignore Damage Chance");
-		if (iRand <= thisUnit->GetIgnoreDamageChance())
-		{
-			*enemyInflictDamage = 0;
-		}
-	}
-
 }
 
 void UnitDamageChangeIntervene(InflictDamageContext* ctx)
@@ -4797,6 +4823,15 @@ void CvUnitCombat::DoNukeDamage(const CvCombatInfo& kCombatInfo)
 								{
 									iNukeDamage *= std::max(0, (pLoopCity->getNukeModifier() + 100));
 									iNukeDamage /= 100;
+								}
+
+								if (pLoopUnit->GetIgnoreDamageChance() > 0)
+								{
+									int iRand = GC.getGame().getJonRandNum(100, "Ignore Damage Chance");
+									if (iRand <= pLoopUnit->GetIgnoreDamageChance())
+									{
+										iNukeDamage = 0;
+									}
 								}
 
 								ICvUserInterface2* pkDLLInterface = GC.GetEngineUserInterface();
