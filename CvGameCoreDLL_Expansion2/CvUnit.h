@@ -1139,31 +1139,13 @@ public:
 	void changeExtraWithdrawal(int iChange);
 
 #if defined(MOD_API_UNIFIED_YIELDS_MORE)
-	int getPlagueChance() const;
-	void changePlagueChance(int iChange);
-
-	int getPlaguePromotionID() const;
-	void setPlagued(bool bValue);
-	bool isPlagued() const;
-
-	int getPlagueID() const;
-	void setPlagueID(int iValue);
-
-	int getPlaguePriority() const;
-	void setPlaguePriority(int iValue);
-
-	int getPlagueIDImmunity() const;
-	void setPlagueIDImmunity(int iValue);
-
-	int getPlaguePromotion() const;
-	void setPlaguePromotion(int iValue);
-
+	// Plague Stuff
+	std::vector<int> GetInflictedPlagueIDs() const;
+	PromotionTypes GetInflictedPlague(int iPlagueID, int& iPlagueChance) const;
+	bool HasPlague(int iPlagueID = -1, int iMinimumPriority = -1) const;
+	void RemovePlague(int iPlagueID = -1, int iHigherPriority = -1);
+	bool ImmuneToPlague(int iPlagueID = -1) const;
 	bool CanPlague(CvUnit* pOtherUnit) const;
-
-	void DoPlagueTransfer(CvUnit& defender);
-
-	bool IsImmuePlague() const;
-	void ChangeImmuePlagueCount(int iChange);
 #endif
 
 	int getExtraEnemyHeal() const;
@@ -1752,6 +1734,9 @@ public:
 
 	int GetMoraleBreakChance() const;
 	void ChangeMoraleBreakChance(int iChange);
+
+	int GetIgnoreDamageChance() const;
+	void ChangeIgnoreDamageChance(int iChange);
 	int GetDamageAoEFortified() const;
 	void ChangeDamageAoEFortified(int iChange);
 
@@ -2127,16 +2112,6 @@ protected:
 	FAutoVariable<int, CvUnit> m_iExtraChanceFirstStrikes;
 	FAutoVariable<int, CvUnit> m_iExtraWithdrawal;
 
-#if defined(MOD_API_UNIFIED_YIELDS_MORE)
-	int m_iPlagueChance;
-	bool m_bIsPlagued;
-	int m_iPlagueID;
-	int m_iPlaguePriority;
-	int m_iPlagueIDImmunity;
-	int m_iPlaguePromotion;
-	int m_iImmuePlague;
-#endif
-
 	FAutoVariable<int, CvUnit> m_iExtraEnemyHeal;
 	FAutoVariable<int, CvUnit> m_iExtraNeutralHeal;
 	FAutoVariable<int, CvUnit> m_iExtraFriendlyHeal;
@@ -2441,6 +2416,7 @@ protected:
 	int m_iRangedSupportFireMod;
 	int m_iBarbCombatBonus;
 	int m_iCanMoraleBreak;
+	int m_iIgnoreDamageChance;
 	int m_iDamageAoEFortified;
 	int m_iWorkRateMod;
 	int m_iTurnDamage;
@@ -2564,6 +2540,10 @@ protected:
 	mutable uint m_uiLastPathCacheDest;
 
 	bool canAdvance(const CvPlot& pPlot, int iThreshold) const;
+
+#if defined(MOD_BALANCE_CORE)
+	void DoPlagueTransfer(CvUnit& defender);
+#endif
 
 	CvUnit* airStrikeTarget(CvPlot& pPlot, bool bNoncombatAllowed) const;
 

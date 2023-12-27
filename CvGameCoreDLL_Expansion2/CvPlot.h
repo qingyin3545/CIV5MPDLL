@@ -897,6 +897,10 @@ public:
 	int CalculateCorruptionScoreFromTrait(PlayerTypes ePlayer) const;
 	int CalculateCorruptionScoreModifierFromTrait(PlayerTypes ePlayer) const;
 #endif
+
+	/// Constructs a seed value from the plot suitable for pseudo-random number generation.
+	CvSeeder GetPseudoRandomSeed() const;
+
 protected:
 	class PlotBoolField
 	{

@@ -335,6 +335,7 @@ protected:
 	LUAAPIEXTN(ExtraTerrainDamage, bool);
 	LUAAPIEXTN(ExtraFeatureDamage, bool);
 #endif
+	LUAAPIEXTN(GetMovementRules, int);
 #if defined(MOD_API_LUA_EXTENSIONS) && defined(MOD_PROMOTIONS_IMPROVEMENT_BONUS)
 	LUAAPIEXTN(GetNearbyImprovementCombatBonus, int);
 	LUAAPIEXTN(GetNearbyImprovementBonusRange, int);
@@ -364,7 +365,6 @@ protected:
 #endif
 
 	static int lIsNukeImmune(lua_State* L);
-	static int lIsImmuePlague(lua_State* L);
 	static int lMaxInterceptionProbability(lua_State* L);
 	static int lCurrInterceptionProbability(lua_State* L);
 	static int lEvasionProbability(lua_State* L);

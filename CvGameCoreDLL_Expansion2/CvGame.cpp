@@ -9318,17 +9318,72 @@ int CvGame::getAsyncRandNum(int iNum, const char* pszLog)
 
 
 //	--------------------------------------------------------------------------------
+uint CvGame::randCore(const CvSeeder& extraSeed) const
+{
+	const CvSeeder mapSeed = CvSeeder::fromRaw(CvPreGame::mapRandomSeed());
+	const CvSeeder gameSeed = CvSeeder(getGameTurn());
+	return mapSeed.mix(gameSeed).mix(extraSeed);
+}
+
+uint CvGame::urandLimitExclusive(uint limit, const CvSeeder& extraSeed) const
+{
+	ASSERT(limit != 0);
+	const uint rand = randCore(extraSeed);
+	return rand % limit;
+}
+
+uint CvGame::urandLimitInclusive(uint limit, const CvSeeder& extraSeed) const
+{
+	const uint rand = randCore(extraSeed);
+	if (limit == UINT_MAX)
+	{
+		return rand;
+	}
+	else
+	{
+		return rand % (limit + 1);
+	}
+}
+
+uint CvGame::urandRangeExclusive(uint min, uint max, const CvSeeder& extraSeed) const
+{
+	ASSERT(min < max);
+	return urandLimitExclusive(max - min, extraSeed) + min;
+}
+
+uint CvGame::urandRangeInclusive(uint min, uint max, const CvSeeder& extraSeed) const
+{
+	ASSERT(min <= max);
+	return urandLimitInclusive(max - min, extraSeed) + min;
+}
+
+int CvGame::randRangeExclusive(int min, int max, const CvSeeder& extraSeed) const
+{
+	ASSERT(min < max);
+	return static_cast<int>(urandLimitExclusive(static_cast<uint>(max) - static_cast<uint>(min), extraSeed) + static_cast<uint>(min));
+}
+
+int CvGame::randRangeInclusive(int min, int max, const CvSeeder& extraSeed) const
+{
+	ASSERT(min <= max);
+	return static_cast<int>(urandLimitInclusive(static_cast<uint>(max) - static_cast<uint>(min), extraSeed) + static_cast<uint>(min));
+}
+
+
+
+
+//	--------------------------------------------------------------------------------
 // Get a fake random number which depends only on game state
 // for small numbers (e.g. direction rolls) this should be good enough
 // most importantly, it should reduce desyncs in multiplayer
 
 //this is the pcg hash function which is supposed to be better than wang or jenkins; not that it matters much ...
-unsigned long hash32(uint input)
-{
-	unsigned long state = input * 747796405u + 2891336453u;
-	unsigned long word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
-	return (word >> 22u) ^ word;
-}
+///unsigned long hash32(uint input)
+//{
+	//unsigned long state = input * 747796405u + 2891336453u;
+	//unsigned long word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+	//return (word >> 22u) ^ word;
+//}
 
 static unsigned long giLastState = 0;
 

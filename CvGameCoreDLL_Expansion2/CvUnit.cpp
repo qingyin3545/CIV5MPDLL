@@ -223,17 +223,6 @@ CvUnit::CvUnit() :
 	, m_iExtraFirstStrikes("CvUnit::m_iExtraFirstStrikes", m_syncArchive)
 	, m_iExtraChanceFirstStrikes("CvUnit::m_iExtraChanceFirstStrikes", m_syncArchive)
 	, m_iExtraWithdrawal("CvUnit::m_iExtraWithdrawal", m_syncArchive)
-
-#if defined(MOD_API_UNIFIED_YIELDS_MORE)
-	, m_iPlagueChance()
-	, m_bIsPlagued()
-	, m_iPlagueID()
-	, m_iPlaguePriority()
-	, m_iPlagueIDImmunity()
-	, m_iPlaguePromotion()
-	, m_iImmuePlague()
-#endif
-
 	, m_iExtraEnemyHeal("CvUnit::m_iExtraEnemyHeal", m_syncArchive)
 	, m_iExtraNeutralHeal("CvUnit::m_iExtraNeutralHeal", m_syncArchive)
 	, m_iExtraFriendlyHeal("CvUnit::m_iExtraFriendlyHeal", m_syncArchive)
@@ -449,6 +438,7 @@ CvUnit::CvUnit() :
 		, m_iBarbCombatBonus(0)
 		, m_iDamageAoEFortified(0)
 		, m_iCanMoraleBreak(0)
+		, m_iIgnoreDamageChance(0)
 		, m_iWorkRateMod(0)
 		, m_iTurnDamage(0)
 		, m_iTurnDamagePercent(0)
@@ -1201,16 +1191,6 @@ void CvUnit::reset(int iID, UnitTypes eUnit, PlayerTypes eOwner, bool bConstruct
 	m_iExtraFirstStrikes = 0;
 	m_iExtraChanceFirstStrikes = 0;
 	m_iExtraWithdrawal = 0;
-
-#if defined(MOD_API_UNIFIED_YIELDS_MORE)
-	m_iPlagueChance = 0;
-	m_bIsPlagued = false;
-	m_iPlagueID = 0;
-	m_iPlaguePriority = 0;
-	m_iPlagueIDImmunity = -1;
-	m_iPlaguePromotion = NO_PROMOTION;
-	m_iImmuePlague = 0;
-#endif
 	m_iExtraEnemyHeal = 0;
 	m_iExtraNeutralHeal = 0;
 	m_iExtraFriendlyHeal = 0;
@@ -1320,6 +1300,7 @@ void CvUnit::reset(int iID, UnitTypes eUnit, PlayerTypes eOwner, bool bConstruct
 	m_iBarbCombatBonus = 0;
 	m_iDamageAoEFortified = 0;
 	m_iCanMoraleBreak = 0;
+	m_iIgnoreDamageChance = 0;
 	m_iWorkRateMod = 0;
 	m_iTurnDamage = 0;
 	m_iTurnDamagePercent = 0;
@@ -6627,6 +6608,20 @@ void CvUnit::ChangeMoraleBreakChance(int iChange)
 {
 	m_iCanMoraleBreak += iChange;
 }
+
+
+//	--------------------------------------------------------------------------------
+int CvUnit::GetIgnoreDamageChance() const
+{
+	return m_iIgnoreDamageChance;
+}
+
+//	--------------------------------------------------------------------------------
+void CvUnit::ChangeIgnoreDamageChance(int iChange)
+{
+	m_iIgnoreDamageChance += iChange;
+}
+
 //	--------------------------------------------------------------------------------
 int CvUnit::GetWorkRateMod() const
 {
@@ -20679,6 +20674,7 @@ int CvUnit::setDamage(int iNewValue, PlayerTypes ePlayer, float fAdditionalTextD
 	int iOldValue;
 	float fDelay = 0.0f + fAdditionalTextDelay;
 
+
 	iOldValue = getDamage();
 
 	if(GetCurrHitPoints() == GetMaxHitPoints() && iNewValue < GetMaxHitPoints()) 
@@ -22100,107 +22096,156 @@ void CvUnit::changeExtraWithdrawal(int iChange)
 
 #if defined(MOD_API_UNIFIED_YIELDS_MORE)
 //	--------------------------------------------------------------------------------
-int CvUnit::getPlagueChance() const
+/// Returns a vector containing the plagues that a unit can attempt to inflict
+vector<int> CvUnit::GetInflictedPlagueIDs() const
 {
-	VALIDATE_OBJECT
-	return m_iPlagueChance;
-}
-//	--------------------------------------------------------------------------------
-void CvUnit::changePlagueChance(int iChange)
-{
-	VALIDATE_OBJECT
-	m_iPlagueChance = min(100, (m_iPlagueChance + iChange));
-	CvAssert(getPlagueChance() >= 0);
-}
-//	--------------------------------------------------------------------------------
-bool CvUnit::isPlagued() const
-{
-	VALIDATE_OBJECT
-	return m_bIsPlagued;
-}
-//	--------------------------------------------------------------------------------
-void CvUnit::setPlagued(bool bValue)
-{
-	VALIDATE_OBJECT
-	m_bIsPlagued = bValue;
-}
-//	--------------------------------------------------------------------------------
-int CvUnit::getPlaguePromotionID() const
-{
-	VALIDATE_OBJECT
-	return m_iPlaguePromotion;
-}
+	vector<int> result;
 
-void CvUnit::setPlagueID(int iValue)
-{
-	VALIDATE_OBJECT
-	m_iPlagueID = iValue;
-}
-//	--------------------------------------------------------------------------------
-int CvUnit::getPlagueID() const
-{
-	VALIDATE_OBJECT
-	return m_iPlagueID;
-}
+	for (int iLoop = 0; iLoop < GC.getNumPromotionInfos(); iLoop++)
+	{
+		const PromotionTypes ePromotion = static_cast<PromotionTypes>(iLoop);
+		CvPromotionEntry* pkPromotionInfo = GC.getPromotionInfo(ePromotion);
+		if (pkPromotionInfo && pkPromotionInfo->GetPlagueChance() > 0)
+		{
+			PromotionTypes eInflictedPlague = (PromotionTypes)pkPromotionInfo->GetPlaguePromotion();
+			if (eInflictedPlague != NO_PROMOTION && isHasPromotion(ePromotion))
+			{
+				CvPromotionEntry* pkPlaguePromotionInfo = GC.getPromotionInfo(eInflictedPlague);
+				if (pkPlaguePromotionInfo)
+				{
+					int iPlagueID = pkPlaguePromotionInfo->GetPlagueID();
+					if (std::find(result.begin(), result.end(), iPlagueID) == result.end())
+						result.push_back(iPlagueID);
+				}
+			}
+		}
+	}
 
-void CvUnit::setPlaguePriority(int iValue)
-{
-	VALIDATE_OBJECT
-	m_iPlaguePriority = iValue;
-}
-
-//	--------------------------------------------------------------------------------
-int CvUnit::getPlagueIDImmunity() const
-{
-	VALIDATE_OBJECT
-	return m_iPlagueIDImmunity;
-}
-
-void CvUnit::setPlagueIDImmunity(int iValue)
-{
-	VALIDATE_OBJECT
-	m_iPlagueIDImmunity = iValue;
-}
-
-//	--------------------------------------------------------------------------------
-int CvUnit::getPlaguePriority() const
-{
-	VALIDATE_OBJECT
-	return m_iPlaguePriority;
-}
-
-int CvUnit::getPlaguePromotion() const
-{
-	return m_iPlaguePromotion;
-}
-void CvUnit::setPlaguePromotion(int iValue)
-{
-	m_iPlaguePromotion = iValue;
+	return result;
 }
 
 
-//	--------------------------------------------------------------------------------
-bool CvUnit::IsImmuePlague() const
+/// What specific promotion can be inflicted by this unit with iPlagueID?
+PromotionTypes CvUnit::GetInflictedPlague(int iPlagueID, int& iPlagueChance) const
 {
-	return m_iImmuePlague > 0;
+	int iHighestPriority = -1;
+	PromotionTypes eHighestPlague = NO_PROMOTION;
+
+	for (int iLoop = 0; iLoop < GC.getNumPromotionInfos(); iLoop++)
+	{
+		const PromotionTypes ePromotion = static_cast<PromotionTypes>(iLoop);
+		CvPromotionEntry* pkPromotionInfo = GC.getPromotionInfo(ePromotion);
+		if (pkPromotionInfo && pkPromotionInfo->GetPlagueChance() > 0)
+		{
+			PromotionTypes eInflictedPlague = (PromotionTypes)pkPromotionInfo->GetPlaguePromotion();
+			if (eInflictedPlague != NO_PROMOTION && isHasPromotion(ePromotion))
+			{
+				CvPromotionEntry* pkPlaguePromotionInfo = GC.getPromotionInfo(eInflictedPlague);
+				if (pkPlaguePromotionInfo)
+				{
+					int iPromotionPlagueID = pkPlaguePromotionInfo->GetPlagueID();
+					if (iPlagueID == iPromotionPlagueID)
+					{
+						int iPlaguePriority = pkPlaguePromotionInfo->GetPlaguePriority();
+						if (iPlaguePriority > iHighestPriority)
+						{
+							iHighestPriority = iPlaguePriority;
+							eHighestPlague = eInflictedPlague;
+							iPlagueChance = pkPromotionInfo->GetPlagueChance();
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return eHighestPlague;
 }
 
-//	--------------------------------------------------------------------------------
-void CvUnit::ChangeImmuePlagueCount(int iChange)
+
+/// Does this unit have a plague?
+/// iPlagueID = With a specific plague ID only? Defaults to -1 (any plague).
+/// iMinimumPriority = With a specific priority or higher only? Defaults to -1 (any priority). Requires iPlagueID to be specified.
+bool CvUnit::HasPlague(int iPlagueID, int iMinimumPriority) const
 {
-	m_iImmuePlague += iChange;
+	if (iPlagueID == -1)
+		iMinimumPriority = -1;
+
+	for (int iLoop = 0; iLoop < GC.getNumPromotionInfos(); iLoop++)
+	{
+		const PromotionTypes ePromotion = static_cast<PromotionTypes>(iLoop);
+		CvPromotionEntry* pkPromotionInfo = GC.getPromotionInfo(ePromotion);
+		if (pkPromotionInfo)
+		{
+			int iPromotionPlagueID = pkPromotionInfo->GetPlagueID();
+			if (iPromotionPlagueID != -1 && isHasPromotion(ePromotion))
+			{
+				if (iPlagueID == -1 || iPlagueID == iPromotionPlagueID)
+				{
+					if (iMinimumPriority == -1 || pkPromotionInfo->GetPlaguePriority() >= iMinimumPriority)
+						return true;
+				}
+			}
+		}
+	}
+
+	return false;
 }
 
+
+/// Removes plague promotions from a unit
+/// iPlagueID = With a specific Plague ID only. Defaults to -1 (any plague).
+/// iHigherPriority = Below a specific priority only. Defaults to -1 (any priority).
+void CvUnit::RemovePlague(int iPlagueID, int iHigherPriority)
+{
+	if (iPlagueID == -1)
+		iHigherPriority = -1;
+
+	for (int iLoop = 0; iLoop < GC.getNumPromotionInfos(); iLoop++)
+	{
+		const PromotionTypes ePromotion = static_cast<PromotionTypes>(iLoop);
+		CvPromotionEntry* pkPromotionInfo = GC.getPromotionInfo(ePromotion);
+		if (pkPromotionInfo)
+		{
+			int iPromotionPlagueID = pkPromotionInfo->GetPlagueID();
+			if (iPromotionPlagueID != -1)
+			{
+				if (iPlagueID == -1 || iPlagueID == iPromotionPlagueID)
+				{
+					if (iHigherPriority == -1 || pkPromotionInfo->GetPlaguePriority() < iHigherPriority)
+						setHasPromotion(ePromotion, false);
+				}
+			}
+		}
+	}
+}
+
+
+/// Is this unit immune to a plague?
+/// iPlagueID = With a specific plague ID only? Defaults to -1 (any plague).
+bool CvUnit::ImmuneToPlague(int iPlagueID) const
+{
+	for (int iLoop = 0; iLoop < GC.getNumPromotionInfos(); iLoop++)
+	{
+		const PromotionTypes ePromotion = static_cast<PromotionTypes>(iLoop);
+		CvPromotionEntry* pkPromotionInfo = GC.getPromotionInfo(ePromotion);
+		if (pkPromotionInfo)
+		{
+			int iPlagueImmunityID = pkPromotionInfo->GetPlagueIDImmunity();
+			if (iPlagueImmunityID != -1 && isHasPromotion(ePromotion))
+			{
+				if (iPlagueID == -1 || iPlagueID == iPlagueImmunityID)
+					return true;
+			}
+		}
+	}
+
+	return false;
+}
 
 bool CvUnit::CanPlague(CvUnit* pOtherUnit) const
 {
-	if (pOtherUnit == NULL)
-		return false;
-
-	if (getPlagueChance() <= 0)
-		return false;
-
-	if (pOtherUnit->IsImmuePlague())
+	if (pOtherUnit == NULL || pOtherUnit->isDelayedDeath())
 		return false;
 
 	if (getDomainType() != pOtherUnit->getDomainType())
@@ -22214,91 +22259,44 @@ void CvUnit::DoPlagueTransfer(CvUnit& defender)
 {
 	//We got here without being able to plague someone? Abort!
 	if (!CanPlague(&defender))
-	{
 		return;
-	}
 
-	int iPlagueChance = getPlagueChance();
+	vector<int> vInflictedPlagues = GetInflictedPlagueIDs();
 
-	int iRoll = GC.getGame().getSmallFakeRandNum(100, *plot());
-
-	if (iRoll > iPlagueChance)
-	{
+	// This unit does not inflict plagues.
+	if (vInflictedPlagues.size() == 0)
 		return;
-	}
 
-	PromotionTypes ePlague = (PromotionTypes)getPlaguePromotion();
-	bool bTransferred = false;
-	if (ePlague == NO_PROMOTION)
+	int iCount = vInflictedPlagues.size() + 1;
+
+	for (std::vector<int>::iterator it = vInflictedPlagues.begin(); it != vInflictedPlagues.end(); it++)
 	{
-		//Next let's grab the promotion.
-		int iI = 0;
-		for (iI = 0; iI < GC.getNumPromotionInfos(); iI++)
-		{
-			const PromotionTypes ePromotion(static_cast<PromotionTypes>(iI));
-			if (ePromotion != NO_PROMOTION && HasPromotion(ePromotion))
-			{
-				CvPromotionEntry* pkPlaguePromotionInfo = GC.getPromotionInfo(ePromotion);
-				if (pkPlaguePromotionInfo && pkPlaguePromotionInfo->IsPlague())
-				{
-					if (!defender.HasPromotion(ePromotion) && (defender.getPlagueIDImmunity() == -1 || defender.getPlagueIDImmunity() != pkPlaguePromotionInfo->GetPlagueID()))
-					{
-						defender.setHasPromotion(ePromotion, true);
-						ePlague = ePromotion;
-						bTransferred = true;
-						break;
-					}
-				}
-			}
-		}
-	}
-	else if (!defender.HasPromotion(ePlague))
-	{
-		CvPromotionEntry* pkPlaguePromotionInfo = GC.getPromotionInfo(ePlague);
-		if (pkPlaguePromotionInfo == NULL)
+		int iPlagueChance = 0;
+		PromotionTypes eInflictedPlague = GetInflictedPlague(*it, iPlagueChance);
+		CvPromotionEntry* pkPlaguePromotionInfo = GC.getPromotionInfo(eInflictedPlague);
+
+		// Is the plague inflicted?
+		int iRoll = GC.getGame().randRangeInclusive(1, 100, CvSeeder::fromRaw(0x09527e40).mix(GetID()).mix(defender.GetID()).mix(iCount));
+		iCount--;
+		if (iRoll > iPlagueChance)
 			return;
 
-		int iPlagueID = pkPlaguePromotionInfo->GetPlagueID();
-
-		//we're immune to this?
-		if (defender.getPlagueIDImmunity() != -1 && defender.getPlagueIDImmunity() == pkPlaguePromotionInfo->GetPlagueID())
+		// Is the defender immune to the plague?
+		if (defender.ImmuneToPlague(*it))
 			return;
 
-		//we already have this plague? let's see if we've been hit with a more severe version of the same plague...
-		if (iPlagueID == defender.getPlagueID())
-		{
-			//weaker? ignore.
-			if (pkPlaguePromotionInfo->GetPlaguePriority() <= defender.getPlaguePriority())
-				return;
+		// Does the defender already have a stronger version of this plague?
+		if (defender.HasPlague(*it, pkPlaguePromotionInfo->GetPlaguePriority() + 1))
+			return;
 
-			//what are we plagued with?
-			PromotionTypes eCurrentPlague = (PromotionTypes)defender.getPlaguePromotionID();
+		// This might kill ye a little!
+		defender.setHasPromotion(eInflictedPlague, true);
 
-			//remove the weaker one.
-			if (eCurrentPlague != NO_PROMOTION)
-			{
-				defender.setHasPromotion(eCurrentPlague, false);
-			}
-		}
-
-		defender.setHasPromotion(ePlague, true);
+		// Remove any excess movement the defender now has (plagues can reduce max moves)
 		if (defender.getMoves() > defender.maxMoves())
-		{
 			defender.setMoves(defender.maxMoves());
-		}
 
-
-		defender.setPlagued(true);
-		defender.setPlaguePromotion(ePlague);
-		defender.setPlagueID(pkPlaguePromotionInfo->GetPlagueID());
-		defender.setPlaguePriority(pkPlaguePromotionInfo->GetPlaguePriority());
-
-		bTransferred = true;
-	}
-	if (bTransferred && ePlague != NO_PROMOTION)
-	{
-		CvPromotionEntry* pkPromotionEntry = GC.getPromotionInfo(ePlague);
-		const char* szPromotionDesc = (pkPromotionEntry != NULL) ? pkPromotionEntry->GetDescription() : "Unknown Promotion";
+		const char* szPromotionDesc = pkPlaguePromotionInfo->GetDescription();
 		if (GC.getLogging() && GC.getAILogging())
 		{
 			CvString szMsg;
@@ -22329,9 +22327,10 @@ void CvUnit::DoPlagueTransfer(CvUnit& defender)
 
 			pNotificationsOther->Add(NOTIFICATION_GENERIC, strMessage.toUTF8(), strSummary.toUTF8(), getX(), getY(), (int)getUnitType(), getOwner());
 		}
-		
+
 	}
 }
+
 #endif
 
 //	--------------------------------------------------------------------------------
@@ -25620,6 +25619,7 @@ void CvUnit::setHasPromotion(PromotionTypes eIndex, bool bNewValue)
 
 		ChangeDamageAoEFortified((thisPromotion.GetDamageAoEFortified())* iChange);
 		ChangeMoraleBreakChance((thisPromotion.GetMoraleBreakChance()) * iChange);
+		ChangeIgnoreDamageChance((thisPromotion.GetIgnoreDamageChance()) * iChange);
 		ChangeWorkRateMod((thisPromotion.GetWorkRateMod())* iChange);
 		ChangeTurnDamage((thisPromotion.GetTurnDamage()) * iChange);
 		ChangeTurnDamagePercent((thisPromotion.GetTurnDamagePercent()) * iChange);
@@ -25753,22 +25753,6 @@ void CvUnit::setHasPromotion(PromotionTypes eIndex, bool bNewValue)
 		changeHPHealedIfDefeatEnemy(thisPromotion.GetHPHealedIfDefeatEnemy() * iChange);
 		ChangeGoldenAgeValueFromKills(thisPromotion.GetGoldenAgeValueFromKills() * iChange);
 		changeExtraWithdrawal(thisPromotion.GetExtraWithdrawal() * iChange);
-
-#if defined(MOD_API_UNIFIED_YIELDS_MORE)
-		changePlagueChance(thisPromotion.GetPlagueChance() * iChange);
-		if (thisPromotion.GetPlagueIDImmunity() > 0)
-		{
-			setPlagueIDImmunity(iChange > 0 ? thisPromotion.GetPlagueIDImmunity() : -1);
-		}
-		if (thisPromotion.GetPlaguePromotion() != NO_PROMOTION)
-		{
-			if (iChange > 0)
-				setPlaguePromotion(thisPromotion.GetPlaguePromotion());
-			else
-				setPlaguePromotion(NO_PROMOTION);
-		}
-		ChangeImmuePlagueCount(thisPromotion.IsImmuePlague() ? iChange : 0);
-#endif
 		changeExtraRange(thisPromotion.GetRangeChange() * iChange);
 		ChangeRangedAttackModifier(thisPromotion.GetRangedAttackModifier() * iChange);
 		ChangeInterceptionCombatModifier(thisPromotion.GetInterceptionCombatModifier() * iChange);
@@ -26308,15 +26292,10 @@ void CvUnit::read(FDataStream& kStream)
 	kStream >> m_iReligiousStrengthLossRivalTerritory;
 	kStream >> m_iTradeMissionInfluenceModifier;
 	kStream >> m_iTradeMissionGoldModifier;
+
 #if defined(MOD_API_UNIFIED_YIELDS_MORE)
-	kStream >> m_iPlagueChance;
-	kStream >> m_bIsPlagued;
-	kStream >> m_iPlagueID;
-	kStream >> m_iPlaguePriority;
-	kStream >> m_iPlagueIDImmunity;
-	kStream >> m_iPlaguePromotion;
-	kStream >> m_iImmuePlague;
 #endif
+
 	kStream >> m_iEnemyDamageChance;
 	kStream >> m_iNeutralDamageChance;
 	kStream >> m_iEnemyDamage;
@@ -26368,6 +26347,7 @@ void CvUnit::read(FDataStream& kStream)
 	kStream >> m_iBarbCombatBonus;
 	kStream >> m_iDamageAoEFortified;
 	kStream >> m_iCanMoraleBreak;
+	kStream >> m_iIgnoreDamageChance;
 	kStream >> m_iWorkRateMod;
 	kStream >> m_iTurnDamage;
 	kStream >> m_iTurnDamagePercent;
@@ -26702,15 +26682,10 @@ void CvUnit::write(FDataStream& kStream) const
 	kStream << m_iReligiousStrengthLossRivalTerritory;
 	kStream << m_iTradeMissionInfluenceModifier;
 	kStream << m_iTradeMissionGoldModifier;
+
 #if defined(MOD_API_UNIFIED_YIELDS_MORE)
-	kStream << m_iPlagueChance;
-	kStream << m_bIsPlagued;
-	kStream << m_iPlagueID;
-	kStream << m_iPlaguePriority;
-	kStream << m_iPlagueIDImmunity;
-	kStream << m_iPlaguePromotion;
-	kStream << m_iImmuePlague;
 #endif
+
 	kStream << m_iEnemyDamageChance;
 	kStream << m_iNeutralDamageChance;
 	kStream << m_iEnemyDamage;
@@ -26748,6 +26723,7 @@ void CvUnit::write(FDataStream& kStream) const
 	kStream << m_iBarbCombatBonus;
 	kStream << m_iDamageAoEFortified;
 	kStream << m_iCanMoraleBreak;
+	kStream << m_iIgnoreDamageChance;
 	kStream << m_iWorkRateMod;
 	kStream << m_iTurnDamage;
 	kStream << m_iTurnDamagePercent;
@@ -29857,6 +29833,11 @@ int CvUnit::AI_promotionValue(PromotionTypes ePromotion)
 
 		if (iValue == 0)
 		{
+			iValue = GetPromotionValue(pkPromotionInfo->GetIgnoreDamageChance(), 0, iFlavorDefense, absolutePriority);
+		}
+
+		if (iValue == 0)
+		{
 			iValue = GetPromotionValue(pkPromotionInfo->IsAlwaysHeal() ? 1 : 0, 0, iFlavorDefense, highPriority);
 		}
 
@@ -30565,6 +30546,15 @@ int CvUnit::AI_promotionValue(PromotionTypes ePromotion)
 		iTemp *= (100 + iExtra);
 		iTemp /= 100;
 		iValue += iTemp + iFlavorDefense * 2;
+	}
+
+	iTemp = pkPromotionInfo->GetIgnoreDamageChance();
+	if (iTemp != 0)
+	{
+		iExtra = GetIgnoreDamageChance() * 10;
+		iTemp *= (100 + iExtra);
+		iTemp /= 100;
+		iValue += iTemp + iFlavorDefense * 4;
 	}
 
 #if defined(MOD_DEFENSE_MOVES_BONUS)

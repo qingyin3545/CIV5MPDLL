@@ -439,6 +439,15 @@ public:
 	int getAsyncRandNum(int iNum, const char* pszLog);
 
 
+	uint randCore(const CvSeeder& extraSeed) const;
+	uint urandLimitExclusive(uint limit, const CvSeeder& extraSeed) const;
+	uint urandLimitInclusive(uint limit, const CvSeeder& extraSeed) const;
+	uint urandRangeExclusive(uint min, uint max, const CvSeeder& extraSeed) const;
+	uint urandRangeInclusive(uint min, uint max, const CvSeeder& extraSeed) const;
+	int randRangeExclusive(int min, int max, const CvSeeder& extraSeed) const;
+	int randRangeInclusive(int min, int max, const CvSeeder& extraSeed) const;
+
+
 #if defined(MOD_ROG_CORE)
 	//get random number from gamestate without a seed in the generator
 	int	getSmallFakeRandNum(int iNum, const CvPlot& input) const;

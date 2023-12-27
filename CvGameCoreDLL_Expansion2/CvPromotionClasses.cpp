@@ -133,6 +133,7 @@ CvPromotionEntry::CvPromotionEntry():
 	m_iCombatBonusFromNearbyUnitPromotion(NO_PROMOTION),
 	m_iAOEDamageOnKill(0),
 	m_iMoraleBreakChance(0),
+	m_iIgnoreDamageChance(0),
 	m_iDamageAoEFortified(0),
 	m_iWorkRateMod(0),
 	m_iTurnDamage(0),
@@ -186,12 +187,10 @@ CvPromotionEntry::CvPromotionEntry():
 	m_iExtraWithdrawal(0),
 #if defined(MOD_API_UNIFIED_YIELDS_MORE)
 	m_iPlagueChance(0),
-	m_bIsPlague(false),
 	m_iPlaguePromotion(NO_PROMOTION),
 	m_iPlagueID(NO_PROMOTION),
 	m_iPlaguePriority(0),
 	m_iPlagueIDImmunity(-1),
-	m_bImmuePlague(false),
 #endif
 	m_iEmbarkExtraVisibility(0),
 	m_iEmbarkDefenseModifier(0),
@@ -532,6 +531,7 @@ bool CvPromotionEntry::CacheResults(Database::Results& kResults, CvDatabaseUtili
 	m_iOnCapitalLandDefenseMod = kResults.GetInt("OnCapitalLandDefenseMod");
 	m_iOutsideCapitalLandDefenseMod = kResults.GetInt("OutsideCapitalLandDefenseMod");
 	m_iMoraleBreakChance = kResults.GetInt("MoraleBreakChance");
+	m_iIgnoreDamageChance = kResults.GetInt("IgnoreDamageChance");
 	m_iDamageAoEFortified = kResults.GetInt("AoEWhileFortified");
 	m_iWorkRateMod = kResults.GetInt("WorkRateMod");
 
@@ -695,15 +695,11 @@ bool CvPromotionEntry::CacheResults(Database::Results& kResults, CvDatabaseUtili
 	m_iExtraWithdrawal = kResults.GetInt("ExtraWithdrawal");
 #if defined(MOD_API_UNIFIED_YIELDS_MORE)
 	m_iPlagueChance = kResults.GetInt("PlagueChance");
-	m_bIsPlague = kResults.GetBool("IsPlague");
-
 	const char* szPlaguePromotion = kResults.GetText("PlaguePromotion");
 	m_iPlaguePromotion = GC.getInfoTypeForString(szPlaguePromotion, true);
-
 	m_iPlagueID = kResults.GetInt("PlagueID");
 	m_iPlaguePriority = kResults.GetInt("PlaguePriority");
 	m_iPlagueIDImmunity = kResults.GetInt("PlagueIDImmunity");
-	m_bImmuePlague = kResults.GetBool("ImmuePlague");
 #endif
 	m_iEmbarkExtraVisibility = kResults.GetInt("EmbarkExtraVisibility");
 	m_iEmbarkDefenseModifier = kResults.GetInt("EmbarkDefenseModifier");
@@ -2004,7 +2000,10 @@ int CvPromotionEntry::GetMoraleBreakChance() const
 {
 	return m_iMoraleBreakChance;
 }
-
+int CvPromotionEntry::GetIgnoreDamageChance() const
+{
+	return m_iIgnoreDamageChance;
+}
 int CvPromotionEntry::GetDamageAoEFortified() const
 {
 	return m_iDamageAoEFortified;
@@ -2309,11 +2308,6 @@ int CvPromotionEntry::GetPlagueChance() const
 {
 	return m_iPlagueChance;
 }
-/// Transmittable promotions
-bool CvPromotionEntry::IsPlague() const
-{
-	return m_bIsPlague;
-}
 
 int CvPromotionEntry::GetPlaguePromotion() const
 {
@@ -2333,11 +2327,6 @@ int CvPromotionEntry::GetPlaguePriority() const
 int CvPromotionEntry::GetPlagueIDImmunity() const
 {
 	return m_iPlagueIDImmunity;
-}
-
-bool CvPromotionEntry::IsImmuePlague() const
-{
-	return m_bImmuePlague;
 }
 #endif
 

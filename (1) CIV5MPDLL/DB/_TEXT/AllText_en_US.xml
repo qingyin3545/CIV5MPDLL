@@ -2,6 +2,16 @@
 <GameData>
 	<!-- Espionage.xml -->
 	<Language_en_US>
+	<Row Tag="TXT_KEY_UNIT_PLAGUE_CHANCE">
+			<Text>[COLOR_CYAN]Status Effect Chance ({1_Name})[ENDCOLOR]</Text>
+		</Row>
+		<Row Tag="TXT_KEY_UNIT_ALREADY_PLAGUED">
+			<Text>[COLOR_CYAN]Has {1_Num} Status Effect[ENDCOLOR]</Text>
+		</Row>
+
+		<Row Tag="TXT_KEY_UNIT_IMMUNE_PLAGUED">
+			<Text>[COLOR_CYAN]Immune to {1_Num}[ENDCOLOR]</Text>
+		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_SPY_EVICTED_FPRBIDDEN_YOU">
 			<Text>Your spy {1_SpyRank}{2_SpyName}fled {3_CityName}，because this city no longer supports action。</Text>
 		</Row>

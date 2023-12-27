@@ -190,6 +190,7 @@ public:
 	int GetAOEDamageOnKill() const;
 	int GetDamageAoEFortified() const;
 	int GetMoraleBreakChance() const;
+	int GetIgnoreDamageChance() const;
 	int GetWorkRateMod() const;
 	int GetTurnDamage() const;
 	int GetTurnDamagePercent() const;
@@ -247,12 +248,10 @@ public:
 
 #if defined(MOD_API_UNIFIED_YIELDS_MORE)
 	int GetPlagueChance() const;
-	bool IsPlague() const;
 	int GetPlaguePromotion() const;
 	int GetPlagueID() const;
 	int GetPlaguePriority() const;
 	int GetPlagueIDImmunity() const;
-	bool IsImmuePlague() const;
 #endif
 	int GetEmbarkExtraVisibility() const;
 	int GetEmbarkDefenseModifier() const;
@@ -601,12 +600,10 @@ protected:
 
 #if defined(MOD_API_UNIFIED_YIELDS_MORE)
 	int m_iPlagueChance;
-	bool m_bIsPlague;
 	int m_iPlaguePromotion;
 	int m_iPlagueID;
 	int m_iPlaguePriority;
 	int m_iPlagueIDImmunity;
-	int m_bImmuePlague;
 #endif
 	int m_iEmbarkExtraVisibility;
 	int m_iEmbarkDefenseModifier;
@@ -705,6 +702,7 @@ protected:
 
 	int m_iAOEDamageOnKill;
 	int m_iMoraleBreakChance;
+	int m_iIgnoreDamageChance;
 	int m_iDamageAoEFortified;
 	int m_iWorkRateMod;
 	int m_iTurnDamage;

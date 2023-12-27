@@ -36,6 +36,13 @@
 #  endif
 #endif
 
+
+#if __cplusplus >= 201703L
+#define NODISCARD [[nodiscard]]
+#else
+#define NODISCARD
+#endif // __cplusplus >= 201703L
+
 //Similar to UNUSED_VARIABLE, but implies that the variable IS used in debug builds.
 #define DEBUG_VARIABLE(x) (void)(sizeof(x))
 

@@ -2,6 +2,17 @@
 <GameData>
 	<!-- Espionage.xml -->
 	<Language_zh_Hant_HK>
+
+	<Row Tag="TXT_KEY_UNIT_PLAGUE_CHANCE">
+			<Text>[COLOR_CYAN]受到({1_Name})狀態影響的幾率[ENDCOLOR]</Text>
+		</Row>
+		<Row Tag="TXT_KEY_UNIT_ALREADY_PLAGUED">
+			<Text>[COLOR_CYAN]受到{1_Num}狀態影響[ENDCOLOR]</Text>
+		</Row>
+
+		<Row Tag="TXT_KEY_UNIT_IMMUNE_PLAGUED">
+			<Text>[COLOR_CYAN]免疫{1_Num}[ENDCOLOR]</Text>
+		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_SPY_EVICTED_FPRBIDDEN_YOU">
 			<Text>您的間諜{1_SpyRank}{2_SpyName}從{3_CityName}離開，因為這座城市不再支持行動。</Text>
 		</Row>

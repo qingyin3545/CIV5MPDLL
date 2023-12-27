@@ -400,7 +400,7 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(ExtraTerrainDamage);
 	Method(ExtraFeatureDamage);
 #endif
-
+	Method(GetMovementRules);
 #if defined(MOD_DEFENSE_MOVES_BONUS)
 	Method(GetMoveLeftDefenseMod);
 	Method(GetMoveUsedDefenseMod);
@@ -496,7 +496,6 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(IsInvisibleInvalid);
 #endif
 	Method(IsNukeImmune);
-	Method(IsImmuePlague);
 	Method(IsRangeAttackOnlyInDomain);
 	Method(IsCityAttackOnly);
 	Method(IsImmueMeleeAttack);
@@ -3401,6 +3400,52 @@ int CvLuaUnit::lExtraFeatureDamage(lua_State* L)
 #endif
 
 
+int CvLuaUnit::lGetMovementRules(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	CvUnit* pkOtherUnit = CvLuaUnit::GetInstance(L, 2);
+	CvString text = "";
+	int iChance = -1;
+
+	if (pkUnit != NULL && pkOtherUnit != NULL && pkOtherUnit->CanPlague(pkUnit))
+	{
+		vector<int> vInflictedPlagues = pkOtherUnit->GetInflictedPlagueIDs();
+		if (vInflictedPlagues.size() > 0)
+		{
+			//FIXME: The UI currently supports only one plague being inflicted.
+			//If anyone is inclined to do so, they can write the code to make the UI support this.
+			//For now, just grab the first plague.
+			int iPlagueChance = 0;
+			PromotionTypes ePlague = pkOtherUnit->GetInflictedPlague(vInflictedPlagues[0], iPlagueChance);
+			CvPromotionEntry* pkPlaguePromotionInfo = GC.getPromotionInfo(ePlague);
+			int iPlagueID = pkPlaguePromotionInfo->GetPlagueID();
+			if (pkPlaguePromotionInfo)
+			{
+				// Already have this plague, or a stronger version of this plague?
+				if (pkUnit->HasPlague(iPlagueID, pkPlaguePromotionInfo->GetPlaguePriority()))
+				{
+					text = GetLocalizedText("TXT_KEY_UNIT_ALREADY_PLAGUED", pkPlaguePromotionInfo->GetText());
+				}
+				// Immune to this plague?
+				else if (pkUnit->ImmuneToPlague(iPlagueID))
+				{
+					text = GetLocalizedText("TXT_KEY_UNIT_IMMUNE_PLAGUED", pkPlaguePromotionInfo->GetText());
+				}
+				else
+				{
+					text = GetLocalizedText("TXT_KEY_UNIT_PLAGUE_CHANCE", pkPlaguePromotionInfo->GetText());
+					iChance = iPlagueChance;
+				}
+			}
+		}
+	}
+
+	lua_pushstring(L, text);
+	lua_pushinteger(L, iChance);
+	return 2;
+}
+
+
 #if defined(MOD_ROG_CORE)
 int CvLuaUnit::lGetZOCStatus(lua_State* L)
 {
@@ -3560,14 +3605,6 @@ int CvLuaUnit::lIsNukeImmune(lua_State* L)
 	return 1;
 }
 
-int CvLuaUnit::lIsImmuePlague(lua_State* L)
-{
-	CvUnit* pkUnit = GetInstance(L);
-	const bool bResult = pkUnit->IsImmuePlague();
-
-	lua_pushboolean(L, bResult);
-	return 1;
-}
 
 //------------------------------------------------------------------------------
 //int maxInterceptionProbability();
