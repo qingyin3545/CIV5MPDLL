@@ -12726,6 +12726,18 @@ int CvCity::getBaseYieldRate(YieldTypes eIndex, const bool bIgnoreFromOtherYield
 		}
 	}
 
+	if (eIndex == YIELD_CRIME)
+	{	    int NumForeignSpy = getNumForeignSpy();
+			iValue += NumForeignSpy * GC.getCITY_CRIME_SPY_YIELD();
+			if (HasOwnSpy())
+			{
+				iValue -= GC.getCITY_CRIME_SPY_YIELD();
+			}
+
+			int CrimeFromOpinion = getCrimeFromOpinion();
+			iValue += CrimeFromOpinion;
+	}
+
 	iValue += GetYieldFromHealth(eIndex);
 	iValue += GetYieldFromHappiness(eIndex);
 	if (eIndex != YIELD_CRIME)
@@ -12735,6 +12747,62 @@ int CvCity::getBaseYieldRate(YieldTypes eIndex, const bool bIgnoreFromOtherYield
 #endif
 
 	return iValue;
+}
+
+
+int CvCity::getNumForeignSpy() const
+{
+	int iNumForeignSpy = 0;
+	CvCityEspionage* pCityEspionage = GetCityEspionage();
+	if (pCityEspionage)
+	{
+		for (int i = 0; i < MAX_MAJOR_CIVS; i++)
+		{
+			int iAssignedSpy = pCityEspionage->m_aiSpyAssignment[i];
+			// if there is a spy in the city
+			if (iAssignedSpy != -1 && !GET_PLAYER((PlayerTypes)i).GetEspionage()->IsDiplomat(iAssignedSpy))
+			{
+				if ((PlayerTypes)i != getOwner())
+				{
+					iNumForeignSpy += 1;
+				}
+			}
+		}
+	}
+	return iNumForeignSpy;
+}
+
+//	--------------------------------------------------------------------------------
+bool CvCity::HasOwnSpy() const
+{
+	int iSpyIndex = GetCityEspionage()->m_aiSpyAssignment[getOwner()];
+	if (iSpyIndex != -1 && !GET_PLAYER(getOwner()).GetEspionage()->IsDiplomat(iSpyIndex));
+	{
+		return true;
+	}
+
+	return false;
+}
+
+int CvCity::getCrimeFromOpinion() const
+{
+	int iCrimeFromOpinion = 0;
+
+	PublicOpinionTypes eOpinionInMyCiv = GET_PLAYER(getOwner()).GetCulture()->GetPublicOpinionType();
+
+	if (eOpinionInMyCiv == PUBLIC_OPINION_REVOLUTIONARY_WAVE)
+	{
+		iCrimeFromOpinion = GC.getCITY_CRIME_OPINION_REVOLUTIONARY_WAVE_YIELD();
+	}
+	else if (eOpinionInMyCiv == PUBLIC_OPINION_CIVIL_RESISTANCE)
+	{
+		iCrimeFromOpinion = GC.getCITY_CRIME_OPINION_CIVIL_RESISTANCE_YIELD();
+	}
+	else if (eOpinionInMyCiv == PUBLIC_OPINION_DISSIDENTS)
+	{
+		iCrimeFromOpinion = GC.getCITY_CRIME_OPINION_DISSIDENTS_YIELD();
+	}
+	return iCrimeFromOpinion;
 }
 
 //	--------------------------------------------------------------------------------
@@ -12874,6 +12942,26 @@ CvString CvCity::getYieldRateInfoTool(YieldTypes eIndex, bool bIgnoreTrade) cons
 		{
 			iBaseValue = -GC.getCITY_FRESH_WATER_HEALTH_YIELD();
 			szRtnValue += GetLocalizedText("TXT_KEY_CITYVIEW_BASE_YIELD_TT_FROM_NO_FRESH_WATER", iBaseValue, YieldIcon);
+		}
+	}
+
+	if (eIndex == YIELD_CRIME)
+	{
+		int NumForeignSpy = getNumForeignSpy();
+		iBaseValue = NumForeignSpy * GC.getCITY_CRIME_SPY_YIELD();
+		if (HasOwnSpy())
+		{
+			iBaseValue -= GC.getCITY_CRIME_SPY_YIELD();
+		}
+		if (iBaseValue != 0)
+		{
+			szRtnValue += GetLocalizedText("TXT_KEY_CITYVIEW_BASE_YIELD_TT_FROM_SPIES", iBaseValue, YieldIcon);
+		}
+
+		iBaseValue = getCrimeFromOpinion();
+		if (iBaseValue != 0)
+		{
+			szRtnValue += GetLocalizedText("TXT_KEY_CITYVIEW_BASE_YIELD_TT_FROM_OPINION", iBaseValue, YieldIcon);
 		}
 	}
 
@@ -22598,7 +22686,7 @@ void CvCity::SetYieldFromHappiness(YieldTypes eYield, int iValue)
 int CvCity::GetYieldFromHappiness(YieldTypes eYield) const
 {
 	VALIDATE_OBJECT
-		return m_aiYieldFromHappiness[eYield];
+	return m_aiYieldFromHappiness[eYield];
 }
 
 

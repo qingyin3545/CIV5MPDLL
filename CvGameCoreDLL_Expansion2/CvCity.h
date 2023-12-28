@@ -780,6 +780,9 @@ public:
 
 	// Base Yield
 	int getBaseYieldRate(const YieldTypes eIndex, const bool bIgnoreFromOtherYield) const;
+	int getNumForeignSpy() const;
+	bool HasOwnSpy()const;
+	int getCrimeFromOpinion() const;
 
 #if defined(MOD_GLOBAL_GREATWORK_YIELDTYPES) || defined(MOD_API_UNIFIED_YIELDS)
 	int GetBaseYieldRateFromGreatWorks(YieldTypes eIndex) const;
