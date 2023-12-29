@@ -255,6 +255,7 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_piYieldChangePerPop(NULL),
 	m_piYieldChangePerReligion(NULL),
 	m_piYieldModifier(NULL),
+	m_piYieldMultiplier(NULL),
 	m_piAreaYieldModifier(NULL),
 	m_piGlobalYieldModifier(NULL),
 	m_piTechEnhancedYieldChange(NULL),
@@ -299,8 +300,10 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_piLocalFeatureAnds(NULL),
 
 	m_paiHurryModifier(NULL),
+	m_paiHurryModifierLocal(NULL),
 	m_pbBuildingClassNeededInCity(NULL),
 #if defined(MOD_BUILDING_NEW_EFFECT_FOR_SP)
+	m_iUnitMaxExperienceLocal(0),
 	m_iMinNumReligions(0),
 	m_iCityStateTradeRouteProductionModifierGlobal(0),
 	m_iLandmarksTourismPercentGlobal(0),
@@ -367,6 +370,7 @@ CvBuildingEntry::~CvBuildingEntry(void)
 	SAFE_DELETE_ARRAY(m_piYieldChangePerPop);
 	SAFE_DELETE_ARRAY(m_piYieldChangePerReligion);
 	SAFE_DELETE_ARRAY(m_piYieldModifier);
+	SAFE_DELETE_ARRAY(m_piYieldMultiplier);
 	SAFE_DELETE_ARRAY(m_piAreaYieldModifier);
 	SAFE_DELETE_ARRAY(m_piGlobalYieldModifier);
 	SAFE_DELETE_ARRAY(m_piTechEnhancedYieldChange);
@@ -405,6 +409,7 @@ CvBuildingEntry::~CvBuildingEntry(void)
 	SAFE_DELETE_ARRAY(m_piLocalFeatureAnds);
 
 	SAFE_DELETE_ARRAY(m_paiHurryModifier);
+	SAFE_DELETE_ARRAY(m_paiHurryModifierLocal);
 	SAFE_DELETE_ARRAY(m_pbBuildingClassNeededInCity);
 #if defined(MOD_BUILDING_NEW_EFFECT_FOR_SP)
 	SAFE_DELETE_ARRAY(m_pbBuildingClassNeededGlobal);
@@ -535,6 +540,7 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	m_iExtraAttacks = kResults.GetInt("ExtraAttacks");
 
 #if defined(MOD_BUILDING_NEW_EFFECT_FOR_SP)
+	m_iUnitMaxExperienceLocal = kResults.GetInt("UnitMaxExperienceLocal");
 	m_iMinNumReligions = kResults.GetInt("MinNumReligions");
 	m_iCityStateTradeRouteProductionModifierGlobal = kResults.GetInt("CityStateTradeRouteProductionModifierGlobal");
 	m_iLandmarksTourismPercentGlobal = kResults.GetInt("LandmarksTourismPercentGlobal");
@@ -797,6 +803,7 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	kUtility.SetYields(m_piYieldChangePerPop, "Building_YieldChangesPerPop", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldChangePerReligion, "Building_YieldChangesPerReligion", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldModifier, "Building_YieldModifiers", "BuildingType", szBuildingType);
+	kUtility.SetYields(m_piYieldMultiplier, "Building_YieldMultiplier", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldFromInternal, "Building_YieldFromInternalTR", "BuildingType", szBuildingType);
 #if defined(MOD_ROG_CORE)
 	kUtility.SetYields(m_piYieldFromConstruction, "Building_YieldFromConstruction", "BuildingType", szBuildingType);
@@ -819,6 +826,7 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	kUtility.PopulateArrayByValue(m_piResourceFaithChanges, "Resources", "Building_ResourceFaithChanges", "ResourceType", "BuildingType", szBuildingType, "FaithChange");
 
 	kUtility.PopulateArrayByValue(m_paiHurryModifier, "HurryInfos", "Building_HurryModifiers", "HurryType", "BuildingType", szBuildingType, "HurryCostModifier");
+	kUtility.PopulateArrayByValue(m_paiHurryModifierLocal, "HurryInfos", "Building_HurryModifiersLocal", "HurryType", "BuildingType", szBuildingType, "HurryCostModifier");
 
 	//kUtility.PopulateArrayByValue(m_piProductionTraits, "Traits", "Building_ProductionTraits", "TraitType", "BuildingType", szBuildingType, "Trait");
 
@@ -3002,6 +3010,20 @@ int* CvBuildingEntry::GetYieldModifierArray() const
 	return m_piYieldModifier;
 }
 
+/// Multiplier to yield by type
+int CvBuildingEntry::GetYieldMultiplier(int i) const
+{
+	CvAssertMsg(i < NUM_YIELD_TYPES, "Index out of bounds");
+	CvAssertMsg(i > -1, "Index out of bounds");
+	return m_piYieldMultiplier ? m_piYieldMultiplier[i] : -1;
+}
+
+/// Array of yield Multipliers
+int* CvBuildingEntry::GetYieldMultiplierArray() const
+{
+	return m_piYieldMultiplier;
+}
+
 
 #if defined(MOD_ROG_CORE)
 /// Does this  grant yields from constructing buildings?
@@ -3424,6 +3446,14 @@ int CvBuildingEntry::GetHurryModifier(int i) const
 	return m_paiHurryModifier ? m_paiHurryModifier[i] : -1;
 }
 
+/// Modifier to Hurry cost local
+int CvBuildingEntry::GetHurryModifierLocal(int i) const
+{
+	CvAssertMsg(i < GC.getNumHurryInfos(), "Index out of bounds");
+	CvAssertMsg(i > -1, "Index out of bounds");
+	return m_paiHurryModifierLocal ? m_paiHurryModifierLocal[i] : -1;
+}
+
 #if defined(MOD_GLOBAL_BUILDING_INSTANT_YIELD)
 /// Instant yield
 int CvBuildingEntry::GetInstantYield(int i) const
@@ -3662,6 +3692,11 @@ bool CvBuildingEntry::IsBuildingClassNeededInCity(int i) const
 }
 
 #if defined(MOD_BUILDING_NEW_EFFECT_FOR_SP)
+int CvBuildingEntry::GetUnitMaxExperienceLocal() const
+{
+	return m_iUnitMaxExperienceLocal;
+}
+
 int CvBuildingEntry::GetMinNumReligions() const
 {
 	return m_iMinNumReligions;
