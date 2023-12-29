@@ -1715,7 +1715,7 @@ void CvUnitCombat::GenerateAirCombatInfo(CvUnit& kAttacker, CvUnit* pkDefender, 
 			int iRand = GC.getGame().getJonRandNum(100, "Ignore Damage Chance");
 			if (iRand <= pkDefender->GetIgnoreDamageChance())
 			{
-				iDefenderDamageInflicted = 0;
+				iAttackerDamageInflicted = 0;
 			}
 		}
 #endif
@@ -2255,6 +2255,18 @@ void CvUnitCombat::GenerateAirSweepCombatInfo(CvUnit& kAttacker, CvUnit* pkDefen
 		iInterceptionDamage *= /*75*/ GC.getAIR_SWEEP_INTERCEPTION_DAMAGE_MOD();
 		iInterceptionDamage /= 100;
 
+
+#if defined(MOD_ROG_CORE)
+		if (pkDefender->GetIgnoreDamageChance() > 0)
+		{
+			int iRand = GC.getGame().getJonRandNum(100, "Ignore Damage Chance");
+			if (iRand <= pkDefender->GetIgnoreDamageChance())
+			{
+				iInterceptionDamage = 0;
+			}
+		}
+#endif
+
 		//this code is no work! Ground interceptor's experence is counted elsewhere
 		iDefenderExperience = /*2*/ GC.getEXPERIENCE_DEFENDING_AIR_SWEEP_GROUND();
 
@@ -2270,6 +2282,17 @@ void CvUnitCombat::GenerateAirSweepCombatInfo(CvUnit& kAttacker, CvUnit* pkDefen
 
 		int iAttackerDamageInflicted = kAttacker.getCombatDamage(iAttackerStrength, iDefenderStrength, kAttacker.getDamage(), /*bIncludeRand*/ true, /*bAttackerIsCity*/ false, /*bDefenderIsCity*/ false);
 		int iDefenderDamageInflicted = pkDefender->getCombatDamage(iDefenderStrength, iAttackerStrength, pkDefender->getDamage(), /*bIncludeRand*/ true, /*bAttackerIsCity*/ false, /*bDefenderIsCity*/ false);
+
+#if defined(MOD_ROG_CORE)
+		if (pkDefender->GetIgnoreDamageChance() > 0)
+		{
+			int iRand = GC.getGame().getJonRandNum(100, "Ignore Damage Chance");
+			if (iRand <= pkDefender->GetIgnoreDamageChance())
+			{
+				iAttackerDamageInflicted = 0;
+			}
+		}
+#endif
 
 		int iAttackerTotalDamageInflicted = iAttackerDamageInflicted + pkDefender->getDamage();
 		int iDefenderTotalDamageInflicted = iDefenderDamageInflicted + kAttacker.getDamage();
