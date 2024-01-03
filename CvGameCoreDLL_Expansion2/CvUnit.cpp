@@ -22875,6 +22875,7 @@ void CvUnit::changeExtraRoughDefensePercent(int iChange)
 	}
 }
 
+
 //	--------------------------------------------------------------------------------
 void CvUnit::changeExtraAttacks(int iChange)
 {
@@ -22887,6 +22888,63 @@ void CvUnit::changeExtraAttacks(int iChange)
 	}
 }
 
+
+//	--------------------------------------------------------------------------------
+int CvUnit::getNumAttacks() const
+{
+	VALIDATE_OBJECT
+	return m_iNumAttacks;
+}
+
+int CvUnit::getNumAttacksMadeThisTurn() const
+{
+	VALIDATE_OBJECT
+	return m_iAttacksMade;
+}
+
+
+//	--------------------------------------------------------------------------------
+bool CvUnit::isOutOfAttacks() const
+{
+	VALIDATE_OBJECT
+
+		//if (!bIgnoreMoves && !canMove())
+				//return true;
+
+		// Units with blitz don't run out of attacks!
+		if (isBlitz())
+		{
+			return false;
+		}
+	//return m_iAttacksMade >= m_iNumAttacks;
+	return getNumAttacksMadeThisTurn() >= getNumAttacks();
+}
+
+
+//	--------------------------------------------------------------------------------
+void CvUnit::setMadeAttack(bool bNewValue)
+{
+	VALIDATE_OBJECT
+		if (bNewValue)
+		{
+			m_iAttacksMade++;
+		}
+		else
+		{
+			m_iAttacksMade = 0;
+		}
+}
+
+void CvUnit::ChangeMadeAttackNum(int iChange)
+{
+	VALIDATE_OBJECT
+		if (iChange != 0)
+			m_iAttacksMade += iChange;
+	if (m_iAttacksMade < 0);
+	{
+		m_iAttacksMade = 0;
+	}
+}
 //	--------------------------------------------------------------------------------
 // Citadel
 bool CvUnit::IsNearEnemyCitadel(int& iCitadelDamage)
@@ -23919,34 +23977,6 @@ void CvUnit::rotateFacingDirectionCounterClockwise()
 	setFacingDirection(newDirection);
 }
 
-//	--------------------------------------------------------------------------------
-bool CvUnit::isOutOfAttacks() const
-{
-	VALIDATE_OBJECT
-
-	// Units with blitz don't run out of attacks!
-	if(isBlitz())
-	{
-		return false;
-	}
-
-	return m_iAttacksMade >= m_iNumAttacks;
-}
-
-
-//	--------------------------------------------------------------------------------
-void CvUnit::setMadeAttack(bool bNewValue)
-{
-	VALIDATE_OBJECT
-	if(bNewValue)
-	{
-		m_iAttacksMade++;
-	}
-	else
-	{
-		m_iAttacksMade = 0;
-	}
-}
 
 
 //	--------------------------------------------------------------------------------

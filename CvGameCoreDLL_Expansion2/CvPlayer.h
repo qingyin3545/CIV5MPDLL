@@ -1625,6 +1625,7 @@ public:
 	CvUnit* getUnit(int iID);
 	CvUnit* addUnit();
 	void deleteUnit(int iID);
+	void UpdateCityStrength();
 
 	// army iteration
 	const CvArmyAI* firstArmyAI(int* pIterIdx, bool bRev=false) const;

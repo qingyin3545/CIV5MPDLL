@@ -75,6 +75,11 @@ void CvLuaUnit::RegistStaticFunctions() {
 	REGIST_STATIC_FUNCTION(CvLuaUnit::lSetExperience);
 	REGIST_STATIC_FUNCTION(CvLuaUnit::lSetLevel);
 	REGIST_STATIC_FUNCTION(CvLuaUnit::lSetMadeAttack);
+
+	REGIST_STATIC_FUNCTION(CvLuaUnit::lGetNumAttacks);
+	REGIST_STATIC_FUNCTION(CvLuaUnit::lChangeMadeAttackNum);
+	REGIST_STATIC_FUNCTION(CvLuaUnit::lGetNumAttacksMadeThisTurn);
+
 	REGIST_STATIC_FUNCTION(CvLuaUnit::lSetMadeInterception);
 	REGIST_STATIC_FUNCTION(CvLuaUnit::lSetPromotionReady);
 	REGIST_STATIC_FUNCTION(CvLuaUnit::lSetOriginalOwner);
@@ -676,6 +681,10 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(IsOutOfAttacks);
 
 	Method(SetMadeAttack);
+
+	Method(GetNumAttacks);
+	Method(ChangeMadeAttackNum);
+	Method(GetNumAttacksMadeThisTurn);
 
 	Method(isOutOfInterceptions);
 	Method(SetMadeInterception);
@@ -5381,6 +5390,29 @@ int CvLuaUnit::lSetMadeAttack(lua_State* L)
 	return 0;
 }
 
+int CvLuaUnit::lGetNumAttacks(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	const int iResult = pkUnit->getNumAttacks();
+	lua_pushinteger(L, iResult);
+	return 1;
+}
+
+int CvLuaUnit::lChangeMadeAttackNum(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	const int iChange = lua_toboolean(L, 2);
+	pkUnit->ChangeMadeAttackNum(iChange);
+	return 0;
+}
+
+int CvLuaUnit::lGetNumAttacksMadeThisTurn(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	const int iResult = pkUnit->getNumAttacksMadeThisTurn();
+	lua_pushinteger(L, iResult);
+	return 1;
+}
 //------------------------------------------------------------------------------
 //bool isOutOfInterceptions();
 int CvLuaUnit::lisOutOfInterceptions(lua_State* L)

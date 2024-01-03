@@ -594,6 +594,11 @@ protected:
 
 	static int lIsOutOfAttacks(lua_State* L);
 	static int lSetMadeAttack(lua_State* L);
+
+	static int lGetNumAttacks(lua_State* L);
+	static int lChangeMadeAttackNum(lua_State* L);
+	static int lGetNumAttacksMadeThisTurn(lua_State* L);
+
 	static int lisOutOfInterceptions(lua_State* L);
 	static int lSetMadeInterception(lua_State* L);
 

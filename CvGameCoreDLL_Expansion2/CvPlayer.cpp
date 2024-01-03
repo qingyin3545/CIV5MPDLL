@@ -5730,6 +5730,14 @@ void CvPlayer::updateCityPlotYield()
 }
 
 
+void CvPlayer::UpdateCityStrength()
+{
+	//support unit might have moved close to the city or away from it, so just update the value for all cities without further logic
+	int iCityLoop = 0;
+	for (CvCity* pLoopCity = firstCity(&iCityLoop); pLoopCity != NULL; pLoopCity = nextCity(&iCityLoop))
+		pLoopCity->updateStrengthValue();
+}
+
 //	--------------------------------------------------------------------------------
 void CvPlayer::updateCitySight(bool bIncrement)
 {

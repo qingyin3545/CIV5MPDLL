@@ -1232,7 +1232,10 @@ public:
 	int getExtraRoughDefensePercent() const;
 	void changeExtraRoughDefensePercent(int iChange);
 
+	int getNumAttacks() const;
+	int getNumAttacksMadeThisTurn() const;
 	void changeExtraAttacks(int iChange);
+	void ChangeMadeAttackNum(int iChange);
 
 	// Citadel
 	bool IsNearEnemyCitadel(int& iCitadelDamage);
