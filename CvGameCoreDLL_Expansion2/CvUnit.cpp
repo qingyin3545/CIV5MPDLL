@@ -337,6 +337,8 @@ CvUnit::CvUnit() :
 
 
 #if defined(MOD_ROG_CORE)
+		, m_iMultiAttackBonus("CvUnit::m_iMultiAttackBonus", m_syncArchive)
+		, m_iNumAttacksMadeThisTurnAttackMod("CvUnit::m_iNumAttacksMadeThisTurnAttackMod", m_syncArchive)
 		, m_iNumSpyDefenseMod("CvUnit::m_iNumSpyDefenseMod", m_syncArchive)
 		, m_iNumSpyAttackMod("CvUnit::m_iNumSpyAttackMod", m_syncArchive)
 		, m_iNumWonderDefenseMod("CvUnit::m_iNumWonderDefenseMod", m_syncArchive)
@@ -430,6 +432,7 @@ CvUnit::CvUnit() :
 #endif
 
 #if defined(MOD_ROG_CORE)
+		, m_aiNumTimesAttackedThisTurn("CvUnit::m_aiNumTimesAttackedThisTurn", m_syncArchive/*, true*/)
 		, m_iOriginCity()
 		, m_iMoveLfetAttackMod(0)
 		, m_iMoveUsedAttackMod(0)
@@ -1322,6 +1325,8 @@ void CvUnit::reset(int iID, UnitTypes eUnit, PlayerTypes eOwner, bool bConstruct
 
 
 #if defined(MOD_ROG_CORE)
+	m_iMultiAttackBonus = 0;
+	m_iNumAttacksMadeThisTurnAttackMod = 0;
 	m_iNumSpyDefenseMod = 0;
 	m_iNumSpyAttackMod = 0;
 
@@ -1650,6 +1655,9 @@ if (MOD_API_UNIT_CANNOT_BE_RANGED_ATTACKED)
 		}
 
 #if defined(MOD_API_UNIFIED_YIELDS)
+		m_aiNumTimesAttackedThisTurn.clear();
+		m_aiNumTimesAttackedThisTurn.resize(REALLY_MAX_PLAYERS);
+
 		m_yieldFromKills.clear();
 		m_yieldFromBarbarianKills.clear();
 		
@@ -1660,6 +1668,11 @@ if (MOD_API_UNIT_CANNOT_BE_RANGED_ATTACKED)
 		{
 			m_yieldFromKills.setAt(i,0);
 			m_yieldFromBarbarianKills.setAt(i,0);
+		}
+
+		for (int iI = 0; iI < REALLY_MAX_PLAYERS; iI++)
+		{
+			m_aiNumTimesAttackedThisTurn.setAt(iI, 0);
 		}
 #endif
 
@@ -2746,6 +2759,12 @@ void CvUnit::doTurn()
 	testPromotionReady();
 
 #if defined(MOD_ROG_CORE)
+
+	for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
+	{
+		ChangeNumTimesAttackedThisTurn((PlayerTypes)iPlayerLoop, (-1 * GetNumTimesAttackedThisTurn((PlayerTypes)iPlayerLoop)));
+	}
+
 	int turndamage = GetTurnDamage()+ (GetMaxHitPoints() * GetTurnDamagePercent());
 	if (0 != turndamage)
 	{
@@ -6270,6 +6289,31 @@ int CvUnit::GetCapitalDefenseFalloff() const
 }
 
 #if defined(MOD_ROG_CORE)
+
+//	--------------------------------------------------------------------------------
+int CvUnit::getMultiAttackBonus() const
+{
+	VALIDATE_OBJECT
+	return m_iMultiAttackBonus;
+}
+//	--------------------------------------------------------------------------------
+void CvUnit::changeMultiAttackBonus(int iChange)
+{
+	VALIDATE_OBJECT
+	m_iMultiAttackBonus = (m_iMultiAttackBonus + iChange);
+	CvAssert(getMultiAttackBonus() >= 0);
+}
+
+//	--------------------------------------------------------------------------------
+void CvUnit::ChangeNumAttacksMadeThisTurnAttackMod(int iValue)
+{
+	m_iNumAttacksMadeThisTurnAttackMod += iValue;
+}
+//	--------------------------------------------------------------------------------
+int CvUnit::GetNumAttacksMadeThisTurnAttackMod() const
+{
+	return m_iNumAttacksMadeThisTurnAttackMod;
+}
 //	--------------------------------------------------------------------------------
 void CvUnit::ChangeNumSpyAttackMod(int iValue)
 {
@@ -14648,6 +14692,10 @@ int CvUnit::GetMaxAttackStrength(const CvPlot* pFromPlot, const CvPlot* pToPlot,
 	iModifier += iTempModifier;
 
 #if defined(MOD_ROG_CORE)
+	// Generic Attack bonus
+	iTempModifier = GetNumAttacksMadeThisTurnAttackMod()* getNumAttacksMadeThisTurn();
+	iModifier += iTempModifier;
+
 	int NumOriginalCapitalAttackMod = getNumOriginalCapitalAttackMod();
 	if(NumOriginalCapitalAttackMod != 0)
 	{
@@ -14674,10 +14722,7 @@ int CvUnit::GetMaxAttackStrength(const CvPlot* pFromPlot, const CvPlot* pToPlot,
 			iModifier += iTempModifier;
 		}
 	}
-#endif
 
-
-#if defined(MOD_ROG_CORE)
 	//  same land with  CapitalCity
 	int pArea;
 	int puArea;
@@ -14699,9 +14744,7 @@ int CvUnit::GetMaxAttackStrength(const CvPlot* pFromPlot, const CvPlot* pToPlot,
 		}
 
 	}
-#endif
 
-#if defined(MOD_ROG_CORE)
 	// Move Lfet modifier always applies for melee attack
 	int imovesLeft;
 	int iMoveLfetAttackModValue;
@@ -14712,9 +14755,7 @@ int CvUnit::GetMaxAttackStrength(const CvPlot* pFromPlot, const CvPlot* pToPlot,
 		iTempModifier = (imovesLeft * iMoveLfetAttackModValue);
 		iModifier += iTempModifier;
 	}
-#endif
 
-#if defined(MOD_ROG_CORE)
 	// Move Lfet modifier always applies for melee attack
 	int imovesUsed;
 	int iMoveUsedAttackModValue;
@@ -14725,9 +14766,7 @@ int CvUnit::GetMaxAttackStrength(const CvPlot* pFromPlot, const CvPlot* pToPlot,
 		iTempModifier = (imovesUsed * iMoveUsedAttackModValue);
 		iModifier += iTempModifier;
 	}
-#endif
 
-#if defined(MOD_ROG_CORE)
 	// GoldenAge modifier always applies for attack
 
 	if (kPlayer.isGoldenAge())
@@ -14735,9 +14774,8 @@ int CvUnit::GetMaxAttackStrength(const CvPlot* pFromPlot, const CvPlot* pToPlot,
 		iTempModifier = GetGoldenAgeMod();
 		iModifier += iTempModifier;
 	}
-#endif
 
-#if defined(MOD_ROG_CORE)
+
 	// spy modifier always applies for  attack
 	int iSpy;
 	int iSpyAttackModValue;
@@ -14843,6 +14881,15 @@ int CvUnit::GetMaxAttackStrength(const CvPlot* pFromPlot, const CvPlot* pToPlot,
 				iModifier += iTempModifier;
 			}
 
+#if defined(MOD_ROG_CORE)
+			//bonus for attacking same unit over and over in a turn?
+			int iTempModifier = getMultiAttackBonus();
+			if (iTempModifier != 0)
+			{
+				iTempModifier *= pToPlot->getPlotCity()->GetNumTimesAttackedThisTurn(getOwner());
+				iModifier += iTempModifier;
+			}
+#endif
 			// City Defending against a Barbarian
 			if(isBarbarian())
 			{
@@ -14967,7 +15014,6 @@ int CvUnit::GetMaxAttackStrength(const CvPlot* pFromPlot, const CvPlot* pToPlot,
 			iModifier += attackFullyHealedModifier();
 
 #if defined(MOD_ROG_CORE)
-		if (MOD_ROG_CORE)
 			//More than half?
 			if (pDefender->getDamage() < (pDefender->GetMaxHitPoints() / 2))
 				iModifier += attackAbove50HealthModifier();
@@ -14987,6 +15033,14 @@ int CvUnit::GetMaxAttackStrength(const CvPlot* pFromPlot, const CvPlot* pToPlot,
 		if (IsCanHeavyCharge() && !pDefender->CanFallBack(*this, false))
 		{
 			iModifier += 50;
+		}
+
+		//bonus for attacking same unit over and over in a turn?
+		int iTempModifier = getMultiAttackBonus();
+		if (iTempModifier != 0)
+		{
+			iTempModifier *= pDefender->GetNumTimesAttackedThisTurn(getOwner());
+			iModifier += iTempModifier;
 		}
 
 #endif
@@ -15550,8 +15604,7 @@ int CvUnit::GetMaxRangedCombatStrength(const CvUnit* pOtherUnit, const CvCity* p
 			iModifier += attackFullyHealedModifier();
 
 #if defined(MOD_ROG_CORE)
-		if (MOD_ROG_CORE)
-		{
+
 			//More than half (integer division accounting for possible odd Max HP)?
 			if (pOtherUnit->getDamage() < ((pOtherUnit->GetMaxHitPoints() + 1) / 2))
 				iModifier += attackAbove50HealthModifier();
@@ -15565,7 +15618,15 @@ int CvUnit::GetMaxRangedCombatStrength(const CvUnit* pOtherUnit, const CvCity* p
 				iSpyStayAttackModValue = GetNumSpyStayAttackMod();
 				iModifier += iSpyStayAttackModValue;
 			}
-		}
+
+
+			//bonus for attacking same unit over and over in a turn?
+			int iTempModifier = getMultiAttackBonus();
+			if (iTempModifier != 0)
+			{
+				iTempModifier *= pOtherUnit->GetNumTimesAttackedThisTurn(getOwner());
+				iModifier += iTempModifier;
+			}
 #endif
 
 		// Bonus against city states?
@@ -15780,6 +15841,18 @@ int CvUnit::GetMaxRangedCombatStrength(const CvUnit* pOtherUnit, const CvCity* p
 			iModifier += iTempModifier;
 		}
 
+
+#if defined(MOD_ROG_CORE)
+		//bonus for attacking same unit over and over in a turn?
+		int iTempModifier = getMultiAttackBonus() ;
+		if (iTempModifier != 0)
+		{
+			iTempModifier *= pCity->GetNumTimesAttackedThisTurn(getOwner());
+			iModifier += iTempModifier;
+		}
+#endif
+
+
 		// Bonus against city states?
 		if(GET_PLAYER(pCity->getOwner()).isMinorCiv())
 		{
@@ -15825,11 +15898,7 @@ int CvUnit::GetMaxRangedCombatStrength(const CvUnit* pOtherUnit, const CvCity* p
 				iModifier += iTempModifier;
 			}
 		}
-#endif
 
-
-
-#if defined(MOD_ROG_CORE)
 		//  same land with  CapitalCity
 		int pArea;
 		int puArea;
@@ -15851,9 +15920,7 @@ int CvUnit::GetMaxRangedCombatStrength(const CvUnit* pOtherUnit, const CvCity* p
 			}
 
 		}
-#endif
 
-#if defined(MOD_ROG_CORE)
 		// Move Lfet modifier always applies for Ranged attack
 		int imovesLeft;
 		int iMoveLfetAttackModValue;
@@ -15864,10 +15931,7 @@ int CvUnit::GetMaxRangedCombatStrength(const CvUnit* pOtherUnit, const CvCity* p
 			iTempModifier = (imovesLeft * iMoveLfetAttackModValue);
 			iModifier += iTempModifier;
 		}
-#endif
 
-
-#if defined(MOD_ROG_CORE)
 		// Move Lfet modifier always applies for Ranged attack
 		int imovesUsed;
 		int iMoveUsedAttackModValue;
@@ -15878,19 +15942,14 @@ int CvUnit::GetMaxRangedCombatStrength(const CvUnit* pOtherUnit, const CvCity* p
 			iTempModifier = (imovesUsed * iMoveUsedAttackModValue);
 			iModifier += iTempModifier;
 		}
-#endif
-
-#if defined(MOD_ROG_CORE)
+#
 		if (kPlayer.isGoldenAge())
 		{
 			iTempModifier = GetGoldenAgeMod();
 			iModifier += iTempModifier;
 		}
-#endif
 
 
-
-#if defined(MOD_ROG_CORE)
 		// spy modifier always applies for  attack
 		int iSpy;
 		int iSpyAttackModValue;
@@ -20311,8 +20370,12 @@ void CvUnit::setXY(int iX, int iY, bool bGroup, bool bUpdate, bool bShow, bool b
 	setInfoBarDirty(true);
 
 	// if there is an enemy city nearby, alert any scripts to this
+#if defined(MOD_EVENTS_CITY_BOMBARD)
 	int iAttackRange = (MOD_EVENTS_CITY_BOMBARD ? GC.getMAX_CITY_ATTACK_RANGE() : GC.getCITY_ATTACK_RANGE());
-
+#else
+	int iAttackRange = /*2*/ GD_INT_GET(CITY_ATTACK_RANGE);
+#endif
+	
 	for(int iDX = -iAttackRange; iDX <= iAttackRange; iDX++)
 	{
 		for(int iDY = -iAttackRange; iDY <= iAttackRange; iDY++)
@@ -20324,11 +20387,15 @@ void CvUnit::setXY(int iX, int iY, bool bGroup, bool bUpdate, bool bShow, bool b
 				{
 					// do it
 					CvCity* pkPlotCity = pTargetPlot->getPlotCity();
+#if defined(MOD_EVENTS_CITY_BOMBARD)
 					if (!MOD_EVENTS_CITY_BOMBARD || plotXYWithRangeCheck(getX(), getY(), iDX, iDY, pkPlotCity->getBombardRange()))
 					{
+#endif
 						auto_ptr<ICvCity1> pPlotCity = GC.WrapCityPointer(pkPlotCity);
 						DLLUI->SetSpecificCityInfoDirty(pPlotCity.get(), CITY_UPDATE_TYPE_ENEMY_IN_RANGE);
+#if defined(MOD_EVENTS_CITY_BOMBARD)
 					}
+#endif
 				}
 			}
 		}
@@ -25680,6 +25747,8 @@ void CvUnit::setHasPromotion(PromotionTypes eIndex, bool bNewValue)
 #endif
 
 #if defined(MOD_ROG_CORE)
+		changeMultiAttackBonus(thisPromotion.GetMultiAttackBonus()* iChange);
+		ChangeNumAttacksMadeThisTurnAttackMod(thisPromotion.GetNumAttacksMadeThisTurnAttackMod()* iChange);
 		ChangeNumSpyAttackMod(thisPromotion.GetNumSpyAttackMod() * iChange);
 		ChangeNumSpyDefenseMod(thisPromotion.GetNumSpyDefenseMod() * iChange);
 
@@ -29958,6 +30027,13 @@ int CvUnit::AI_promotionValue(PromotionTypes ePromotion)
 			iValue = GetPromotionValue(pkPromotionInfo->GetAttackWoundedMod(), getExtraAttackWoundedMod(), iFlavorOffense, mediumPriority);
 		}
 
+
+		if (iValue == 0)
+		{
+			iValue = GetPromotionValue(pkPromotionInfo->GetNumAttacksMadeThisTurnAttackMod(), GetNumAttacksMadeThisTurnAttackMod(), iFlavorOffense, mediumPriority);
+		}
+
+
 		if (iValue == 0)
 		{
 			iValue = GetPromotionValue(pkPromotionInfo->GetMovesChange(), 0, iFlavorMobile, mediumPriority);
@@ -31661,3 +31737,20 @@ CvString CvUnit::GetPlotCorruptionScoreReport() const
 	return szRtnValue;
 }
 #endif
+
+
+void CvUnit::ChangeNumTimesAttackedThisTurn(PlayerTypes ePlayer, int iValue)
+{
+	VALIDATE_OBJECT
+    CvAssertMsg(ePlayer >= 0, "ePlayer expected to be >= 0");
+	CvAssertMsg(ePlayer < REALLY_MAX_PLAYERS, "ePlayer expected to be < NUM_DOMAIN_TYPES")
+	m_aiNumTimesAttackedThisTurn.setAt(ePlayer, m_aiNumTimesAttackedThisTurn[ePlayer] + iValue);
+}
+
+int CvUnit::GetNumTimesAttackedThisTurn(PlayerTypes ePlayer) const
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(ePlayer >= 0, "eIndex expected to be >= 0");
+	CvAssertMsg(ePlayer < REALLY_MAX_PLAYERS, "eIndex expected to be < NUM_DOMAIN_TYPES");
+	return m_aiNumTimesAttackedThisTurn[ePlayer];
+}

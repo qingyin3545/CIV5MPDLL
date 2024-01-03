@@ -656,6 +656,8 @@
 //   GameEvents.GetBombardRange.Add(function(iPlayer, iCity) return (-1 * GameDefines.CITY_ATTACK_RANGE) end)
 #define MOD_EVENTS_CITY_BOMBARD                     gCustomMods.isEVENTS_CITY_BOMBARD()
 
+#define MOD_ROG_CORE_BOMBARD_RANGE_BUILDINGS      gCustomMods.isROG_CORE_BOMBARD_RANGE_BUILDINGS()
+
 // Events sent to ascertain if one city is connected to another (v33)
 //   GameEvents.CityConnections.Add(function(iPlayer, bDomestic) return false end)
 //   GameEvents.CityConnected.Add(function(iPlayer, iCityX, iCityY, iToCityX, iToCityY, bDomestic) return false end)
@@ -1565,6 +1567,7 @@ public:
 	MOD_OPT_DECL(EVENTS_CITY_RAZING);
 	MOD_OPT_DECL(EVENTS_CITY_AIRLIFT);
 	MOD_OPT_DECL(EVENTS_CITY_BOMBARD);
+	MOD_OPT_DECL(ROG_CORE_BOMBARD_RANGE_BUILDINGS);
 	MOD_OPT_DECL(EVENTS_CITY_CONNECTIONS);
 	MOD_OPT_DECL(EVENTS_AREA_RESOURCES);
 	MOD_OPT_DECL(EVENTS_PARADROPS);

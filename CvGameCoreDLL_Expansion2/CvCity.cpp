@@ -228,6 +228,7 @@ CvCity::CvCity() :
 	, m_iAddsFreshWater(0)
 	, m_iForbiddenForeignSpyCount(0)
 #if defined(MOD_ROG_CORE)
+	, m_aiNumTimesAttackedThisTurn("CvCity::m_aiNumTimesAttackedThisTurn", m_syncArchive)
 	, m_aiYieldPerAlly()
 	, m_aiYieldPerFriend()
 	, m_aiBaseYieldRateFromCSAlliance()
@@ -1034,6 +1035,7 @@ void CvCity::reset(int iID, PlayerTypes eOwner, int iX, int iY, bool bConstructo
 	m_iAddsFreshWater = 0;
 	m_iForbiddenForeignSpyCount = 0;
 #if defined(MOD_ROG_CORE)
+	m_aiNumTimesAttackedThisTurn.resize(REALLY_MAX_PLAYERS);
 	m_aiSpecialistRateModifier.resize(GC.getNumSpecialistInfos());
 	m_iExtraDamageHeal = 0;
 	m_iBombardRange = 0;
@@ -1164,6 +1166,12 @@ void CvCity::reset(int iID, PlayerTypes eOwner, int iX, int iY, bool bConstructo
 
 
 #if defined(MOD_ROG_CORE)
+
+	for (iI = 0; iI < REALLY_MAX_PLAYERS; iI++)
+	{
+		m_aiNumTimesAttackedThisTurn.setAt(iI, 0);
+	}
+
 	m_aiYieldPerAlly.resize(NUM_YIELD_TYPES);
 	m_aiYieldPerFriend.resize(NUM_YIELD_TYPES);
 	m_aiBaseYieldRateFromCSFriendship.resize(NUM_YIELD_TYPES);
@@ -2078,6 +2086,11 @@ void CvCity::doTurn()
 		//cities heal much faster if process defense
 
 #if defined(MOD_ROG_CORE)
+		for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
+		{
+			ChangeNumTimesAttackedThisTurn((PlayerTypes)iPlayerLoop, (-1 * GetNumTimesAttackedThisTurn((PlayerTypes)iPlayerLoop)));
+		}
+
 		if (getProductionProcess() != NO_PROCESS)
 		{
 			CvProcessInfo* pkProcessInfo = GC.getProcessInfo(getProductionProcess());
@@ -8525,23 +8538,16 @@ void CvCity::changeExtraBombardRange(int iChange)
 		}
 }
 
-int CvCity::getBombardIndirect() const
-{
-	return m_iBombardIndirect;
-}
-//	--------------------------------------------------------------------------------
 bool CvCity::isBombardIndirect() const
 {
-	return (getBombardIndirect() > 0);
+	VALIDATE_OBJECT
+	return m_iBombardIndirect > 0;
 }
-
-//	--------------------------------------------------------------------------------
-void CvCity::changeBombardIndirect(int iChange)
+void CvCity::changeBombardIndirect(int iValue)
 {
-	if (iChange != 0)
+	if (iValue != 0)
 	{
-		m_iBombardIndirect = (m_iBombardIndirect + iChange);
-		CvAssert(getBombardIndirect() >= 0);
+		m_iBombardIndirect += iValue;
 	}
 }
 #endif
@@ -19893,19 +19899,6 @@ void CvCity::invalidateYieldRankCache(YieldTypes eYield)
 	}
 }
 
-//	--------------------------------------------------------------------------------
-//bool CvCity::isMadeAttack() const
-//{
-	//VALIDATE_OBJECT
-	//return m_bMadeAttack;
-//}
-
-//	--------------------------------------------------------------------------------
-//void CvCity::setMadeAttack(bool bNewValue)
-//{
-	//VALIDATE_OBJECT
-	//m_bMadeAttack = bNewValue;
-//}
 
 //	--------------------------------------------------------------------------------
 bool CvCity::isMadeAttack() const
@@ -19943,10 +19936,26 @@ void CvCity::setMadeAttack(bool bNewValue)
 }
 
 #if defined(MOD_ROG_CORE)
+void CvCity::ChangeNumTimesAttackedThisTurn(PlayerTypes ePlayer, int iValue)
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(ePlayer >= 0, "ePlayer expected to be >= 0");
+	CvAssertMsg(ePlayer < REALLY_MAX_PLAYERS, "ePlayer expected to be < NUM_DOMAIN_TYPES");
+	m_aiNumTimesAttackedThisTurn.setAt(ePlayer, m_aiNumTimesAttackedThisTurn[ePlayer] + iValue);
+}
+int CvCity::GetNumTimesAttackedThisTurn(PlayerTypes ePlayer) const
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(ePlayer >= 0, "eIndex expected to be >= 0");
+	CvAssertMsg(ePlayer < REALLY_MAX_PLAYERS, "eIndex expected to be < NUM_DOMAIN_TYPES");
+	return m_aiNumTimesAttackedThisTurn[ePlayer];
+}
+
+
 int CvCity::getCityBuildingRangeStrikeModifier() const
 {
 	VALIDATE_OBJECT
-		return m_iCityBuildingRangeStrikeModifier;
+	return m_iCityBuildingRangeStrikeModifier;
 }
 void CvCity::changeCityBuildingRangeStrikeModifier(int iValue)
 {
@@ -20116,6 +20125,8 @@ void CvCity::changeLandTileTurnDamage(int iChange)
 #endif
 
 
+
+#if defined(MOD_EVENTS_CITY_BOMBARD)
 //	--------------------------------------------------------------------------------
 int CvCity::getBombardRange() const
 {
@@ -20128,29 +20139,33 @@ int CvCity::getBombardRange(bool& bIndirectFireAllowed) const
 {
 	VALIDATE_OBJECT
 	
-	if (MOD_EVENTS_CITY_BOMBARD)
+	if (MOD_ROG_CORE_BOMBARD_RANGE_BUILDINGS)
 	{
-		//TeamTypes eTeam = getTeam();
-		int iValue= GC.getCITY_ATTACK_RANGE() + getExtraBombardRange() + GET_TEAM(getTeam()).GetBombardRange();
-		if (iValue<0)
-		{
-			iValue =0;
-		}
-		if (iValue > GC.getMAX_CITY_ATTACK_RANGE())
-		{
-			iValue = GC.getMAX_CITY_ATTACK_RANGE();
-		}
 		bIndirectFireAllowed = isBombardIndirect();
+
 		if (GET_TEAM(getTeam()).isBombardIndirect())
 		{
 			bIndirectFireAllowed = true;
 		}
-		return iValue;
+		return GC.getCITY_ATTACK_RANGE() + getExtraBombardRange() + GET_TEAM(getTeam()).GetBombardRange();
+	}
+
+	if (MOD_EVENTS_CITY_BOMBARD) 
+	{
+		int iValue = 0;
+		if (GAMEEVENTINVOKE_VALUE(iValue, GAMEEVENT_GetBombardRange, getOwner(), GetID()) == GAMEEVENTRETURN_VALUE) {
+			// Defend against modder stupidity!
+			if (iValue != 0 && ::abs(iValue) <= /*2*/ GD_INT_GET(MAX_CITY_ATTACK_RANGE)) {
+				bIndirectFireAllowed = (iValue < 0);
+				return ::abs(iValue);
+			}
+		}
 	}
 
 	bIndirectFireAllowed = GC.getCAN_CITY_USE_INDIRECT_FIRE();
 	return GC.getCITY_ATTACK_RANGE();
 }
+#endif
 
 //	--------------------------------------------------------------------------------
 bool CvCity::canRangeStrike() const
@@ -20184,70 +20199,31 @@ bool CvCity::CanRangeStrikeNow() const
 		return false;
 	}
 
-
-	bool bIndirectFireAllowed; // By reference, yuck!!!
-	int iRange = getBombardRange(bIndirectFireAllowed);
-	
-	if (iRange == 0) return false;
+#if defined(MOD_EVENTS_CITY_BOMBARD)
+	int iRange = getBombardRange();
+#else
+	int iRange = /*2*/ GD_INT_GET(CITY_ATTACK_RANGE);
+#endif
 
 	CvPlot* pPlot = plot();
-	int iX = getX();
-	int iY = getY();
-	TeamTypes eTeam = getTeam();
-	PlayerTypes eActivePlayer = GC.getGame().getActivePlayer();
-	int iGameTurn = GC.getGame().getGameTurn();
-
-	for(int iDX = -iRange; iDX <= iRange; iDX++)
+	for (int iRing = 1; iRing <= min(5, iRange); iRing++)
 	{
-		for(int iDY = -iRange; iDY <= iRange; iDY++)
+		for (int i = RING_PLOTS[iRing - 1]; i < RING_PLOTS[iRing]; i++)
 		{
-			CvPlot* pTargetPlot = plotXY(iX, iY, iDX, iDY);
-			bool bCanRangeStrike = true;
-
-			if(!pTargetPlot)
-			{
+			CvPlot* pTargetPlot = iterateRingPlots(pPlot, i);
+			if (!pTargetPlot)
 				continue;
-			}
 
-			if(!bIndirectFireAllowed)
-			{
-
-				if (!pPlot->canSeePlot(pTargetPlot, eTeam, iRange, NO_DIRECTION, DOMAIN_LAND))
-				{
-					bCanRangeStrike = false;
-				}
-			}
-
-
-			if(bCanRangeStrike)
-			{
-				if(pTargetPlot->isVisible(eTeam))
-				{
-					int iTargetPlotX = pTargetPlot->getX();
-					int iTargetPlotY = pTargetPlot->getY();
-					int iPlotDistance = plotDistance(iX, iY, iTargetPlotX, iTargetPlotY);
-					if(iPlotDistance <= iRange)
-					{
-						if(canRangeStrikeAt(iTargetPlotX, iTargetPlotY))
-						{
-							if(m_eOwner == eActivePlayer)
-							{
-								if(iGameTurn != m_bombardCheckTurn)
-								{
-									m_bombardCheckTurn = iGameTurn;
-								}
-							}
-
-							return true;
-						}
-					}
-				}
-			}
+			//this checks everything, visibility, LOS, target type etc
+			if (canRangeStrikeAt(pTargetPlot->getX(), pTargetPlot->getY()))
+				return true;
 		}
 	}
 
 	return false;
 }
+
+
 
 //	--------------------------------------------------------------------------------
 /// Does this City have a Building that allows it to Range Strike?
@@ -20300,10 +20276,12 @@ bool CvCity::canRangeStrikeAt(int iX, int iY) const
 		return false;
 	}
 
-	bool bIndirectFireAllowed; // By reference, yuck!!!
+#if defined(MOD_EVENTS_CITY_BOMBARD)
+	bool bIndirectFireAllowed = false; // By reference, yuck!!!
 	int iAttackRange = getBombardRange(bIndirectFireAllowed);
-	
-	if (iAttackRange == 0) return false;
+#else
+	int iAttackRange = /*2*/ GD_INT_GET(CITY_ATTACK_RANGE);
+#endif
 
 
 	if(plotDistance(plot()->getX(), plot()->getY(), pTargetPlot->getX(), pTargetPlot->getY()) > iAttackRange)
@@ -20312,7 +20290,11 @@ bool CvCity::canRangeStrikeAt(int iX, int iY) const
 	}
 
 
-	if(!bIndirectFireAllowed)
+#if defined(MOD_EVENTS_CITY_BOMBARD)
+	if (!bIndirectFireAllowed)
+#else
+	if (/*1*/ GD_INT_GET(CAN_CITY_USE_INDIRECT_FIRE) > 0)
+#endif
 	{
 		if (!plot()->canSeePlot(pTargetPlot, getTeam(), iAttackRange, NO_DIRECTION, DOMAIN_LAND))
 		{

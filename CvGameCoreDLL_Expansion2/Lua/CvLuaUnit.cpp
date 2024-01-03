@@ -515,6 +515,8 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(GetDefenseModifier);
 
 #if defined(MOD_ROG_CORE)
+	Method(GetMultiAttackBonus);
+	Method(GetNumAttacksMadeThisTurnAttackMod);
 	Method(GetMeleeDefenseModifier);
 	Method(GetRangedDefenseModifier);
 #endif
@@ -3689,6 +3691,61 @@ int CvLuaUnit::lGetDefenseModifier(lua_State* L)
 }
 
 #if defined(MOD_ROG_CORE)
+//------------------------------------------------------------------------------
+int CvLuaUnit::lGetMultiAttackBonus(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	CvUnit* pkOtherUnit = CvLuaUnit::GetInstance(L, 2);
+
+	if (pkUnit == NULL || pkOtherUnit == NULL)
+		return 0;
+
+	int iModifier = 0;
+	//bonus for attacking same unit over and over in a turn?
+	int iTempModifier = pkUnit->getMultiAttackBonus();
+	if (iTempModifier != 0)
+	{
+		iTempModifier *= pkOtherUnit->GetNumTimesAttackedThisTurn(pkUnit->getOwner());
+		iModifier += iTempModifier;
+	}
+
+	lua_pushinteger(L, iModifier);
+	return 1;
+}
+
+//------------------------------------------------------------------------------
+int CvLuaUnit::lGetMultiAttackBonusCity(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	CvCity* pkCity = CvLuaCity::GetInstance(L, 2, false);
+
+	if (pkUnit == NULL || pkCity == NULL)
+		return 0;
+
+	int iModifier = 0;
+	//bonus for attacking same unit over and over in a turn?
+	int iTempModifier = pkUnit->getMultiAttackBonus();
+	if (iTempModifier != 0)
+	{
+		iTempModifier *= pkCity->GetNumTimesAttackedThisTurn(pkUnit->getOwner());
+		iModifier += iTempModifier;
+	}
+
+	lua_pushinteger(L, iModifier);
+	return 1;
+}
+
+
+int CvLuaUnit::lGetNumAttacksMadeThisTurnAttackMod(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+
+	const int iResult = pkUnit->GetNumAttacksMadeThisTurnAttackMod();
+	lua_pushinteger(L, iResult);
+	return 1;
+}
+
+
 int CvLuaUnit::lGetMeleeDefenseModifier(lua_State* L)
 {
 	CvUnit* pkUnit = GetInstance(L);

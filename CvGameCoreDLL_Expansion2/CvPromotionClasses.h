@@ -208,7 +208,8 @@ public:
 	int GetPillageReplenishMoves() const;
 	bool PillageReplenishAttck() const;
 	int GetPillageReplenishHealth() const;
-
+	int GetMultiAttackBonus() const;
+	int GetNumAttacksMadeThisTurnAttackMod() const;
 	int GetNumSpyDefenseMod() const;
 	int GetNumSpyAttackMod() const;
 
@@ -674,6 +675,8 @@ protected:
 #endif
 
 #if defined(MOD_ROG_CORE)
+	int m_iMultiAttackBonus;
+	int m_iNumAttacksMadeThisTurnAttackMod;
 	int m_iNumSpyDefenseMod;
 	int m_iNumSpyAttackMod;
 

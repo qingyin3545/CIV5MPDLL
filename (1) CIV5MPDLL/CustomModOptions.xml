@@ -676,7 +676,7 @@
     <!-- Event sent to ascertain if a city can perform airlifts (v68) -->
     <!--   GameEvents.CityCanAirlift.Add(function(iPlayer, iCity) return false end) -->
     <Row Class="3" Name="EVENTS_CITY_AIRLIFT" Value="0"/>
-
+    <Row Class="6" Name="ROG_CORE_BOMBARD_RANGE_BUILDINGS" Value="0"/>
     <!-- Event sent to ascertain the bombard range for a city, and if indirect fire is allowed (v32) -->
     <!--   updated to permit a range of 0 for no bombardment possible (v95) -->
     <!-- Return a negative range if indirect fire is permitted -->

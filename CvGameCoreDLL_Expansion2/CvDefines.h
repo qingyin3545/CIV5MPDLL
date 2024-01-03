@@ -29,6 +29,15 @@
 #define CITY_PLOTS_DIAMETER									((CITY_PLOTS_RADIUS*2) + 1)
 #endif
 
+//generic ring iteration
+#define RING0_PLOTS											(1)
+#define RING1_PLOTS											(7)
+#define RING2_PLOTS											(19)
+#define RING3_PLOTS											(37)
+#define RING4_PLOTS											(61)
+#define RING5_PLOTS											(91)
+
+
 #define CIV5_WBMAP_EXT										".Civ5Map"
 
 #define MAP_TRANSFER_EXT									"_t"

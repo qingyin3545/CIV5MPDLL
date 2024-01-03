@@ -159,7 +159,8 @@ CvPromotionEntry::CvPromotionEntry():
 	m_iOutsideCapitalLandAttackMod(0),
 	m_iOnCapitalLandDefenseMod(0),
 	m_iOutsideCapitalLandDefenseMod(0),
-
+	m_iMultiAttackBonus(0),
+	m_iNumAttacksMadeThisTurnAttackMod(0),
 	m_iNumSpyDefenseMod(0),
 	m_iNumSpyAttackMod(0),
 	m_iNumWonderDefenseMod(0),
@@ -552,6 +553,8 @@ bool CvPromotionEntry::CacheResults(Database::Results& kResults, CvDatabaseUtili
 	m_bCannotBeCaptured = kResults.GetBool("CannotBeCaptured");
 
 #if defined(MOD_ROG_CORE)
+	m_iMultiAttackBonus = kResults.GetInt("MultiAttackBonus");
+	m_iNumAttacksMadeThisTurnAttackMod = kResults.GetInt("NumAttacksMadeThisTurnAttackMod");
 	m_iNumSpyDefenseMod = kResults.GetInt("NumSpyDefenseMod");
 	m_iNumSpyAttackMod = kResults.GetInt("NumSpyAttackMod");
 	m_iNumWonderDefenseMod = kResults.GetInt("NumWonderDefenseMod");
@@ -2070,6 +2073,15 @@ bool CvPromotionEntry::CannotBeCaptured() const
 
 
 #if defined(MOD_ROG_CORE)
+int CvPromotionEntry::GetMultiAttackBonus() const
+{
+	return m_iMultiAttackBonus;
+}
+
+int CvPromotionEntry::GetNumAttacksMadeThisTurnAttackMod() const
+{
+	return m_iNumAttacksMadeThisTurnAttackMod;
+}
 
 int CvPromotionEntry::GetNumSpyAttackMod() const
 {

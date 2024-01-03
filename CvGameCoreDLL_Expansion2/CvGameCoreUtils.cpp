@@ -26,6 +26,8 @@
 #include "LintFree.h"
 #include <emmintrin.h>
 
+int RING_PLOTS[6] = { RING0_PLOTS,RING1_PLOTS,RING2_PLOTS,RING3_PLOTS,RING4_PLOTS,RING5_PLOTS };
+
 extern "C" unsigned int _ftoui3(const float x) {
 	return (unsigned int)_mm_cvt_ss2si(_mm_set_ss(x));
 }
@@ -202,6 +204,14 @@ CvCity* getCity(IDInfo city)
 }
 
 
+/// This function will return the CvPlot associated with the Index (0 to 36) of a City at iX,iY.  The lower the Index the closer the Plot is to the City (roughly)
+CvPlot* iterateRingPlots(const CvPlot* pCenter, int iIndex)
+{
+	if (pCenter)
+		return iterateRingPlots(pCenter->getX(), pCenter->getY(), iIndex);
+
+	return NULL;
+}
 
 CvPlot* iterateRingPlots(int iX, int iY, int iIndex)
 {

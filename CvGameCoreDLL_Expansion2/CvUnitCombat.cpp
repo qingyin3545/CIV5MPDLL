@@ -467,6 +467,11 @@ void CvUnitCombat::ResolveMeleeCombat(const CvCombatInfo& kCombatInfo, uint uiPa
 		iAttackerDamageDelta = pkAttacker->changeDamage(iDefenderDamageInflicted, pkDefender->getOwner(), -1.f);		// Signal that we don't want the popup text.  It will be added later when the unit is at its final location
 #endif
 
+#if defined(MOD_ROG_CORE)
+		pkDefender->ChangeNumTimesAttackedThisTurn(pkAttacker->getOwner(), 1);
+#endif
+
+
 		// Update experience for both sides.
 #if defined(MOD_UNITS_XP_TIMES_100)
 		pkDefender->changeExperienceTimes100(100 *
@@ -1084,6 +1089,10 @@ void CvUnitCombat::ResolveRangedUnitVsCombat(const CvCombatInfo& kCombatInfo, ui
 						pkAttacker->setCombatUnit(NULL);	// Must clear this if doing a delayed kill, should this be part of the kill method?
 						pkAttacker->kill(true);
 					}
+
+#if defined(MOD_ROG_CORE)
+					pkDefender->ChangeNumTimesAttackedThisTurn(pkAttacker->getOwner(), 1);
+#endif
 					// Defender died
 #if defined(MOD_UNITS_MAX_HP)
 					if(iDamage + pkDefender->getDamage() >= pkDefender->GetMaxHitPoints())
@@ -1326,6 +1335,11 @@ void CvUnitCombat::ResolveRangedCityVsUnitCombat(const CvCombatInfo& kCombatInfo
 
 				if(pkAttacker)
 				{
+
+#if defined(MOD_ROG_CORE)
+					pkDefender->ChangeNumTimesAttackedThisTurn(pkAttacker->getOwner(), 1);
+#endif
+
 					// Info message for the attacking player
 					if(iActivePlayerID == pkAttacker->getOwner())
 					{
@@ -1460,6 +1474,10 @@ void CvUnitCombat::ResolveCityMeleeCombat(const CvCombatInfo& kCombatInfo, uint 
 		pkAttacker->changeDamage(iDefenderDamageInflicted, pkDefender->getOwner());
 #endif
 		pkDefender->changeDamage(iAttackerDamageInflicted);
+
+#if defined(MOD_ROG_CORE)
+		pkDefender->ChangeNumTimesAttackedThisTurn(pkAttacker->getOwner(), 1);
+#endif
 
 #if defined(MOD_UNITS_XP_TIMES_100)
 		pkAttacker->changeExperienceTimes100(100 * kCombatInfo.getExperience(BATTLE_UNIT_ATTACKER),
@@ -1986,6 +2004,11 @@ void CvUnitCombat::ResolveAirUnitVsCombat(const CvCombatInfo& kCombatInfo, uint 
 					pkDefender->changeDamage(iAttackerDamageInflicted, pkAttacker->getOwner());
 #endif
 
+
+#if defined(MOD_ROG_CORE)
+					pkDefender->ChangeNumTimesAttackedThisTurn(pkAttacker->getOwner(), 1);
+#endif
+
 					// Update experience
 #if defined(MOD_UNITS_XP_TIMES_100)
 					pkDefender->changeExperienceTimes100(100 * 
@@ -2126,6 +2149,9 @@ void CvUnitCombat::ResolveAirUnitVsCombat(const CvCombatInfo& kCombatInfo, uint 
 				pCity->clearCombat();
 				if(pkAttacker)
 				{
+#if defined(MOD_ROG_CORE)
+					pCity->ChangeNumTimesAttackedThisTurn(pkAttacker->getOwner(), 1);
+#endif
 					pCity->changeDamage(iAttackerDamageInflicted);
 #if defined(MOD_API_UNIT_STATS)
 					pkAttacker->changeDamage(iDefenderDamageInflicted, pCity->getOwner(), -1);
@@ -4542,6 +4568,10 @@ void CvUnitCombat::ApplyPostCityCombatEffects(CvUnit* pkAttacker, CvCity* pkDefe
 			}
 		}
 	}	
+#endif
+
+#if defined(MOD_ROG_CORE)
+	pkDefender->ChangeNumTimesAttackedThisTurn(pkAttacker->getOwner(), 1);
 #endif
 }
 

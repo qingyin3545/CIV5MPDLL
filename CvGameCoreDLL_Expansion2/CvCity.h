@@ -1028,10 +1028,11 @@ public:
 	int getExtraBombardRange() const;
 	void changeExtraBombardRange(int iChange);
 
-	int getBombardIndirect() const;
 	void changeBombardIndirect(int iChange);
 	bool isBombardIndirect() const;
 
+	void ChangeNumTimesAttackedThisTurn(PlayerTypes ePlayer, int iValue);
+	int GetNumTimesAttackedThisTurn(PlayerTypes ePlayer) const;
 
 	int getCityBuildingRangeStrikeModifier() const;
 	void changeCityBuildingRangeStrikeModifier(int iValue);
@@ -1505,6 +1506,7 @@ protected:
 
 
 #if defined(MOD_ROG_CORE)
+	FAutoVariable<std::vector<int>, CvCity> m_aiNumTimesAttackedThisTurn;
 	std::vector<int> m_aiBaseYieldRateFromCSAlliance;
 	std::vector<int> m_aiBaseYieldRateFromCSFriendship;
 	std::vector<int> m_aiYieldPerAlly;
