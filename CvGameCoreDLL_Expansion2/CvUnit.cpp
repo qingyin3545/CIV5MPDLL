@@ -15872,6 +15872,12 @@ int CvUnit::GetMaxRangedCombatStrength(const CvUnit* pOtherUnit, const CvCity* p
 		iModifier += getAttackModifier();
 
 #if defined(MOD_ROG_CORE)
+
+		// Generic Attack bonus
+		iTempModifier = GetNumAttacksMadeThisTurnAttackMod() * getNumAttacksMadeThisTurn();
+		iModifier += iTempModifier;
+
+
 		int iNumOriginalCapitalAttackMod = getNumOriginalCapitalAttackMod();
 		if(iNumOriginalCapitalAttackMod != 0)
 		{
