@@ -437,6 +437,7 @@ CvUnit::CvUnit() :
 		, m_iMoveLfetAttackMod(0)
 		, m_iMoveUsedAttackMod(0)
 		, m_iGoldenAgeMod(0)
+		, m_iAntiHigherPopMod(0)
 		, m_iRangedSupportFireMod(0)
 		, m_iBarbCombatBonus(0)
 		, m_iDamageAoEFortified(0)
@@ -550,6 +551,9 @@ CvUnit::CvUnit() :
 #endif
 	, m_extraUnitCombatModifier("CvUnit::m_extraUnitCombatModifier", m_syncArchive/*, true*/)
 	, m_unitClassModifier("CvUnit::m_unitClassModifier", m_syncArchive/*, true*/)
+	, m_iCombatModPerAdjacentUnitCombatModifier("CvUnit::m_iCombatModPerAdjacentUnitCombatModifier", m_syncArchive/*, true*/)
+	, m_iCombatModPerAdjacentUnitCombatAttackMod("CvUnit::m_iCombatModPerAdjacentUnitCombatAttackMod", m_syncArchive/*, true*/)
+    , m_iCombatModPerAdjacentUnitCombatDefenseMod("CvUnit::m_iCombatModPerAdjacentUnitCombatDefenseMod", m_syncArchive/*, true*/)
 	, m_iMissionTimer(0)
 	, m_iMissionAIX("CvUnit::m_iMissionAIX", m_syncArchive)
 	, m_iMissionAIY("CvUnit::m_iMissionAIY", m_syncArchive)
@@ -1299,6 +1303,7 @@ void CvUnit::reset(int iID, UnitTypes eUnit, PlayerTypes eOwner, bool bConstruct
 	m_iMoveLfetAttackMod = 0;
 	m_iMoveUsedAttackMod = 0;
 	m_iGoldenAgeMod = 0;
+	m_iAntiHigherPopMod = 0;
 	m_iRangedSupportFireMod = 0;
 	m_iBarbCombatBonus = 0;
 	m_iDamageAoEFortified = 0;
@@ -1679,9 +1684,18 @@ if (MOD_API_UNIT_CANNOT_BE_RANGED_ATTACKED)
 		CvAssertMsg((0 < GC.getNumUnitCombatClassInfos()), "GC.getNumUnitCombatClassInfos() is not greater than zero but an array is being allocated in CvUnit::reset");
 		m_extraUnitCombatModifier.clear();
 		m_extraUnitCombatModifier.resize(GC.getNumUnitCombatClassInfos());
+		m_iCombatModPerAdjacentUnitCombatModifier.clear();
+		m_iCombatModPerAdjacentUnitCombatModifier.resize(GC.getNumUnitCombatClassInfos());
+		m_iCombatModPerAdjacentUnitCombatAttackMod.clear();
+		m_iCombatModPerAdjacentUnitCombatAttackMod.resize(GC.getNumUnitCombatClassInfos());
+		m_iCombatModPerAdjacentUnitCombatDefenseMod.clear();
+		m_iCombatModPerAdjacentUnitCombatDefenseMod.resize(GC.getNumUnitCombatClassInfos());
 		for(int i = 0; i < GC.getNumUnitCombatClassInfos(); i++)
 		{
 			m_extraUnitCombatModifier.setAt(i,0);
+			m_iCombatModPerAdjacentUnitCombatModifier.setAt(i, 0);
+			m_iCombatModPerAdjacentUnitCombatAttackMod.setAt(i, 0);
+			m_iCombatModPerAdjacentUnitCombatDefenseMod.setAt(i, 0);
 		}
 
 		m_unitClassModifier.clear();
@@ -1792,6 +1806,9 @@ void CvUnit::uninitInfos()
 #endif
 	m_extraUnitCombatModifier.clear();
 	m_unitClassModifier.clear();
+	m_iCombatModPerAdjacentUnitCombatModifier.clear();
+	m_iCombatModPerAdjacentUnitCombatAttackMod.clear();
+	m_iCombatModPerAdjacentUnitCombatDefenseMod.clear();
 }
 
 
@@ -6555,6 +6572,33 @@ void CvUnit::ChangeGoldenAgeMod(int iValue)
 int CvUnit::GetGoldenAgeMod() const
 {
 	return m_iGoldenAgeMod;
+}
+
+
+void CvUnit::ChangeAntiHigherPopMod(int iValue)
+{
+	m_iAntiHigherPopMod += iValue;
+}
+
+//	--------------------------------------------------------------------------------
+int CvUnit::GetAntiHigherPopMod() const
+{
+	return m_iAntiHigherPopMod;
+}
+
+//	--------------------------------------------------------------------------------
+bool CvUnit::IsHigherPopThan(const CvUnit* pOtherUnit) const
+{
+	int iMyPop = 0;
+	int iOtherPop = 0;
+
+	CvPlayer& kPlayer = GET_PLAYER(getOwner());
+	iMyPop = kPlayer.getTotalPopulation();
+
+	CvPlayer& kOtherPlayer = GET_PLAYER(pOtherUnit->getOwner());
+	iOtherPop = kOtherPlayer.getTotalPopulation();
+
+	return iMyPop > iOtherPop;
 }
 
 void CvUnit::ChangeRangedSupportFireMod(int iValue)
@@ -14461,6 +14505,20 @@ int CvUnit::GetGenericMaxStrengthModifier(const CvUnit* pOtherUnit, const CvPlot
 		iModifier += iNearbyUnitClassModifier;
 	}
 
+	// Adjacent Friendly military Unit?
+	if (plot()->IsFriendlyUnitAdjacent(getTeam(), /*bCombatUnit*/ true))
+	{
+		for (int iI = 0; iI < GC.getNumUnitCombatClassInfos(); iI++) // Stuff for per adjacent unit combat
+		{
+			const UnitCombatTypes eUnitCombat = static_cast<UnitCombatTypes>(iI);
+			int iModPerAdjacent = getCombatModPerAdjacentUnitCombatModifier(eUnitCombat);
+			if (iModPerAdjacent != 0)
+			{
+				int iNumFriendliesAdjacent = plot()->GetNumSpecificFriendlyUnitCombatsAdjacent(getTeam(), eUnitCombat,this);
+				iModifier += (iNumFriendliesAdjacent * iModPerAdjacent);
+			}
+		}
+	}
 #endif
 
 	// Adjacent Friendly military Unit?
@@ -14471,6 +14529,7 @@ int CvUnit::GetGenericMaxStrengthModifier(const CvUnit* pOtherUnit, const CvPlot
 	if(kPlayer.isGoldenAge())
 		iModifier += kPlayer.GetPlayerTraits()->GetGoldenAgeCombatModifier();
 
+	
 	////////////////////////
 	// KNOWN BATTLE PLOT
 	////////////////////////
@@ -14510,6 +14569,12 @@ int CvUnit::GetGenericMaxStrengthModifier(const CvUnit* pOtherUnit, const CvPlot
 			if(pBattlePlot->isCity() && GET_PLAYER(pBattlePlot->getOwner()).isMinorCiv())
 			{
 				iModifier += kPlayer.GetPlayerTraits()->GetCityStateCombatModifier();
+			}
+
+			// bonus against Higher Pop civs
+			if (pBattlePlot->isCity() &&  GET_PLAYER(pBattlePlot->getOwner()).getTotalPopulation() > GET_PLAYER(getOwner()).getTotalPopulation())
+			{
+				iModifier += GetAntiHigherPopMod();
 			}
 
 			// Founder Belief bonus (this must be a city controlled by an enemy)
@@ -14629,6 +14694,16 @@ int CvUnit::GetGenericMaxStrengthModifier(const CvUnit* pOtherUnit, const CvPlot
 		{
 			iModifier += kPlayer.GetPlayerTraits()->GetCityStateCombatModifier();
 		}
+
+
+
+		// bonus against Higher Pop civs
+		if (pOtherUnit && pOtherUnit->IsHigherPopThan(this))
+		{
+			iModifier += GetAntiHigherPopMod();
+		}
+
+
 
 		// OTHER UNIT is a Barbarian
 		if(pOtherUnit->isBarbarian())
@@ -14861,6 +14936,25 @@ int CvUnit::GetMaxAttackStrength(const CvPlot* pFromPlot, const CvPlot* pToPlot,
 		iTempModifier = /*20*/ GC.getPOLICY_ATTACK_BONUS_MOD();
 		iModifier += iTempModifier;
 	}
+
+
+	// Adjacent Friendly military Unit? (attack mod only)
+	if (pFromPlot != NULL && pFromPlot->IsFriendlyUnitAdjacent(getTeam(), /*bCombatUnit*/ true))
+	{
+		for (int iI = 0; iI < GC.getNumUnitCombatClassInfos(); iI++) // Stuff for per adjacent unit combat
+		{
+			const UnitCombatTypes eUnitCombat = static_cast<UnitCombatTypes>(iI);
+			CvBaseInfo* pkUnitCombatInfo = GC.getUnitCombatClassInfo(eUnitCombat);
+			int iModPerAdjacent = getCombatModPerAdjacentUnitCombatAttackMod(eUnitCombat);
+			if (pkUnitCombatInfo && iModPerAdjacent != 0)
+			{
+				int iNumFriendliesAdjacent = 0;
+				iNumFriendliesAdjacent += pFromPlot->GetNumSpecificFriendlyUnitCombatsAdjacent(getTeam(), eUnitCombat, this);
+				iModifier += (iNumFriendliesAdjacent * iModPerAdjacent);
+			}
+		}
+	}
+
 
 	////////////////////////
 	// KNOWN DESTINATION PLOT
@@ -15110,6 +15204,25 @@ int CvUnit::GetMaxDefenseStrength(const CvPlot* pInPlot, const CvUnit* pAttacker
 #endif
 
 #if defined(MOD_ROG_CORE)
+
+	// Adjacent Friendly military Unit? (defense mod only)
+	if (pInPlot != NULL && pInPlot->IsFriendlyUnitAdjacent(getTeam(), /*bCombatUnit*/ true))
+	{
+		for (int iI = 0; iI < GC.getNumUnitCombatClassInfos(); iI++) // Stuff for per adjacent unit combat
+		{
+			const UnitCombatTypes eUnitCombat = static_cast<UnitCombatTypes>(iI);
+			CvBaseInfo* pkUnitCombatInfo = GC.getUnitCombatClassInfo(eUnitCombat);
+			int iModPerAdjacent = getCombatModPerAdjacentUnitCombatDefenseMod(eUnitCombat);
+			if (pkUnitCombatInfo && iModPerAdjacent != 0)
+			{
+				int iNumFriendliesAdjacent = 0;
+				iNumFriendliesAdjacent += pInPlot->GetNumSpecificFriendlyUnitCombatsAdjacent(getTeam(), eUnitCombat, this);
+				iModifier += (iNumFriendliesAdjacent * iModPerAdjacent);
+			}
+		}
+	}
+
+
 	int NumOriginalCapitalDefenseMod = getNumOriginalCapitalDefenseMod();
 	if(NumOriginalCapitalDefenseMod != 0)
 	{
@@ -15507,6 +15620,24 @@ int CvUnit::GetMaxRangedCombatStrength(const CvUnit* pOtherUnit, const CvCity* p
 	{
 		iModifier += GetUnhappinessCombatPenalty();
 	}
+
+#if defined(MOD_ROG_CORE)
+	// Adjacent Friendly military Unit?
+	if (plot()->IsFriendlyUnitAdjacent(getTeam(), /*bCombatUnit*/ true))
+	{
+		for (int iI = 0; iI < GC.getNumUnitCombatClassInfos(); iI++) // Stuff for per adjacent unit combat
+		{
+			const UnitCombatTypes eUnitCombat = static_cast<UnitCombatTypes>(iI);
+			int iModPerAdjacent = getCombatModPerAdjacentUnitCombatModifier(eUnitCombat);
+			iModPerAdjacent += bAttacking ? getCombatModPerAdjacentUnitCombatAttackMod(eUnitCombat) : getCombatModPerAdjacentUnitCombatDefenseMod(eUnitCombat);
+			if (iModPerAdjacent != 0)
+			{
+				int iNumFriendliesAdjacent = plot()->GetNumSpecificFriendlyUnitCombatsAdjacent(getTeam(), eUnitCombat, this);
+				iModifier += (iNumFriendliesAdjacent * iModPerAdjacent);
+			}
+		}
+	}
+#endif
 
 	// Over our strategic resource limit?
 	iTempModifier = GetStrategicResourceCombatPenalty();
@@ -18928,10 +19059,67 @@ void CvUnit::changeNumOriginalCapitalDefenseMod(int iValue)
 
 #if defined(MOD_ROG_CORE)
 //	--------------------------------------------------------------------------------
+int CvUnit::getCombatModPerAdjacentUnitCombatModifier(UnitCombatTypes eIndex) const
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eIndex < GC.getNumUnitCombatClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	return m_iCombatModPerAdjacentUnitCombatModifier[eIndex];
+}
+
+
+//	--------------------------------------------------------------------------------
+void CvUnit::changeCombatModPerAdjacentUnitCombatModifier(UnitCombatTypes eIndex, int iChange)
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eIndex < GC.getNumUnitCombatClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	m_iCombatModPerAdjacentUnitCombatModifier.setAt(eIndex, m_iCombatModPerAdjacentUnitCombatModifier[eIndex] + iChange);
+}
+
+//	--------------------------------------------------------------------------------
+int CvUnit::getCombatModPerAdjacentUnitCombatAttackMod(UnitCombatTypes eIndex) const
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eIndex < GC.getNumUnitCombatClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	return m_iCombatModPerAdjacentUnitCombatAttackMod[eIndex];
+}
+
+
+//	--------------------------------------------------------------------------------
+void CvUnit::changeCombatModPerAdjacentUnitCombatAttackMod(UnitCombatTypes eIndex, int iChange)
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eIndex < GC.getNumUnitCombatClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	m_iCombatModPerAdjacentUnitCombatAttackMod.setAt(eIndex, m_iCombatModPerAdjacentUnitCombatAttackMod[eIndex] + iChange);
+}
+
+//	--------------------------------------------------------------------------------
+int CvUnit::getCombatModPerAdjacentUnitCombatDefenseMod(UnitCombatTypes eIndex) const
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eIndex < GC.getNumUnitCombatClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	return m_iCombatModPerAdjacentUnitCombatDefenseMod[eIndex];
+}
+
+
+//	--------------------------------------------------------------------------------
+void CvUnit::changeCombatModPerAdjacentUnitCombatDefenseMod(UnitCombatTypes eIndex, int iChange)
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eIndex < GC.getNumUnitCombatClassInfos(), "eIndex is expected to be within maximum bounds (invalid Index)");
+	m_iCombatModPerAdjacentUnitCombatDefenseMod.setAt(eIndex, m_iCombatModPerAdjacentUnitCombatDefenseMod[eIndex] + iChange);
+
+}
+//	--------------------------------------------------------------------------------
 int CvUnit::getOnCapitalLandAttackMod() const
 {
 	VALIDATE_OBJECT
-		return m_iOnCapitalLandAttackMod;
+	return m_iOnCapitalLandAttackMod;
 }
 
 //	--------------------------------------------------------------------------------
@@ -25719,6 +25907,7 @@ void CvUnit::setHasPromotion(PromotionTypes eIndex, bool bNewValue)
 		ChangeMoveLfetAttackMod(thisPromotion.GetMoveLfetAttackMod() * iChange);
 		ChangeMoveUsedAttackMod(thisPromotion.GetMoveUsedAttackMod() * iChange);
 		ChangeGoldenAgeMod(thisPromotion.GetGoldenAgeMod() * iChange);
+		ChangeAntiHigherPopMod(thisPromotion.GetAntiHigherPopMod()* iChange);
 		ChangeRangedSupportFireMod(thisPromotion.GetRangedSupportFireMod() * iChange);
 
 		changeMeleeDefenseModifier(thisPromotion.GetMeleeDefenseMod() * iChange);
@@ -25994,6 +26183,9 @@ void CvUnit::setHasPromotion(PromotionTypes eIndex, bool bNewValue)
 		for(iI = 0; iI < GC.getNumUnitCombatClassInfos(); iI++)
 		{
 			changeExtraUnitCombatModifier(((UnitCombatTypes)iI), (thisPromotion.GetUnitCombatModifierPercent(iI) * iChange));
+			changeCombatModPerAdjacentUnitCombatModifier(((UnitCombatTypes)iI), (thisPromotion.GetCombatModPerAdjacentUnitCombatModifierPercent(iI) * iChange));
+			changeCombatModPerAdjacentUnitCombatAttackMod(((UnitCombatTypes)iI), (thisPromotion.GetCombatModPerAdjacentUnitCombatAttackModifier(iI) * iChange));
+			changeCombatModPerAdjacentUnitCombatDefenseMod(((UnitCombatTypes)iI), (thisPromotion.GetCombatModPerAdjacentUnitCombatDefenseModifier(iI) * iChange));
 		}
 
 		for(iI = 0; iI < GC.getNumUnitClassInfos(); iI++)
@@ -26458,6 +26650,7 @@ void CvUnit::read(FDataStream& kStream)
 	kStream >> m_iMoveLfetAttackMod;
 	kStream >> m_iMoveUsedAttackMod;
 	kStream >> m_iGoldenAgeMod;
+	kStream >> m_iAntiHigherPopMod;
 	kStream >> m_iRangedSupportFireMod;
 	kStream >> m_iBarbCombatBonus;
 	kStream >> m_iDamageAoEFortified;
@@ -26834,6 +27027,7 @@ void CvUnit::write(FDataStream& kStream) const
 	kStream << m_iMoveLfetAttackMod;
 	kStream << m_iMoveUsedAttackMod;
 	kStream << m_iGoldenAgeMod;
+	kStream << m_iAntiHigherPopMod;
 	kStream << m_iRangedSupportFireMod;
 	kStream << m_iBarbCombatBonus;
 	kStream << m_iDamageAoEFortified;
@@ -30886,128 +31080,72 @@ int CvUnit::AI_promotionValue(PromotionTypes ePromotion)
 		}
 	}
 
-	int iOtherCombat = 0;
-	int iSameCombat = 0;
+	
 
-	for(iI = 0; iI < GC.getNumUnitCombatClassInfos(); iI++)
+	// This part is hard to balance		
+
+	for (iI = 0; iI < GC.getNumUnitCombatClassInfos(); iI++)
 	{
 		const UnitCombatTypes eUnitCombat = static_cast<UnitCombatTypes>(iI);
 		CvBaseInfo* pkUnitCombatInfo = GC.getUnitCombatClassInfo(eUnitCombat);
-		if(pkUnitCombatInfo)
-		{
-			if(eUnitCombat == getUnitCombatType())
-			{
-				iSameCombat += unitCombatModifier(eUnitCombat);
-			}
-			else
-			{
-				iOtherCombat += unitCombatModifier(eUnitCombat);
-			}
-		}
-	}
-
-	for(iI = 0; iI < GC.getNumUnitCombatClassInfos(); iI++)
-	{
-		const UnitCombatTypes eUnitCombat = static_cast<UnitCombatTypes>(iI);
-		CvBaseInfo* pkUnitCombatInfo = GC.getUnitCombatClassInfo(eUnitCombat);
-		if(pkUnitCombatInfo)
+		if (pkUnitCombatInfo)
 		{
 			iTemp = pkPromotionInfo->GetUnitCombatModifierPercent(iI);
-			int iCombatWeight = 0;
-			//Fighting their own kind
-			if((UnitCombatTypes)iI == getUnitCombatType())
-			{
-				if(iSameCombat >= iOtherCombat)
-				{
-					iCombatWeight = 70;//"axeman takes formation"
-				}
-				else
-				{
-					iCombatWeight = 30;
-				}
-			}
-			else
-			{
-				//fighting other kinds
-				if(unitCombatModifier(eUnitCombat) > 10)
-				{
-					iCombatWeight = 70;//"spearman takes formation"
-				}
-				else
-				{
-					iCombatWeight = 30;
-				}
-			}
+			// M: +33 vs Mounted, formation 1,2.	AA, aF: vs aF and aB: +100 Air supremacy (anti air) 2.
+								// Could this be changed to a DOMAIN_AIR combat modifier?
 
-			if((AI_getUnitAIType() == UNITAI_COUNTER) || (AI_getUnitAIType() == UNITAI_RANGED))
-			{
-				iValue += (iTemp * iCombatWeight) / 25;
-			}
-			else if((AI_getUnitAIType() == UNITAI_ATTACK) ||
-			        (AI_getUnitAIType() == UNITAI_DEFENSE))
-			{
-				iValue += (iTemp * iCombatWeight) / 50;
-			}
-			else
-			{
-				iValue += (iTemp * iCombatWeight) / 100;
-			}
-		}
-	}
+			iTemp += 2 * pkPromotionInfo->GetCombatModPerAdjacentUnitCombatModifierPercent(iI);
+			iTemp += pkPromotionInfo->GetCombatModPerAdjacentUnitCombatAttackModifier(iI);
+			// nM: + 10 vs sub, nM, nR, C, encirclement.
+			iTemp += pkPromotionInfo->GetCombatModPerAdjacentUnitCombatDefenseModifier(iI);
+			// nM: + 10 vs sub, nM, nR, C, Breacher.
 
-	for(iI = 0; iI < NUM_DOMAIN_TYPES; iI++)
-	{
-		iTemp = pkPromotionInfo->GetDomainModifierPercent(iI);
-		if(AI_getUnitAIType() == UNITAI_COUNTER)
-		{
-			iValue += (iTemp * 2);
-		}
-		else if((AI_getUnitAIType() == UNITAI_ATTACK) ||
-		        (AI_getUnitAIType() == UNITAI_DEFENSE))
-		{
-			iValue += iTemp;
-		}
-		else
-		{
-			iValue += (iTemp / 2);
-		}
-	}
+		// Would probably make more sense if the adjacent modifiers were base on domain instead of combat classes as well
 
+			if (iTemp <= 0)
+				continue;
 
-	for (iI = 0; iI < NUM_DOMAIN_TYPES; iI++)
-	{
-		iTemp = pkPromotionInfo->GetDomainAttackPercent(iI);
-		if (AI_getUnitAIType() == UNITAI_COUNTER)
-		{
-			iValue += (iTemp * 2);
-		}
-		else if ((AI_getUnitAIType() == UNITAI_ATTACK) ||
-			(AI_getUnitAIType() == UNITAI_DEFENSE))
-		{
-			iValue += iTemp;
-		}
-		else
-		{
-			iValue += (iTemp / 2);
+			iExtra = iTemp * (2 * iFlavorOffense + iFlavorDefense);
+			iExtra *= 0.3;
+			if (IsCanAttackRanged())
+				iExtra *= 0.6;
+			if (getDomainType() == DOMAIN_SEA)	// required for balance
+				iExtra *= 0.8;
+			if (GetAirInterceptRange() > 0)		// Value for air supremacy will be high but that's probably correct
+				iExtra *= 1.5;
+			iValue += iExtra;
+
 		}
 	}
 
 	for (iI = 0; iI < NUM_DOMAIN_TYPES; iI++)
 	{
-		iTemp = pkPromotionInfo->GetDomainDefensePercent(iI);
-		if (AI_getUnitAIType() == UNITAI_COUNTER)
+		iTemp = pkPromotionInfo->GetDomainModifierPercent(iI) * 2;
+		iTemp += pkPromotionInfo->GetDomainAttackPercent(iI);
+		iTemp += pkPromotionInfo->GetDomainDefensePercent(iI);
+		// nR: Land + Sea: +10 targeting 1 - 3.		aB: Land + Sea: +15 air targeting 1 - 2, +25 air targeting 3.
+		if (iTemp <= 0)
+			continue;
+
+		if (DomainTypes(iI) == DOMAIN_SEA)
 		{
-			iValue += (iTemp * 2);
+			iExtra = iTemp * (iFlavorDefense + 2 * iFlavorNaval);
+			iExtra *= 0.5;
+			iValue += iExtra;
 		}
-		else if ((AI_getUnitAIType() == UNITAI_ATTACK) ||
-			(AI_getUnitAIType() == UNITAI_DEFENSE))
+		else if (DomainTypes(iI) == DOMAIN_LAND)
 		{
-			iValue += iTemp;
+			iExtra = iTemp * (iFlavorDefense + iFlavorOffense + iFlavorCityDefense);
+			iExtra *= 0.5;
+			iValue += iExtra;
 		}
-		else
+		else if (DomainTypes(iI) == DOMAIN_AIR)
 		{
-			iValue += (iTemp / 2);
+			iExtra = iTemp * (3 * iFlavorAntiAir);
+			iExtra *= 0.5;
+			iValue += iExtra;
 		}
+
 	}
 
 	if(iValue > 0)

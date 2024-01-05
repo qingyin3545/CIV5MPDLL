@@ -147,6 +147,7 @@ public:
 	int GetMoveLfetAttackMod() const;
 	int GetMoveUsedAttackMod() const;
 	int GetGoldenAgeMod() const;
+	int GetAntiHigherPopMod() const;
 	int GetRangedSupportFireMod() const;
 
 	int GetMeleeDefenseMod() const;
@@ -398,7 +399,9 @@ public:
 	int GetFeaturePassableTech(int i) const;
 	int GetUnitClassAttackModifier(int i) const;
 	int GetUnitClassDefenseModifier(int i) const;
-
+	int GetCombatModPerAdjacentUnitCombatModifierPercent(int i) const;
+	int GetCombatModPerAdjacentUnitCombatAttackModifier(int i) const;
+	int GetCombatModPerAdjacentUnitCombatDefenseModifier(int i) const;
 	bool GetTerrainDoubleMove(int i) const;
 	bool GetFeatureDoubleMove(int i) const;
 #if defined(MOD_PROMOTIONS_HALF_MOVE)
@@ -650,7 +653,7 @@ protected:
 	int m_iMoveLfetAttackMod;
 	int m_iMoveUsedAttackMod;
 	int m_iGoldenAgeMod;
-
+	int m_iAntiHigherPopMod;
 	int m_iRangedSupportFireMod;
 	int m_iMeleeDefenseMod;
 #endif
@@ -696,13 +699,9 @@ protected:
 
 	int m_iNearNumEnemyAttackMod;
 	int m_iNearNumEnemyDefenseMod;
-#endif
-
-#if defined(MOD_ROG_CORE)
 	int m_iNearbyUnitPromotionBonus;
 	int m_iNearbyUnitPromotionBonusRange;
 	PromotionTypes m_iCombatBonusFromNearbyUnitPromotion;
-
 	int m_iAOEDamageOnKill;
 	int m_iMoraleBreakChance;
 	int m_iIgnoreDamageChance;
@@ -720,6 +719,9 @@ protected:
 	int m_iCaptureDefeatedEnemyChance;
 	bool m_bCannotBeCaptured;
 
+
+	int* m_piDomainAttackPercent;
+	int* m_piDomainDefensePercent;
 #if defined(MOD_ROG_CORE)
 	int m_iPillageReplenishMoves;
 	int m_iPillageReplenishAttck;
@@ -732,22 +734,9 @@ protected:
 	int m_iAttackBelowHealthMod;
 	bool m_bStrongerDamaged;
 	bool m_bFightWellDamaged;
-#endif
-
-
-
-	int* m_piDomainAttackPercent;
-	int* m_piDomainDefensePercent;
-
-#if defined(MOD_ROG_CORE)
 	int m_iHPHealedIfDefeatEnemyGlobal;
 	int m_iNumOriginalCapitalAttackMod;
 	int m_iNumOriginalCapitalDefenseMod;
-#endif
-
-
-
-#if defined(MOD_ROG_CORE)
 	int m_iOnCapitalLandAttackMod;
 	int m_iOutsideCapitalLandAttackMod;
 	int m_iOnCapitalLandDefenseMod;
@@ -859,10 +848,11 @@ protected:
 
 	int* m_piUnitClassAttackModifier;
 	int* m_piUnitClassDefenseModifier;
-
+	int* m_piCombatModPerAdjacentUnitCombatModifierPercent;
+	int* m_piCombatModPerAdjacentUnitCombatAttackModifier;
+	int* m_piCombatModPerAdjacentUnitCombatDefenseModifier;
 	int* m_piTerrainPassableTech;
 	int* m_piFeaturePassableTech;
-
 	bool* m_pbTerrainDoubleMove;
 	bool* m_pbFeatureDoubleMove;
 #if defined(MOD_PROMOTIONS_HALF_MOVE)

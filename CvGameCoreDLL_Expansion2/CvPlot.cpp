@@ -505,7 +505,7 @@ void CvPlot::doTurn()
 				
 			else if (bOutBreakLv2)
 			{
-				int iRange = 1;
+				int iRange = 2;
 				for (int iDX = -iRange; iDX <= iRange; iDX++)
 				{
 					for (int iDY = -iRange; iDY <= iRange; iDY++)
@@ -13831,3 +13831,122 @@ CvSeeder CvPlot::GetPseudoRandomSeed() const
 	return CvSeeder(static_cast<uint>(getX()) * 17 + static_cast<uint>(getY()) * 23);
 }
 
+
+#if defined(MOD_ROG_CORE)
+
+bool CvPlot::IsFriendlyUnitAdjacent(TeamTypes eMyTeam, bool bCombatUnit) const
+{
+	int iRange = 2;
+	for (int iDX = -iRange; iDX <= iRange; iDX++)
+	{
+		for (int iDY = -iRange; iDY <= iRange; iDY++)
+		{
+			CvPlot* pLoopPlot = plotXYWithRangeCheck(getX(), getY(), iDX, iDY, 1);
+			if (pLoopPlot != NULL)
+			{
+				IDInfo* pUnitNode = pLoopPlot->headUnitNode();
+
+				while (pUnitNode != NULL)
+				{
+					CvUnit* pLoopUnit = ::GetPlayerUnit(*pUnitNode);
+					pUnitNode = pLoopPlot->nextUnitNode(pUnitNode);
+
+					if (pLoopUnit && pLoopUnit->getTeam() == eMyTeam)
+					{
+						// Combat Unit?
+						if (!bCombatUnit || pLoopUnit->IsCombatUnit())
+						{
+							return true;
+						}
+					}
+				}
+			}
+		}
+	}
+	return false;
+}
+
+int CvPlot::GetNumSpecificFriendlyUnitCombatsAdjacent(TeamTypes eMyTeam, UnitCombatTypes eUnitCombat, const CvUnit* pUnitToExclude) const
+{
+	int iNumber = 0;
+
+	int iRange = 2;
+	for (int iDX = -iRange; iDX <= iRange; iDX++)
+	{
+		for (int iDY = -iRange; iDY <= iRange; iDY++)
+		{
+			CvPlot* pLoopPlot = plotXYWithRangeCheck(getX(), getY(), iDX, iDY, 1);
+			if (pLoopPlot != NULL)
+			{
+				IDInfo* pUnitNode = pLoopPlot->headUnitNode();
+
+				// Loop through all units on this plot
+				while (pUnitNode != NULL)
+				{
+					CvUnit* pLoopUnit = ::GetPlayerUnit(*pUnitNode);
+					pUnitNode = pLoopPlot->nextUnitNode(pUnitNode);
+
+					// No NULL, and no unit we want to exclude
+					if (pLoopUnit && pLoopUnit != pUnitToExclude)
+					{
+						// Must be a combat Unit
+						if (pLoopUnit->IsCombatUnit() && !pLoopUnit->isEmbarked())
+						{
+							// Same team?
+							if (pLoopUnit->getTeam() == eMyTeam)
+							{
+								// Must be same unit combat type
+								if (pLoopUnit->getUnitCombatType() == eUnitCombat)
+								{
+									iNumber++;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return iNumber;
+}
+
+
+int CvPlot::GetNumSpecificPlayerUnitsAdjacent(PlayerTypes ePlayer, const CvUnit* pUnitToExclude, const CvUnit* pExampleUnitType, bool bCombatOnly) const
+{
+	int iNumUnitsAdjacent = 0;
+	int iRange = 2;
+	for (int iDX = -iRange; iDX <= iRange; iDX++)
+	{
+		for (int iDY = -iRange; iDY <= iRange; iDY++)
+		{
+			CvPlot* pLoopPlot = plotXYWithRangeCheck(getX(), getY(), iDX, iDY, 1);
+			if (pLoopPlot != NULL)
+			{
+				IDInfo* pUnitNode = pLoopPlot->headUnitNode();
+
+				// Loop through all units on this plot
+				while (pUnitNode != NULL)
+				{
+					CvUnit* pLoopUnit = ::GetPlayerUnit(*pUnitNode);
+					pUnitNode = pLoopPlot->nextUnitNode(pUnitNode);
+
+					// No NULL, and no unit we want to exclude
+					if (pLoopUnit && pLoopUnit != pUnitToExclude && pLoopUnit->getOwner() == ePlayer)
+					{
+						// Must be a combat Unit
+						if (!bCombatOnly || pLoopUnit->IsCombatUnit())
+						{
+							if (!pExampleUnitType || pLoopUnit->getUnitType() == pExampleUnitType->getUnitType())
+							{
+								iNumUnitsAdjacent++;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return iNumUnitsAdjacent;
+}
+
+#endif

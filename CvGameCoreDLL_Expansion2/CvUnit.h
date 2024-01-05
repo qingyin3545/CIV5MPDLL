@@ -1735,6 +1735,18 @@ public:
 	void ChangeGoldenAgeMod(int iValue);
 	int GetGoldenAgeMod() const;
 
+	void ChangeAntiHigherPopMod(int iValue);
+	int GetAntiHigherPopMod() const;
+	bool IsHigherPopThan(const CvUnit* pOtherUnit) const;
+	int getCombatModPerAdjacentUnitCombatModifier(UnitCombatTypes eIndex) const;
+	void changeCombatModPerAdjacentUnitCombatModifier(UnitCombatTypes eIndex, int iChange);
+
+	int getCombatModPerAdjacentUnitCombatAttackMod(UnitCombatTypes eIndex) const;
+	void changeCombatModPerAdjacentUnitCombatAttackMod(UnitCombatTypes eIndex, int iChange);
+
+	int getCombatModPerAdjacentUnitCombatDefenseMod(UnitCombatTypes eIndex) const;
+	void changeCombatModPerAdjacentUnitCombatDefenseMod(UnitCombatTypes eIndex, int iChange);
+
 	void ChangeRangedSupportFireMod(int iValue);
 	int GetRangedSupportFireMod() const;
 
@@ -2425,10 +2437,14 @@ protected:
 #endif
 
 #if defined(MOD_ROG_CORE)
+	FAutoVariable<std::vector<int>, CvUnit> m_iCombatModPerAdjacentUnitCombatModifier;
+	FAutoVariable<std::vector<int>, CvUnit> m_iCombatModPerAdjacentUnitCombatAttackMod;
+	FAutoVariable<std::vector<int>, CvUnit> m_iCombatModPerAdjacentUnitCombatDefenseMod;
 	int m_iOriginCity;
 	int m_iMoveLfetAttackMod;
 	int m_iMoveUsedAttackMod;
 	int m_iGoldenAgeMod;
+	int m_iAntiHigherPopMod;
 	int m_iRangedSupportFireMod;
 	int m_iBarbCombatBonus;
 	int m_iCanMoraleBreak;

@@ -110,12 +110,9 @@ CvPromotionEntry::CvPromotionEntry():
 	m_iMoveLfetAttackMod(0),
 	m_iMoveUsedAttackMod(0),
 	m_iGoldenAgeMod(0),
+	m_iAntiHigherPopMod(0),
 	m_iRangedSupportFireMod(0),
-
 	m_iMeleeDefenseMod(0),
-#endif
-
-#if defined(MOD_ROG_CORE)
 	m_iAoEDamageOnMove(0),
 	m_iForcedDamageValue(0),
 	m_iChangeDamageValue(0),
@@ -124,10 +121,6 @@ CvPromotionEntry::CvPromotionEntry():
 	m_iAttackBelowHealthMod(0),
 	m_bStrongerDamaged(false),
 	m_bFightWellDamaged(false),
-#endif
-
-
-#if defined(MOD_ROG_CORE)
 	m_iNearbyUnitPromotionBonus(0),
 	m_iNearbyUnitPromotionBonusRange(0),
 	m_iCombatBonusFromNearbyUnitPromotion(NO_PROMOTION),
@@ -328,6 +321,9 @@ CvPromotionEntry::CvPromotionEntry():
 	m_piFeaturePassableTech(NULL),
 	m_piUnitClassAttackModifier(NULL),
 	m_piUnitClassDefenseModifier(NULL),
+	m_piCombatModPerAdjacentUnitCombatModifierPercent(NULL),
+	m_piCombatModPerAdjacentUnitCombatAttackModifier(NULL),
+	m_piCombatModPerAdjacentUnitCombatDefenseModifier(NULL),
 	m_pbTerrainDoubleMove(NULL),
 	m_pbFeatureDoubleMove(NULL),
 #if defined(MOD_PROMOTIONS_HALF_MOVE)
@@ -374,6 +370,9 @@ CvPromotionEntry::~CvPromotionEntry(void)
 	SAFE_DELETE_ARRAY(m_piFeaturePassableTech);
 	SAFE_DELETE_ARRAY(m_piUnitClassAttackModifier);
 	SAFE_DELETE_ARRAY(m_piUnitClassDefenseModifier);
+	SAFE_DELETE_ARRAY(m_piCombatModPerAdjacentUnitCombatModifierPercent);
+	SAFE_DELETE_ARRAY(m_piCombatModPerAdjacentUnitCombatAttackModifier);
+	SAFE_DELETE_ARRAY(m_piCombatModPerAdjacentUnitCombatDefenseModifier);
 	SAFE_DELETE_ARRAY(m_pbTerrainDoubleMove);
 	SAFE_DELETE_ARRAY(m_pbFeatureDoubleMove);
 #if defined(MOD_PROMOTIONS_HALF_MOVE)
@@ -479,13 +478,11 @@ bool CvPromotionEntry::CacheResults(Database::Results& kResults, CvDatabaseUtili
 #endif
 
 #if defined(MOD_ROG_CORE)
-	if (MOD_ROG_CORE) {
-		m_iNearbyUnitPromotionBonus = kResults.GetInt("NearbyUnitPromotionBonus");
-		m_iNearbyUnitPromotionBonusRange = kResults.GetInt("NearbyUnitPromotionBonusRange");
-		const char* szTextVal = kResults.GetText("CombatBonusFromNearbyUnitPromotion");
-		if (szTextVal) {
-			m_iCombatBonusFromNearbyUnitPromotion = (PromotionTypes)GC.getInfoTypeForString(szTextVal, true);
-		}
+	m_iNearbyUnitPromotionBonus = kResults.GetInt("NearbyUnitPromotionBonus");
+	m_iNearbyUnitPromotionBonusRange = kResults.GetInt("NearbyUnitPromotionBonusRange");
+	const char* szTextVal = kResults.GetText("CombatBonusFromNearbyUnitPromotion");
+	if (szTextVal) {
+		m_iCombatBonusFromNearbyUnitPromotion = (PromotionTypes)GC.getInfoTypeForString(szTextVal, true);
 	}
 #endif
 
@@ -523,6 +520,7 @@ bool CvPromotionEntry::CacheResults(Database::Results& kResults, CvDatabaseUtili
 	m_iMoveLfetAttackMod = kResults.GetInt("MoveLfetAttackMod");
 	m_iMoveUsedAttackMod = kResults.GetInt("MoveUsedAttackMod");
 	m_iGoldenAgeMod = kResults.GetInt("GoldenAgeMod");
+	m_iAntiHigherPopMod = kResults.GetInt("AntiHigherPopMod");
 	m_iRangedSupportFireMod = kResults.GetInt("RangedSupportFireMod");
 	m_iHPHealedIfDefeatEnemyGlobal = kResults.GetInt("HPHealedIfDestroyEnemyGlobal");
 	m_iNumOriginalCapitalAttackMod = kResults.GetInt("NumOriginalCapitalAttackMod");
@@ -1122,6 +1120,42 @@ bool CvPromotionEntry::CacheResults(Database::Results& kResults, CvDatabaseUtili
 		pResults->Reset();
 	}
 
+	//UnitPromotions_CombatModPerAdjacentUnitCombat
+	{
+		kUtility.InitializeArray(m_piCombatModPerAdjacentUnitCombatModifierPercent, iNumUnitCombatClasses, 0);
+		kUtility.InitializeArray(m_piCombatModPerAdjacentUnitCombatAttackModifier, iNumUnitCombatClasses, 0);
+		kUtility.InitializeArray(m_piCombatModPerAdjacentUnitCombatDefenseModifier, iNumUnitCombatClasses, 0);
+
+		std::string sqlKey = "UnitPromotions_CombatModPerAdjacentUnitCombat";
+		Database::Results* pResults = kUtility.GetResults(sqlKey);
+		if (pResults == NULL)
+		{
+			const char* szSQL = "select UnitCombatInfos.ID, Modifier, Attack, Defense from UnitPromotions_CombatModPerAdjacentUnitCombat inner join UnitCombatInfos on UnitCombatType = UnitCombatInfos.Type where PromotionType = ?";
+			pResults = kUtility.PrepareResults(sqlKey, szSQL);
+		}
+
+		CvAssert(pResults);
+		if (!pResults) return false;
+
+		pResults->Bind(1, szPromotionType);
+
+		while (pResults->Step())
+		{
+			const int iUnitCombatID = pResults->GetInt(0);
+			CvAssert(iUnitCombatID > -1 && iUnitCombatID < iNumUnitCombatClasses);
+
+			const int iModifier = pResults->GetInt("Modifier");
+			m_piCombatModPerAdjacentUnitCombatModifierPercent[iUnitCombatID] = iModifier;
+
+			const int iAttack = pResults->GetInt("Attack");
+			m_piCombatModPerAdjacentUnitCombatAttackModifier[iUnitCombatID] = iAttack;
+
+			const int iDefense = pResults->GetInt("Defense");
+			m_piCombatModPerAdjacentUnitCombatDefenseModifier[iUnitCombatID] = iDefense;
+		}
+
+		pResults->Reset();
+	}
 
 	//UnitPromotions_Domains
 	{
@@ -1982,7 +2016,10 @@ int CvPromotionEntry::GetGoldenAgeMod() const
 {
 	return m_iGoldenAgeMod;
 }
-
+int CvPromotionEntry::GetAntiHigherPopMod() const
+{
+	return m_iAntiHigherPopMod;
+}
 int CvPromotionEntry::GetRangedSupportFireMod() const
 {
 	return m_iRangedSupportFireMod;
@@ -3117,6 +3154,49 @@ int CvPromotionEntry::GetUnitClassDefenseModifier(int i) const
 
 	return -1;
 }
+
+
+int CvPromotionEntry::GetCombatModPerAdjacentUnitCombatModifierPercent(int i) const
+{
+	CvAssertMsg(i < GC.getNumUnitCombatClassInfos(), "Index out of bounds");
+	CvAssertMsg(i > -1, "Index out of bounds");
+
+	if (i > -1 && i < GC.getNumUnitCombatClassInfos() && m_piCombatModPerAdjacentUnitCombatModifierPercent)
+	{
+		return m_piCombatModPerAdjacentUnitCombatModifierPercent[i];
+	}
+
+	return 0;
+}
+
+/// Percentage bonus when attacking next to friendly unit *combat* classes (increases with more adjacent units)
+int CvPromotionEntry::GetCombatModPerAdjacentUnitCombatAttackModifier(int i) const
+{
+	CvAssertMsg(i < GC.getNumUnitCombatClassInfos(), "Index out of bounds");
+	CvAssertMsg(i > -1, "Index out of bounds");
+
+	if (i > -1 && i < GC.getNumUnitCombatClassInfos() && m_piCombatModPerAdjacentUnitCombatAttackModifier)
+	{
+		return m_piCombatModPerAdjacentUnitCombatAttackModifier[i];
+	}
+
+	return 0;
+}
+
+/// Percentage bonus when defending next to friendly unit *combat* classes (increases with more adjacent units) [not enemy as intended]
+int CvPromotionEntry::GetCombatModPerAdjacentUnitCombatDefenseModifier(int i) const
+{
+	CvAssertMsg(i < GC.getNumUnitCombatClassInfos(), "Index out of bounds");
+	CvAssertMsg(i > -1, "Index out of bounds");
+
+	if (i > -1 && i < GC.getNumUnitCombatClassInfos() && m_piCombatModPerAdjacentUnitCombatDefenseModifier)
+	{
+		return m_piCombatModPerAdjacentUnitCombatDefenseModifier[i];
+	}
+
+	return 0;
+}
+
 
 /// Returns an array that indicates if a feature type is traversable by the unit
 int CvPromotionEntry::GetFeaturePassableTech(int i) const

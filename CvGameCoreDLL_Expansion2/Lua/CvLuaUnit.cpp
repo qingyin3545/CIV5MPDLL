@@ -412,53 +412,34 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(GetMoveUsedDefenseMod);
 #endif
 
-#if defined(MOD_ROG_CORE)
-	Method(GetZOCStatus);
-#endif
-
 	Method(DomainAttack);
 	Method(DomainDefense);
 	Method(GetDamageCombatModifier);
 
 #if defined(MOD_ROG_CORE)
+	Method(GetZOCStatus);
 	Method(GetHPHealedIfDefeatEnemyGlobal);
 	Method(GetNumOriginalCapitalDefenseMod);
 	Method(GetNumOriginalCapitalAttackMod);
-#endif
-
-
-#if defined(MOD_ROG_CORE)
 	Method(GetOnCapitalLandAttackMod);
 	Method(GetOutsideCapitalLandAttackMod);
 	Method(GetOnCapitalLandDefenseMod);
 	Method(GetOutsideCapitalLandDefenseMod);
-
 	Method(GetBarbarianCombatBonus);
-#endif
-
-
-#if defined(MOD_ROG_CORE)
-	if (MOD_ROG_CORE)
-	{
-		Method(AttackFullyHealedModifier);
-		Method(AttackAbove50Modifier);
-		Method(AttackBelow50Modifier);
-
-
-		Method(MoveLfetAttackMod);
-		Method(MoveUsedAttackMod);
-
-		Method(GoldenAgeMod);
-
-		Method(GetForcedDamageValue);
-		Method(GetChangeDamageValue);
-
-		Method(GetNearbyUnitPromotionModifierFromUnitPromotion);
-	}
-#endif
-
-
-#if defined(MOD_ROG_CORE)
+	Method(AttackFullyHealedModifier);
+	Method(AttackAbove50Modifier);
+	Method(AttackBelow50Modifier);
+	Method(MoveLfetAttackMod);
+	Method(MoveUsedAttackMod);
+	Method(GoldenAgeMod);
+	Method(GetAntiHigherPopMod);
+	Method(PerAdjacentUnitCombatModifier);
+	Method(PerAdjacentUnitCombatAttackMod);
+	Method(PerAdjacentUnitCombatDefenseMod);
+	Method(IsHigherPopThan);
+	Method(GetForcedDamageValue);
+	Method(GetChangeDamageValue);
+	Method(GetNearbyUnitPromotionModifierFromUnitPromotion);
 	Method(GetNumSpyDefenseMod);
 	Method(GetNumSpyAttackMod);
 	Method(GetNumWorkDefenseMod);
@@ -467,15 +448,11 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(GetNumSpyStayAttackMod);
 	Method(GetNumWonderDefenseMod);
 	Method(GetNumWonderAttackMod);
-
 	Method(IsNoResourcePunishment);
-
 	Method(GetCurrentHitPointAttackMod);
 	Method(GetCurrentHitPointDefenseMod);
-
 	Method(GetNearNumEnemyAttackMod);
 	Method(GetNearNumEnemyDefenseMod);
-
 	Method(GetNumEnemyAdjacent);
 #endif
 
@@ -4327,12 +4304,108 @@ int CvLuaUnit::lGetNumEnemyAdjacent(lua_State* L)
 	return 1;
 }
 
-#endif
+//bool IsHigherPopThan(CvUnit *pOtherUnit);
+int CvLuaUnit::lIsHigherPopThan(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	CvUnit* pkOtherUnit = CvLuaUnit::GetInstance(L, 2);
+	const bool bResult = pkUnit->IsHigherPopThan(pkOtherUnit);
 
+	lua_pushboolean(L, bResult);
+	return 1;
+}
+int CvLuaUnit::lGetAntiHigherPopMod(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	const int bResult = pkUnit->GetAntiHigherPopMod();
+	lua_pushinteger(L, bResult);
+	return 1;
+}
 
+//------------------------------------------------------------------------------
+//int getCombatModPerAdjacentUnitCombatModifier(int /*UnitCombatTypes*/ eUnitCombat);
+int CvLuaUnit::lPerAdjacentUnitCombatModifier(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	//const UnitCombatTypes eUnitCombat = (UnitCombatTypes)lua_tointeger(L, 2);
 
+	CvPlot* pFromPlot = pkUnit->plot();
 
-#if defined(MOD_ROG_CORE)
+	int iResult = 0;
+	if (pFromPlot != NULL)
+	{
+		for (int iI = 0; iI < GC.getNumUnitCombatClassInfos(); iI++)
+		{
+			const UnitCombatTypes eUnitCombat = static_cast<UnitCombatTypes>(iI);
+			CvBaseInfo* pkUnitCombatInfo = GC.getUnitCombatClassInfo(eUnitCombat);
+			int iModPerAdjacent = pkUnit->getCombatModPerAdjacentUnitCombatModifier(eUnitCombat);
+			if (pkUnitCombatInfo && iModPerAdjacent != 0)
+			{
+				int iNumFriendliesAdjacent = pFromPlot->GetNumSpecificFriendlyUnitCombatsAdjacent(pkUnit->getTeam(), eUnitCombat, NULL);
+				iResult += (iNumFriendliesAdjacent * iModPerAdjacent);
+			}
+		}
+	}
+	lua_pushinteger(L, iResult);
+	return 1;
+}
+//------------------------------------------------------------------------------
+//int getCombatModPerAdjacentUnitCombatAttackMod(int /*UnitCombatTypes*/ eUnitCombat);
+int CvLuaUnit::lPerAdjacentUnitCombatAttackMod(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	//const UnitCombatTypes eUnitCombat = (UnitCombatTypes)lua_tointeger(L, 2);
+
+	CvPlot* pFromPlot = pkUnit->plot();
+
+	int iResult = 0;
+	if (pFromPlot != NULL)
+	{
+		for (int iI = 0; iI < GC.getNumUnitCombatClassInfos(); iI++)
+		{
+			const UnitCombatTypes eUnitCombat = static_cast<UnitCombatTypes>(iI);
+			CvBaseInfo* pkUnitCombatInfo = GC.getUnitCombatClassInfo(eUnitCombat);
+			int iModPerAdjacent = pkUnit->getCombatModPerAdjacentUnitCombatAttackMod(eUnitCombat);
+			if (pkUnitCombatInfo && iModPerAdjacent != 0)
+			{
+				int iNumFriendliesAdjacent = pFromPlot->GetNumSpecificFriendlyUnitCombatsAdjacent(pkUnit->getTeam(), eUnitCombat, NULL);
+				iResult += (iNumFriendliesAdjacent * iModPerAdjacent);
+			}
+		}
+	}
+
+	lua_pushinteger(L, iResult);
+	return 1;
+}
+//------------------------------------------------------------------------------
+//int getCombatModPerAdjacentUnitCombatDefenseMod(int /*UnitCombatTypes*/ eUnitCombat);
+int CvLuaUnit::lPerAdjacentUnitCombatDefenseMod(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	//const UnitCombatTypes eUnitCombat = (UnitCombatTypes)lua_tointeger(L, 2);
+
+	CvPlot* pFromPlot = pkUnit->plot();
+
+	int iResult = 0;
+	if (pFromPlot != NULL)
+	{
+		for (int iI = 0; iI < GC.getNumUnitCombatClassInfos(); iI++)
+		{
+			const UnitCombatTypes eUnitCombat = static_cast<UnitCombatTypes>(iI);
+			CvBaseInfo* pkUnitCombatInfo = GC.getUnitCombatClassInfo(eUnitCombat);
+			int iModPerAdjacent = pkUnit->getCombatModPerAdjacentUnitCombatDefenseMod(eUnitCombat);
+			if (pkUnitCombatInfo && iModPerAdjacent != 0)
+			{
+				int iNumFriendliesAdjacent = pFromPlot->GetNumSpecificFriendlyUnitCombatsAdjacent(pkUnit->getTeam(), eUnitCombat, NULL);
+				iResult += (iNumFriendliesAdjacent * iModPerAdjacent);
+			}
+		}
+	}
+
+	lua_pushinteger(L, iResult);
+	return 1;
+}
+
 int CvLuaUnit::lGoldenAgeMod(lua_State* L)
 {
 	CvUnit* pkUnit = GetInstance(L);
@@ -4340,7 +4413,6 @@ int CvLuaUnit::lGoldenAgeMod(lua_State* L)
 	lua_pushinteger(L, bResult);
 	return 1;
 }
-
 //------------------------------------------------------------------------------
 int CvLuaUnit::lMoveLfetAttackMod(lua_State* L)
 {

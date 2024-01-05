@@ -421,7 +421,18 @@ protected:
 	static int lOtherPromotionDefenseModifier(lua_State* L);
 #endif
 
+
+#if defined(MOD_DEFENSE_MOVES_BONUS)
+	static int lGetMoveLeftDefenseMod(lua_State* L);
+	static int lGetMoveUsedDefenseMod(lua_State* L);
+#endif	
+
 #if defined(MOD_ROG_CORE)
+	static int lGetAntiHigherPopMod(lua_State* L);
+	static int lIsHigherPopThan(lua_State* L);
+	static int lPerAdjacentUnitCombatModifier(lua_State* L);
+	static int lPerAdjacentUnitCombatAttackMod(lua_State* L);
+	static int lPerAdjacentUnitCombatDefenseMod(lua_State* L);
 	static int lAttackFullyHealedModifier(lua_State* L);
 	static int lAttackAbove50Modifier(lua_State* L);
 	static int lAttackBelow50Modifier(lua_State* L);
@@ -431,21 +442,10 @@ protected:
 	static int lGetForcedDamageValue(lua_State* L);
 	static int lGetChangeDamageValue(lua_State* L);
 	static int lGetNearbyUnitPromotionModifierFromUnitPromotion(lua_State* L);
-#endif
-
-#if defined(MOD_ROG_CORE)
 	static int lGetHPHealedIfDefeatEnemyGlobal(lua_State* L);
 	static int lGetNumOriginalCapitalDefenseMod(lua_State* L);
 	static int lGetNumOriginalCapitalAttackMod(lua_State* L);
 	static int lGetBarbarianCombatBonus(lua_State* L);
-#endif
-
-#if defined(MOD_DEFENSE_MOVES_BONUS)
-	static int lGetMoveLeftDefenseMod(lua_State* L);
-	static int lGetMoveUsedDefenseMod(lua_State* L);
-#endif	
-
-#if defined(MOD_ROG_CORE)
 	static int lGetNumSpyDefenseMod(lua_State* L);
 	static int lGetNumSpyAttackMod(lua_State* L);
 	static int lGetNumWorkDefenseMod(lua_State* L);
@@ -454,20 +454,12 @@ protected:
 	static int lGetNumSpyStayAttackMod(lua_State* L);
 	static int lGetNumWonderDefenseMod(lua_State* L);
 	static int lGetNumWonderAttackMod(lua_State* L);
-
 	static int lIsNoResourcePunishment(lua_State* L);
-
 	static int lGetCurrentHitPointAttackMod(lua_State* L);
 	static int lGetCurrentHitPointDefenseMod(lua_State* L);
-
-
 	static int lGetNearNumEnemyAttackMod(lua_State* L);
 	static int lGetNearNumEnemyDefenseMod(lua_State* L);
 	static int lGetNumEnemyAdjacent(lua_State* L);
-#endif
-
-
-#if defined(MOD_ROG_CORE)
 	static int lGetOnCapitalLandAttackMod(lua_State* L);
 	static int lGetOutsideCapitalLandAttackMod(lua_State* L);
 	static int lGetOnCapitalLandDefenseMod(lua_State* L);
