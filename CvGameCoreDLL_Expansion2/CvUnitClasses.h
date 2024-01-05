@@ -42,6 +42,7 @@ public:
 #if defined(MOD_GLOBAL_CANNOT_EMBARK)
 	bool CannotEmbark() const;
 #endif
+	int GetProductionCostPerEra() const;
 	int GetHurryCostModifier() const;
 	int GetAdvancedStartCost() const;
 	int GetMinAreaSize() const;
@@ -230,6 +231,7 @@ private:
 #if defined(MOD_GLOBAL_CANNOT_EMBARK)
 	bool m_bCannotEmbark;
 #endif
+	int m_iProductionCostPerEra;
 	int m_iHurryCostModifier;
 	int m_iAdvancedStartCost;
 	int m_iMinAreaSize;

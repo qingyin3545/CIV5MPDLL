@@ -8,7 +8,7 @@ ALTER TABLE UnitPromotions ADD COLUMN 'MultiAttackBonus' INTEGER DEFAULT 0;
 ALTER TABLE Improvements ADD WonderProductionModifier INTEGER DEFAULT 0;
 
 ALTER TABLE Processes ADD COLUMN 'DefenseValue' INTEGER DEFAULT 0;
-
+ALTER TABLE Units ADD COLUMN 'ProductionCostAddedPerEra' integer default 0;
 ALTER TABLE Builds ADD COLUMN 'ObsoleteTech' TEXT DEFAULT NULL;
 ALTER TABLE UnitPromotions ADD 'NumAttacksMadeThisTurnAttackMod' INTEGER DEFAULT 0;
 ALTER TABLE UnitPromotions ADD COLUMN 'AllyCityStateCombatModifier' INTEGER DEFAULT 0;

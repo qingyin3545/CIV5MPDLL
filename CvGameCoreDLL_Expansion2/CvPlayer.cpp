@@ -9219,6 +9219,15 @@ int CvPlayer::getProductionNeeded(UnitTypes eUnit) const
 	iProductionNeeded *= 100 + getUnitClassCount(eUnitClass) * pkUnitClassInfo->getInstanceCostModifier();
 	iProductionNeeded /= 100;
 
+	if (pkUnitEntry->GetProductionCostPerEra() != 0)
+	{
+		int iEra = GetCurrentEra() - 1;
+		if (iEra > 0)
+		{
+			iProductionNeeded += pkUnitEntry->GetProductionCostPerEra() * iEra;
+		}
+	}
+
 	if(isMinorCiv())
 	{
 		iProductionNeeded *= GC.getMINOR_CIV_PRODUCTION_PERCENT();

@@ -27,6 +27,7 @@ CvUnitEntry::CvUnitEntry(void) :
 #if defined(MOD_GLOBAL_CANNOT_EMBARK)
 	m_bCannotEmbark(false),
 #endif
+	m_iProductionCostPerEra(0),
 	m_iHurryCostModifier(0),
 	m_iAdvancedStartCost(0),
 	m_iMinAreaSize(0),
@@ -222,6 +223,7 @@ bool CvUnitEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility& k
 		m_bCannotEmbark = kResults.GetBool("CannotEmbark");
 	}
 #endif
+	m_iProductionCostPerEra = kResults.GetInt("ProductionCostAddedPerEra");
 	m_iHurryCostModifier = kResults.GetInt("HurryCostModifier");
 	m_iAdvancedStartCost = kResults.GetInt("AdvancedStartCost");
 	m_iMinAreaSize = kResults.GetInt("MinAreaSize");
@@ -602,6 +604,13 @@ bool CvUnitEntry::CannotEmbark() const
 	return m_bCannotEmbark;
 }
 #endif
+
+
+int CvUnitEntry::GetProductionCostPerEra() const
+{
+	return m_iProductionCostPerEra;
+}
+
 
 /// Does it cost extra to hurry this init?
 int CvUnitEntry::GetHurryCostModifier() const
