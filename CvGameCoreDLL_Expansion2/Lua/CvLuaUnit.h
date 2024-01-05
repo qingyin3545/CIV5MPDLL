@@ -343,6 +343,7 @@ protected:
 #endif
 
 #if defined(MOD_ROG_CORE)
+	LUAAPIEXTN(GetWithdrawChance, int);
 	LUAAPIEXTN(GetZOCStatus, int);
 #endif
 

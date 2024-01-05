@@ -302,6 +302,7 @@ CvPromotionEntry::CvPromotionEntry():
 	m_bIgnoreZOC(false),
 	m_bCanDoFallBackDamage(false),
 	m_bCanParadropAnyWhere(false),
+	m_bIsCanParadropUnLimit(false),
 	m_bImmueMeleeAttack(false),
 	m_bHasPostCombatPromotions(false),
 	m_bPostCombatPromotionsExclusive(false),
@@ -599,6 +600,7 @@ bool CvPromotionEntry::CacheResults(Database::Results& kResults, CvDatabaseUtili
 	m_bIgnoreZOC = kResults.GetBool("IgnoreZOC");
 	m_bCanDoFallBackDamage = kResults.GetBool("CanDoFallBackDamage");
 	m_bCanParadropAnyWhere = kResults.GetBool("CanParadropAnyWhere");
+	m_bIsCanParadropUnLimit = kResults.GetBool("IsCanParadropUnLimit");
 	m_bImmueMeleeAttack = kResults.GetBool("ImmueMeleeAttack");
 	m_bHasPostCombatPromotions = kResults.GetBool("HasPostCombatPromotions");
 	m_bPostCombatPromotionsExclusive = kResults.GetBool("PostCombatPromotionsExclusive");
@@ -2925,6 +2927,11 @@ bool CvPromotionEntry::IsCanDoFallBackDamage() const
 bool CvPromotionEntry::IsCanParadropAnyWhere() const
 {
 	return m_bCanParadropAnyWhere;
+}
+
+bool CvPromotionEntry::IsCanParadropUnLimit() const
+{
+	return m_bIsCanParadropUnLimit;
 }
 
 /// Accessor: Is this a Sapper unit (when next to a city, provides city attack bonus to nearby units)?

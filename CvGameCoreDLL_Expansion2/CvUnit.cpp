@@ -413,6 +413,8 @@ CvUnit::CvUnit() :
 	, m_iMaxHitPointsChangeFromRazedCityPop(0)
 	, m_iMaxHitPointsModifier(0)
 #endif
+
+	, m_iIsCanParadropUnLimit("CvUnit::m_iIsCanParadropUnLimit", m_syncArchive)
 	, m_iFriendlyLandsModifier("CvUnit::m_iFriendlyLandsModifier", m_syncArchive)
 	, m_iFriendlyLandsAttackModifier("CvUnit::m_iFriendlyLandsAttackModifier", m_syncArchive)
 	, m_iOutsideFriendlyLandsModifier("CvUnit::m_iOutsideFriendlyLandsModifier", m_syncArchive)
@@ -8345,7 +8347,12 @@ bool CvUnit::canParadrop(const CvPlot* pPlot, bool bOnlyTestVisibility) const
 	// Things we check when we want to know if the unit can actually drop RIGHT NOW
 	if(!bOnlyTestVisibility)
 	{
-		if(hasMoved())
+		if(hasMoved() && !IsCanParadropUnLimit())
+		{
+			return false;
+		}
+
+		if (getMoves() <= 0)
 		{
 			return false;
 		}
@@ -8361,7 +8368,8 @@ bool CvUnit::canParadrop(const CvPlot* pPlot, bool bOnlyTestVisibility) const
 			// We're in friendly territory, call the event to see if we CAN'T start from here anyway
 #if defined(MOD_EVENTS_PARADROPS)
 			if (MOD_EVENTS_PARADROPS) {
-				if (GAMEEVENTINVOKE_TESTALL(GAMEEVENT_CannotParadropFrom, getOwner(), GetID(), pPlot->getX(), pPlot->getY()) == GAMEEVENTRETURN_TRUE) {
+				if (GAMEEVENTINVOKE_TESTALL(GAMEEVENT_CannotParadropFrom, getOwner(), GetID(), pPlot->getX(), pPlot->getY()) == GAMEEVENTRETURN_TRUE) 
+				{
 					return false;
 				}
 			} else {
@@ -23923,6 +23931,22 @@ void CvUnit::ChangeCanDoFallBackDamageCount(int iChange)
 }
 
 
+
+//	--------------------------------------------------------------------------------
+bool CvUnit::IsCanParadropUnLimit() const
+{
+	return m_iIsCanParadropUnLimit > 0;
+}
+
+//	--------------------------------------------------------------------------------
+void CvUnit::ChangeIsCanParadropUnLimitCount(int iChange)
+{
+	m_iIsCanParadropUnLimit += iChange;
+}
+
+
+
+
 //	--------------------------------------------------------------------------------
 bool CvUnit::IsCanParadropAnyWhere() const
 {
@@ -26106,6 +26130,7 @@ void CvUnit::setHasPromotion(PromotionTypes eIndex, bool bNewValue)
 		ChangeIgnoreZOCCount(thisPromotion.IsIgnoreZOC() ? iChange: 0);
 		ChangeCanDoFallBackDamageCount(thisPromotion.IsCanDoFallBackDamage() ? iChange : 0);
 		ChangeCanParadropAnyWhereCount(thisPromotion.IsCanParadropAnyWhere() ? iChange : 0);
+		ChangeIsCanParadropUnLimitCount(thisPromotion.IsCanParadropUnLimit() ? iChange : 0);
 		ChangeImmueMeleeAttackCount(thisPromotion.IsImmueMeleeAttack() ? iChange : 0);
 #if defined(MOD_UNITS_NO_SUPPLY)
 		changeNoSupply(thisPromotion.IsNoSupply() ? iChange : 0);

@@ -417,6 +417,7 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(GetDamageCombatModifier);
 
 #if defined(MOD_ROG_CORE)
+	Method(GetWithdrawChance);
 	Method(GetZOCStatus);
 	Method(GetHPHealedIfDefeatEnemyGlobal);
 	Method(GetNumOriginalCapitalDefenseMod);
@@ -3438,6 +3439,21 @@ int CvLuaUnit::lGetMovementRules(lua_State* L)
 
 
 #if defined(MOD_ROG_CORE)
+//------------------------------------------------------------------------------
+int CvLuaUnit::lGetWithdrawChance(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	CvUnit* pkAttacker = CvLuaUnit::GetInstance(L, 2);
+	int iResult;
+	if (pkUnit->getExtraWithdrawal() > 0)
+		iResult = pkUnit->GetWithdrawChance(*pkAttacker,true);
+	else
+		iResult = -1;
+
+	lua_pushinteger(L, iResult);
+	return 1;
+}
+
 int CvLuaUnit::lGetZOCStatus(lua_State* L)
 {
 	CvUnit* pkUnit = GetInstance(L);
