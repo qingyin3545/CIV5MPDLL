@@ -14976,13 +14976,9 @@ int CvUnit::GetMaxAttackStrength(const CvPlot* pFromPlot, const CvPlot* pToPlot,
 			}
 
 #if defined(MOD_ROG_CORE)
+			iTempModifier = getMultiAttackBonus() * pToPlot->getPlotCity()->GetNumTimesAttackedThisTurn(getOwner());
 			//bonus for attacking same unit over and over in a turn?
-			int iTempModifier = getMultiAttackBonus();
-			if (iTempModifier != 0)
-			{
-				iTempModifier *= pToPlot->getPlotCity()->GetNumTimesAttackedThisTurn(getOwner());
-				iModifier += iTempModifier;
-			}
+			iModifier += iTempModifier;
 #endif
 			// City Defending against a Barbarian
 			if(isBarbarian())
@@ -15975,12 +15971,8 @@ int CvUnit::GetMaxRangedCombatStrength(const CvUnit* pOtherUnit, const CvCity* p
 
 #if defined(MOD_ROG_CORE)
 		//bonus for attacking same unit over and over in a turn?
-		int iTempModifier = getMultiAttackBonus() ;
-		if (iTempModifier != 0)
-		{
-			iTempModifier *= pCity->GetNumTimesAttackedThisTurn(getOwner());
-			iModifier += iTempModifier;
-		}
+		iTempModifier = getMultiAttackBonus() * pCity->GetNumTimesAttackedThisTurn(getOwner());
+		iModifier += iTempModifier;
 #endif
 
 

@@ -247,6 +247,7 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 #if defined(MOD_API_LUA_EXTENSIONS)
 	Method(Purchase);
 #endif
+	Method(GetNumTimesAttackedThisTurn);
 	Method(GetUnitPurchaseCost);
 	Method(GetUnitFaithPurchaseCost);
 	Method(GetBuildingPurchaseCost);
@@ -1915,6 +1916,12 @@ int CvLuaCity::lPurchase(lua_State* L)
 	return 0;
 }
 #endif
+
+int CvLuaCity::lGetNumTimesAttackedThisTurn(lua_State* L)
+{
+	//GetNumTimesAttackedThisTurn(PlayerTypes ePlayer)
+	return BasicLuaMethod<int, PlayerTypes>(L, &CvCity::GetNumTimesAttackedThisTurn);
+}
 //------------------------------------------------------------------------------
 // int GetPurchaseCost(UnitTypes eUnit);
 int CvLuaCity::lGetUnitPurchaseCost(lua_State* L)

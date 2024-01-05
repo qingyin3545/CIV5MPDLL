@@ -493,6 +493,7 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 
 #if defined(MOD_ROG_CORE)
 	Method(GetMultiAttackBonus);
+	Method(GetMultiAttackBonusCity);
 	Method(GetNumAttacksMadeThisTurnAttackMod);
 	Method(GetMeleeDefenseModifier);
 	Method(GetRangedDefenseModifier);
@@ -4341,7 +4342,7 @@ int CvLuaUnit::lPerAdjacentUnitCombatModifier(lua_State* L)
 			int iModPerAdjacent = pkUnit->getCombatModPerAdjacentUnitCombatModifier(eUnitCombat);
 			if (pkUnitCombatInfo && iModPerAdjacent != 0)
 			{
-				int iNumFriendliesAdjacent = pFromPlot->GetNumSpecificFriendlyUnitCombatsAdjacent(pkUnit->getTeam(), eUnitCombat, NULL);
+				int iNumFriendliesAdjacent = pFromPlot->GetNumSpecificFriendlyUnitCombatsAdjacent(pkUnit->getTeam(), eUnitCombat, pkUnit);
 				iResult += (iNumFriendliesAdjacent * iModPerAdjacent);
 			}
 		}
@@ -4368,7 +4369,7 @@ int CvLuaUnit::lPerAdjacentUnitCombatAttackMod(lua_State* L)
 			int iModPerAdjacent = pkUnit->getCombatModPerAdjacentUnitCombatAttackMod(eUnitCombat);
 			if (pkUnitCombatInfo && iModPerAdjacent != 0)
 			{
-				int iNumFriendliesAdjacent = pFromPlot->GetNumSpecificFriendlyUnitCombatsAdjacent(pkUnit->getTeam(), eUnitCombat, NULL);
+				int iNumFriendliesAdjacent = pFromPlot->GetNumSpecificFriendlyUnitCombatsAdjacent(pkUnit->getTeam(), eUnitCombat, pkUnit);
 				iResult += (iNumFriendliesAdjacent * iModPerAdjacent);
 			}
 		}
@@ -4396,7 +4397,7 @@ int CvLuaUnit::lPerAdjacentUnitCombatDefenseMod(lua_State* L)
 			int iModPerAdjacent = pkUnit->getCombatModPerAdjacentUnitCombatDefenseMod(eUnitCombat);
 			if (pkUnitCombatInfo && iModPerAdjacent != 0)
 			{
-				int iNumFriendliesAdjacent = pFromPlot->GetNumSpecificFriendlyUnitCombatsAdjacent(pkUnit->getTeam(), eUnitCombat, NULL);
+				int iNumFriendliesAdjacent = pFromPlot->GetNumSpecificFriendlyUnitCombatsAdjacent(pkUnit->getTeam(), eUnitCombat, pkUnit);
 				iResult += (iNumFriendliesAdjacent * iModPerAdjacent);
 			}
 		}
