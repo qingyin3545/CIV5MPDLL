@@ -475,23 +475,26 @@ void CvPlot::doTurn()
 			{
 				GC.getGame().setPlotExtraYield(getX(), getY(), YIELD_FOOD, 1);
 
-				if (getImprovementType() != NULL && !isCity() && !IsImprovementPillaged())
+				if (!IsImmueVolcanoDamage())
 				{
-					CvImprovementEntry* pkImprovement = GC.getImprovementInfo(getImprovementType());
-					SetImprovementPillaged(true);
+					if (getImprovementType() != NULL && !isCity() && !IsImprovementPillaged())
+					{
+						CvImprovementEntry* pkImprovement = GC.getImprovementInfo(getImprovementType());
+						SetImprovementPillaged(true);
 
-					if (pkImprovement && pkImprovement->IsDestroyedWhenPillaged())
-					{
-						setImprovementType(NO_IMPROVEMENT);
-						SetImprovementPillaged(false);
+						if (pkImprovement && pkImprovement->IsDestroyedWhenPillaged())
+						{
+							setImprovementType(NO_IMPROVEMENT);
+							SetImprovementPillaged(false);
+						}
 					}
-				}
-				for (int iUnitLoop = 0; iUnitLoop < getNumUnits(); iUnitLoop++)
-				{
-					CvUnit* loopUnit = getUnitByIndex(iUnitLoop);
-					if (loopUnit != NULL && loopUnit->getDomainType() != DOMAIN_AIR && loopUnit->getDomainType() != DOMAIN_HOVER)
+					for (int iUnitLoop = 0; iUnitLoop < getNumUnits(); iUnitLoop++)
 					{
-						loopUnit->changeDamage(50);
+						CvUnit* loopUnit = getUnitByIndex(iUnitLoop);
+						if (loopUnit != NULL && loopUnit->getDomainType() != DOMAIN_AIR && loopUnit->getDomainType() != DOMAIN_HOVER)
+						{
+							loopUnit->changeDamage(50);
+						}
 					}
 				}
 				SetBreakTurns(10);
@@ -516,29 +519,32 @@ void CvPlot::doTurn()
 							GC.getGame().setPlotExtraYield(pLoopPlot->getX(), pLoopPlot->getY(), YIELD_FOOD, 1);
 							GC.getGame().setPlotExtraYield(pLoopPlot->getX(), pLoopPlot->getY(), YIELD_PRODUCTION, 1);
 
-							if (pLoopPlot->getImprovementType() != NULL && !pLoopPlot->isCity() && !pLoopPlot->IsImprovementPillaged())
+							if (!pLoopPlot->IsImmueVolcanoDamage())
 							{
-								CvImprovementEntry* pkImprovement = GC.getImprovementInfo(pLoopPlot->getImprovementType());
-								pLoopPlot->SetImprovementPillaged(true);
-
-								if (pkImprovement && pkImprovement->IsDestroyedWhenPillaged())
+								if (pLoopPlot->getImprovementType() != NULL && !pLoopPlot->isCity() && !pLoopPlot->IsImprovementPillaged())
 								{
-									pLoopPlot->setImprovementType(NO_IMPROVEMENT);
-									pLoopPlot->SetImprovementPillaged(false);
+									CvImprovementEntry* pkImprovement = GC.getImprovementInfo(pLoopPlot->getImprovementType());
+									pLoopPlot->SetImprovementPillaged(true);
+
+									if (pkImprovement && pkImprovement->IsDestroyedWhenPillaged())
+									{
+										pLoopPlot->setImprovementType(NO_IMPROVEMENT);
+										pLoopPlot->SetImprovementPillaged(false);
+									}
 								}
-							}
 
-							if (pLoopPlot->isCity())
-							{
-								pLoopPlot->getPlotCity()->changeDamage(0.25 * (pLoopPlot->getPlotCity()->GetMaxHitPoints()));
-							}
-
-							for (int iUnitLoop = 0; iUnitLoop < pLoopPlot->getNumUnits(); iUnitLoop++)
-							{
-								CvUnit* loopUnit = pLoopPlot->getUnitByIndex(iUnitLoop);
-								if (loopUnit != NULL && loopUnit->getDomainType() != DOMAIN_AIR && loopUnit->getDomainType() != DOMAIN_HOVER)
+								if (pLoopPlot->isCity())
 								{
-									loopUnit->changeDamage(99);
+									pLoopPlot->getPlotCity()->changeDamage(0.25 * (pLoopPlot->getPlotCity()->GetMaxHitPoints()));
+								}
+
+								for (int iUnitLoop = 0; iUnitLoop < pLoopPlot->getNumUnits(); iUnitLoop++)
+								{
+									CvUnit* loopUnit = pLoopPlot->getUnitByIndex(iUnitLoop);
+									if (loopUnit != NULL && loopUnit->getDomainType() != DOMAIN_AIR && loopUnit->getDomainType() != DOMAIN_HOVER)
+									{
+										loopUnit->changeDamage(99);
+									}
 								}
 							}
 						}
@@ -566,29 +572,32 @@ void CvPlot::doTurn()
 							GC.getGame().setPlotExtraYield(pLoopPlot->getX(), pLoopPlot->getY(), YIELD_FOOD, 1);
 							GC.getGame().setPlotExtraYield(pLoopPlot->getX(), pLoopPlot->getY(), YIELD_PRODUCTION, 1);
 
-							if (pLoopPlot->getImprovementType() != NULL && !pLoopPlot->isCity() && !pLoopPlot->IsImprovementPillaged())
+							if (!pLoopPlot->IsImmueVolcanoDamage())
 							{
-								CvImprovementEntry* pkImprovement = GC.getImprovementInfo(pLoopPlot->getImprovementType());
-								pLoopPlot->SetImprovementPillaged(true);
-					
-								if (pkImprovement && pkImprovement->IsDestroyedWhenPillaged() )
+								if (pLoopPlot->getImprovementType() != NULL && !pLoopPlot->isCity() && !pLoopPlot->IsImprovementPillaged())
 								{
-									pLoopPlot->setImprovementType(NO_IMPROVEMENT);
-									pLoopPlot->SetImprovementPillaged(false);
+									CvImprovementEntry* pkImprovement = GC.getImprovementInfo(pLoopPlot->getImprovementType());
+									pLoopPlot->SetImprovementPillaged(true);
+
+									if (pkImprovement && pkImprovement->IsDestroyedWhenPillaged())
+									{
+										pLoopPlot->setImprovementType(NO_IMPROVEMENT);
+										pLoopPlot->SetImprovementPillaged(false);
+									}
 								}
-							}
 
-							if (pLoopPlot->isCity())
-							{
-								pLoopPlot->getPlotCity()->changeDamage(0.80 * (pLoopPlot->getPlotCity()->GetMaxHitPoints()));
-							}
-
-							for (int iUnitLoop = 0; iUnitLoop < pLoopPlot->getNumUnits(); iUnitLoop++)
-							{
-								CvUnit* loopUnit = pLoopPlot->getUnitByIndex(iUnitLoop);
-								if (loopUnit != NULL && loopUnit->getDomainType() != DOMAIN_AIR && loopUnit->getDomainType() != DOMAIN_HOVER)
+								if (pLoopPlot->isCity())
 								{
-									loopUnit->changeDamage(150);
+									pLoopPlot->getPlotCity()->changeDamage(0.80 * (pLoopPlot->getPlotCity()->GetMaxHitPoints()));
+								}
+
+								for (int iUnitLoop = 0; iUnitLoop < pLoopPlot->getNumUnits(); iUnitLoop++)
+								{
+									CvUnit* loopUnit = pLoopPlot->getUnitByIndex(iUnitLoop);
+									if (loopUnit != NULL && loopUnit->getDomainType() != DOMAIN_AIR && loopUnit->getDomainType() != DOMAIN_HOVER)
+									{
+										loopUnit->changeDamage(150);
+									}
 								}
 							}
 						}
@@ -6961,6 +6970,27 @@ bool CvPlot::IsVolcano() const
 	if (eFeature == NO_FEATURE)
 	return false;
 	return GC.getFeatureInfo(eFeature)->IsVolcano();
+}
+
+bool CvPlot::IsImmueVolcanoDamage() const
+{
+	CvCity* pCity = getWorkingCity();
+	if (getOwner() == NO_PLAYER)
+	{
+		return false;
+	}
+
+	if (pCity == NULL)
+	{
+	   return false;
+	}
+
+	if (pCity && ! pCity->isImmueVolcanoDamage() )
+	{
+		return false;
+	}
+
+	return true;
 }
 #endif
 

@@ -137,6 +137,7 @@ public:
 	bool isWithinTeamCityRadius(TeamTypes eTeam, PlayerTypes eIgnorePlayer = NO_PLAYER) const;
 #if defined(MOD_MORE_NATURAL_WONDER)
 	bool IsVolcano() const;
+	bool IsImmueVolcanoDamage() const;
 	int GetBreakTurns() const;
 	void ChangeBreakTurns(int iValue); //Set in plot::doturn
 	void SetBreakTurns(int iValue);

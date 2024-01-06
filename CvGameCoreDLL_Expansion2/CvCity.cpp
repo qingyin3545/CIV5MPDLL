@@ -344,6 +344,7 @@ CvCity::CvCity() :
 	, m_aiYieldPerPop("CvCity::m_aiYieldPerPop", m_syncArchive)
 	, m_aiPowerYieldRateModifier("CvCity::m_aiPowerYieldRateModifier", m_syncArchive)
 	, m_aiFeatureYieldRateModifier("CvCity::m_aiFeatureYieldRateModifier", m_syncArchive)
+	, m_aiTerrainYieldRateModifier("CvCity::m_aiTerrainYieldRateModifier", m_syncArchive)
 	, m_aiImprovementYieldRateModifier("CvCity::m_aiImprovementYieldRateModifier", m_syncArchive)
 	, m_aiResourceYieldRateModifier("CvCity::m_aiResourceYieldRateModifier", m_syncArchive)
 	, m_aiExtraSpecialistYield("CvCity::m_aiExtraSpecialistYield", m_syncArchive)
@@ -996,6 +997,7 @@ void CvCity::uninit()
 	m_ppiResourceFromImprovement.clear();
 #endif
 	m_ppiYieldModifierFromFeature.clear();
+	m_ppiYieldModifierFromTerrain.clear();
 	m_ppiYieldModifierFromImprovement.clear();
 	m_ppiYieldModifierFromResource.clear();
 	m_paiHurryModifier.clear();
@@ -1032,6 +1034,9 @@ void CvCity::reset(int iID, PlayerTypes eOwner, int iX, int iY, bool bConstructo
 	m_iBaseTourism = 0;
 	m_iBaseTourismBeforeModifiers = 0;
 	m_aiNumProjects.resize(GC.getNumProjectInfos());
+#if defined(MOD_MORE_NATURAL_WONDER)
+	m_iImmueVolcanoDamage = 0;
+#endif
 	m_iAddsFreshWater = 0;
 	m_iForbiddenForeignSpyCount = 0;
 #if defined(MOD_ROG_CORE)
@@ -1191,6 +1196,7 @@ void CvCity::reset(int iID, PlayerTypes eOwner, int iX, int iY, bool bConstructo
 	m_aiYieldRateMultiplier.resize(NUM_YIELD_TYPES);
 	m_aiPowerYieldRateModifier.resize(NUM_YIELD_TYPES);
 	m_aiFeatureYieldRateModifier.resize(NUM_YIELD_TYPES);
+	m_aiTerrainYieldRateModifier.resize(NUM_YIELD_TYPES);
 	m_aiImprovementYieldRateModifier.resize(NUM_YIELD_TYPES);
 	m_aiResourceYieldRateModifier.resize(NUM_YIELD_TYPES);
 	m_aiExtraSpecialistYield.resize(NUM_YIELD_TYPES);
@@ -1214,6 +1220,7 @@ void CvCity::reset(int iID, PlayerTypes eOwner, int iX, int iY, bool bConstructo
 		m_aiYieldRateMultiplier.setAt(iI, 0);
 		m_aiPowerYieldRateModifier.setAt(iI, 0);
 		m_aiFeatureYieldRateModifier.setAt(iI, 0);
+		m_aiTerrainYieldRateModifier.setAt(iI, 0);
 		m_aiImprovementYieldRateModifier.setAt(iI, 0);
 		m_aiResourceYieldRateModifier.setAt(iI, 0);
 		m_aiExtraSpecialistYield.setAt(iI, 0);
@@ -1531,6 +1538,13 @@ void CvCity::reset(int iID, PlayerTypes eOwner, int iX, int iY, bool bConstructo
 	for(unsigned int i = 0; i < m_ppiYieldModifierFromFeature.size(); ++i)
 	{
 		m_ppiYieldModifierFromFeature[i] = yield;
+	}
+
+	m_ppiYieldModifierFromTerrain.clear();
+	m_ppiYieldModifierFromTerrain.resize(GC.getNumTerrainInfos());
+	for (unsigned int i = 0; i < m_ppiYieldModifierFromTerrain.size(); ++i)
+	{
+		m_ppiYieldModifierFromTerrain[i] = yield;
 	}
 
 	m_ppiYieldModifierFromImprovement.clear();
@@ -7078,6 +7092,33 @@ void CvCity::changeYieldModifierFromFeature(FeatureTypes eIndex1, YieldTypes eIn
 	UpdateCityYields(eIndex2);
 }
 
+
+//	--------------------------------------------------------------------------------
+int CvCity::getYieldModifierFromTerrain(TerrainTypes eIndex1, YieldTypes eIndex2) const
+{
+	CvAssertMsg(eIndex1 >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eIndex1 < GC.getNumTerrainInfos(), "eIndex1 is expected to be within maximum bounds (invalid Index)");
+	CvAssertMsg(eIndex2 >= 0, "eIndex2 is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eIndex2 < NUM_YIELD_TYPES, "eIndex2 is expected to be within maximum bounds (invalid Index)");
+	return m_ppiYieldModifierFromTerrain[eIndex1][eIndex2];
+}
+void CvCity::changeYieldModifierFromTerrain(TerrainTypes eIndex1, YieldTypes eIndex2, int iChange)
+{
+	if (iChange == 0) return;
+	CvAssertMsg(eIndex1 >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eIndex1 < GC.getNumTerrainInfos(), "eIndex1 is expected to be within maximum bounds (invalid Index)");
+	CvAssertMsg(eIndex2 >= 0, "eIndex2 is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eIndex2 < NUM_YIELD_TYPES, "eIndex2 is expected to be within maximum bounds (invalid Index)");
+
+
+	Firaxis::Array<int, NUM_YIELD_TYPES> yields = m_ppiYieldModifierFromTerrain[eIndex1];
+	yields[eIndex2] = (m_ppiYieldModifierFromTerrain[eIndex1][eIndex2] + iChange);
+	m_ppiYieldModifierFromTerrain[eIndex1] = yields;
+
+	changeTerrainYieldRateModifier(eIndex2, iChange * GetNumTerrainWorked(eIndex1));
+	UpdateCityYields(eIndex2);
+}
+
 //	--------------------------------------------------------------------------------
 int CvCity::getYieldModifierFromImprovement(ImprovementTypes eIndex1, YieldTypes eIndex2) const
 {
@@ -7142,6 +7183,19 @@ void CvCity::processFeature(FeatureTypes eFeature, int iChange)
 		changeFeatureYieldRateModifier(eYield, (getYieldModifierFromFeature(eFeature, eYield) * iChange));
 		UpdateCityYields(eYield);
 	}
+}
+
+void CvCity::processTerrain(TerrainTypes eTerrain, int iChange)
+{
+	VALIDATE_OBJECT
+
+		// Yield modifier for having a local Improvement
+		for (int iI = 0; iI < NUM_YIELD_TYPES; iI++)
+		{
+			const YieldTypes eYield = static_cast<YieldTypes>(iI);
+			changeTerrainYieldRateModifier(eYield, (getYieldModifierFromTerrain(eTerrain, eYield) * iChange));
+			UpdateCityYields(eYield);
+		}
 }
 
 
@@ -7481,6 +7535,9 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 		changeLandTileDamage(pBuildingInfo->GetLandTileDamage()* iChange);
 		changeLandTileMovementReduce(pBuildingInfo->GetLandTileMovementReduce()* iChange);
 		changeLandTileTurnDamage(pBuildingInfo->GetLandTileTurnDamage()* iChange);
+#endif
+#if defined(MOD_MORE_NATURAL_WONDER)
+		changeImmueVolcanoDamage(pBuildingInfo->IsImmueVolcanoDamage()* iChange);  
 #endif
 		changeAddsFreshWater(pBuildingInfo->IsAddsFreshWater()* iChange);
 		changeForbiddenForeignSpyCount(pBuildingInfo->IsForbiddenForeignSpy()* iChange);
@@ -7926,6 +7983,8 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 			{
 				ChangeTerrainExtraYield(((TerrainTypes)iJ), eYield, (GC.getBuildingInfo(eBuilding)->GetTerrainYieldChange(iJ, eYield) * iChange));
 				ChangeYieldPerXTerrainFromBuildingsTimes100(((TerrainTypes)iJ), eYield, (GC.getBuildingInfo(eBuilding)->GetYieldPerXTerrain(iJ, eYield) * iChange));
+				int iYieldMod = pBuildingInfo->GetTerrainYieldModifier((TerrainTypes)iJ, eYield);
+				changeYieldModifierFromTerrain((TerrainTypes)iJ, eYield, iYieldMod * iChange);
 			}
 
 #if defined(MOD_API_UNIFIED_YIELDS) && defined(MOD_API_PLOT_YIELDS)
@@ -8496,6 +8555,30 @@ bool CvCity::isCoastal(int iMinWaterSize) const
 	VALIDATE_OBJECT
 	return plot()->isCoastalArea(iMinWaterSize);
 }
+
+
+#if defined(MOD_MORE_NATURAL_WONDER)
+//	--------------------------------------------------------------------------------
+int CvCity::getImmueVolcanoDamage() const
+{
+	return m_iImmueVolcanoDamage;
+}
+//	--------------------------------------------------------------------------------
+bool CvCity::isImmueVolcanoDamage() const
+{
+	return (getImmueVolcanoDamage() > 0);
+}
+
+//	--------------------------------------------------------------------------------
+void CvCity::changeImmueVolcanoDamage(int iChange)
+{
+	if (iChange != 0)
+	{
+		m_iImmueVolcanoDamage = (m_iImmueVolcanoDamage + iChange);
+		CvAssert(getImmueVolcanoDamage() >= 0);
+	}
+}
+#endif
 
 #if defined(MOD_API_EXTENSIONS)
 //	--------------------------------------------------------------------------------
@@ -12250,6 +12333,12 @@ int CvCity::getBaseYieldRateModifier(YieldTypes eIndex, int iExtra, CvString* to
 	if (toolTipSink)
 		GC.getGame().BuildProdModHelpText(toolTipSink, "TXT_KEY_PRODMOD_YIELD_FEATURES", iTempMod);
 
+	// Terrain Yield Rate Modifier
+	iTempMod = getTerrainYieldRateModifier(eIndex);
+	iModifier += iTempMod;
+	if (toolTipSink)
+		GC.getGame().BuildProdModHelpText(toolTipSink, "TXT_KEY_PRODMOD_YIELD_TERRAINS", iTempMod);
+
 	// Improvement Yield Rate Modifier
 	iTempMod = getImprovementYieldRateModifier(eIndex);
 	iModifier += iTempMod;
@@ -14111,6 +14200,35 @@ void CvCity::changeFeatureYieldRateModifier(YieldTypes eIndex, int iChange)
 		GET_PLAYER(getOwner()).invalidateYieldRankCache(eIndex);
 	}
 }
+
+
+
+
+//	--------------------------------------------------------------------------------
+int CvCity::getTerrainYieldRateModifier(YieldTypes eIndex) const
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
+	CvAssertMsg(eIndex < NUM_YIELD_TYPES, "eIndex expected to be < NUM_YIELD_TYPES");
+	return m_aiTerrainYieldRateModifier[eIndex];
+}
+
+
+//	--------------------------------------------------------------------------------
+void CvCity::changeTerrainYieldRateModifier(YieldTypes eIndex, int iChange)
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
+	CvAssertMsg(eIndex < NUM_YIELD_TYPES, "eIndex expected to be < NUM_YIELD_TYPES");
+
+	if (iChange != 0)
+	{
+		m_aiTerrainYieldRateModifier.setAt(eIndex, m_aiTerrainYieldRateModifier[eIndex] + iChange);
+		GET_PLAYER(getOwner()).invalidateYieldRankCache(eIndex);
+	}
+}
+
+
 //	--------------------------------------------------------------------------------
 int CvCity::getImprovementYieldRateModifier(YieldTypes eIndex) const
 {
@@ -18947,6 +19065,9 @@ void CvCity::read(FDataStream& kStream)
 #if defined(MOD_BUILDINGS_CITY_AUTOMATON_WORKERS)
 	// SEE ABOVE - MOD_SERIALIZE_READ(90, kStream, m_iCityAutomatonWorkersChange, 0);
 #endif
+#if defined(MOD_MORE_NATURAL_WONDER)
+	kStream >> m_iImmueVolcanoDamage;
+#endif
 	kStream >> m_iAddsFreshWater;
 	kStream >> m_iForbiddenForeignSpyCount;
 #ifdef MOD_ROG_CORE
@@ -19097,6 +19218,7 @@ void CvCity::read(FDataStream& kStream)
 	kStream >> m_aiYieldRateMultiplier;
 	kStream >> m_aiPowerYieldRateModifier;
 	kStream >> m_aiFeatureYieldRateModifier;
+	kStream >> m_aiTerrainYieldRateModifier;
 	kStream >> m_aiImprovementYieldRateModifier;
 	kStream >> m_aiResourceYieldRateModifier;
 	kStream >> m_aiExtraSpecialistYield;
@@ -19337,6 +19459,7 @@ void CvCity::read(FDataStream& kStream)
 	kStream >> m_aiStaticCityYield;
 #endif
 	kStream >> m_ppiYieldModifierFromFeature;
+	kStream >> m_ppiYieldModifierFromTerrain;
 	kStream >> m_ppiYieldModifierFromImprovement;
 	kStream >> m_ppiYieldModifierFromResource;
 
@@ -19417,6 +19540,9 @@ void CvCity::write(FDataStream& kStream) const
 #endif
 #if defined(MOD_BUILDINGS_CITY_AUTOMATON_WORKERS)
 	// SEE ABOVE - MOD_SERIALIZE_WRITE(kStream, m_iCityAutomatonWorkersChange);
+#endif
+#if defined(MOD_MORE_NATURAL_WONDER)
+	kStream << m_iImmueVolcanoDamage;
 #endif
 	kStream << m_iAddsFreshWater;
 	kStream << m_iForbiddenForeignSpyCount;
@@ -19536,6 +19662,7 @@ void CvCity::write(FDataStream& kStream) const
 	kStream << m_aiYieldRateMultiplier;
 	kStream << m_aiPowerYieldRateModifier;
 	kStream << m_aiFeatureYieldRateModifier;
+	kStream << m_aiTerrainYieldRateModifier;
 	kStream << m_aiImprovementYieldRateModifier;
 	kStream << m_aiResourceYieldRateModifier;
 	kStream << m_aiExtraSpecialistYield;
@@ -19700,6 +19827,7 @@ void CvCity::write(FDataStream& kStream) const
 	kStream << m_aiStaticCityYield;
 #endif
 	kStream << m_ppiYieldModifierFromFeature;
+	kStream << m_ppiYieldModifierFromTerrain;
 	kStream << m_ppiYieldModifierFromImprovement;
 	kStream << m_ppiYieldModifierFromResource;
 
@@ -23023,6 +23151,7 @@ void CvCity::ChangeNumTerrainWorked(TerrainTypes eTerrain, int iChange)
 
 		UpdateYieldPerXTerrain(((YieldTypes)iI), eTerrain);
 	}
+	processTerrain(eTerrain, iChange);
 }
 
 int CvCity::GetNumFeaturelessTerrainWorked(TerrainTypes eTerrain)

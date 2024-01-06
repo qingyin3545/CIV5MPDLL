@@ -47,6 +47,9 @@
 		<Row Tag="TXT_KEY_PRODMOD_YIELD_FEATURES">
 			<Text>[NEWLINE][ICON_BULLET]來自有市民工作的地貌的修正: {1_Num}%</Text>
 		</Row>
+		<Row Tag="TXT_KEY_PRODMOD_YIELD_TERRAINS">
+			<Text>[NEWLINE][ICON_BULLET]來自有市民工作的地形的修正: {1_Num}%</Text>
+		</Row>
 		<Row Tag="TXT_KEY_PRODMOD_YIELD_IMPROVEMENTS">
 			<Text>[NEWLINE][ICON_BULLET]來自有市民工作的改良設施的修正: {1_Num}%</Text>
 		</Row>

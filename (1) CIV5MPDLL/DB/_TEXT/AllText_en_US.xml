@@ -46,6 +46,9 @@
 		<Row Tag="TXT_KEY_PRODMOD_YIELD_FEATURES">
 			<Text>[NEWLINE][ICON_BULLET]Modifier for Worked Features: {1_Num}%</Text>
 		</Row>
+		<Row Tag="TXT_KEY_PRODMOD_YIELD_TERRAINS">
+			<Text>[NEWLINE][ICON_BULLET]Modifier for Worked Terrains: {1_Num}%</Text>
+		</Row>
 		<Row Tag="TXT_KEY_PRODMOD_YIELD_IMPROVEMENTS">
 			<Text>[NEWLINE][ICON_BULLET]Modifier for Worked Improvements: {1_Num}%</Text>
 		</Row>

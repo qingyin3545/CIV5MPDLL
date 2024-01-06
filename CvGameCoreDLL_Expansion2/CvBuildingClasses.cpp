@@ -141,6 +141,9 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_bWater(false),
 	m_bRiver(false),
 	m_bFreshWater(false),
+#if defined(MOD_MORE_NATURAL_WONDER)
+	m_bImmueVolcanoDamage(false),
+#endif
 #if defined(MOD_API_EXTENSIONS)
 	m_bAddsFreshWater(false),
 	m_bPurchaseOnly(false),
@@ -319,6 +322,7 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_bArtInfoRandomVariation(false),
 	m_ppaiResourceYieldChange(NULL),
 	m_ppaiFeatureYieldChange(NULL),
+	m_ppaiTerrainYieldModifier(NULL),
 	m_ppaiSpecialistYieldChange(NULL),
 	m_ppaiImprovementYieldModifier(NULL),
 	m_ppaiFeatureYieldModifier(NULL),
@@ -441,6 +445,7 @@ CvBuildingEntry::~CvBuildingEntry(void)
 
 	CvDatabaseUtility::SafeDelete2DArray(m_ppaiResourceYieldChange);
 	CvDatabaseUtility::SafeDelete2DArray(m_ppaiFeatureYieldChange);
+	CvDatabaseUtility::SafeDelete2DArray(m_ppaiTerrainYieldModifier);
 	CvDatabaseUtility::SafeDelete2DArray(m_ppaiSpecialistYieldChange);
 	CvDatabaseUtility::SafeDelete2DArray(m_ppaiImprovementYieldModifier);
 	CvDatabaseUtility::SafeDelete2DArray(m_ppaiFeatureYieldModifier);
@@ -496,6 +501,9 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	m_bWater = kResults.GetBool("Water");
 	m_bRiver = kResults.GetBool("River");
 	m_bFreshWater = kResults.GetBool("FreshWater");
+#if defined(MOD_MORE_NATURAL_WONDER)
+	m_bImmueVolcanoDamage = kResults.GetBool("ImmueVolcanoDamage"); 
+#endif
 #if defined(MOD_API_EXTENSIONS)
 	if (MOD_API_EXTENSIONS) {
 		m_bAddsFreshWater = kResults.GetBool("AddsFreshWater");
@@ -937,6 +945,33 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 			m_ppaiFeatureYieldChange[FeatureID][YieldID] = yield;
 		}
 	}
+
+
+	
+
+	//TerrainYieldModier
+	{
+		kUtility.Initialize2DArray(m_ppaiTerrainYieldModifier, "Terrains", "Yields");
+
+		std::string strKey("Building_TerrainYieldModifier");
+		Database::Results* pResults = kUtility.GetResults(strKey);
+		if (pResults == NULL)
+		{
+			pResults = kUtility.PrepareResults(strKey, "select Terrains.ID as TerrainID, Yields.ID as YieldID, Yield from Building_TerrainYieldModifier inner join Terrains on Terrains.Type = TerrainType inner join Yields on Yields.Type = YieldType where BuildingType = ?");
+		}
+
+		pResults->Bind(1, szBuildingType);
+
+		while (pResults->Step())
+		{
+			const int TerrainID = pResults->GetInt(0);
+			const int YieldID = pResults->GetInt(1);
+			const int yield = pResults->GetInt(2);
+
+			m_ppaiTerrainYieldModifier[TerrainID][YieldID] = yield;
+		}
+	}
+
 #if defined(MOD_ROG_CORE)
 	//Building_DomainFreeExperiencesGlobal
 	{
@@ -2617,6 +2652,14 @@ bool CvBuildingEntry::IsFreshWater() const
 	return m_bFreshWater;
 }
 
+#if defined(MOD_MORE_NATURAL_WONDER)
+/// Does this building add FreshWater?
+bool CvBuildingEntry::IsImmueVolcanoDamage() const
+{
+	return m_bImmueVolcanoDamage;
+}
+#endif
+
 #if defined(MOD_API_EXTENSIONS)
 /// Does this building add FreshWater?
 bool CvBuildingEntry::IsAddsFreshWater() const
@@ -3793,6 +3836,26 @@ int* CvBuildingEntry::GetFeatureYieldChangeArray(int i) const
 	CvAssertMsg(i > -1, "Index out of bounds");
 	return m_ppaiFeatureYieldChange[i];
 }
+
+
+/// Change to Terrain yield by type
+int CvBuildingEntry::GetTerrainYieldModifier(int i, int j) const
+{
+	CvAssertMsg(i < GC.getNumTerrainInfos(), "Index out of bounds");
+	CvAssertMsg(i > -1, "Index out of bounds");
+	CvAssertMsg(j < NUM_YIELD_TYPES, "Index out of bounds");
+	CvAssertMsg(j > -1, "Index out of bounds");
+	return m_ppaiTerrainYieldModifier ? m_ppaiTerrainYieldModifier[i][j] : -1;
+}
+
+/// Array of changes to Feature yield
+int* CvBuildingEntry::GetTerrainYieldModifierArray(int i) const
+{
+	CvAssertMsg(i < GC.getNumTerrainInfos(), "Index out of bounds");
+	CvAssertMsg(i > -1, "Index out of bounds");
+	return m_ppaiTerrainYieldModifier[i];
+}
+
 
 /// Change to specialist yield by type
 int CvBuildingEntry::GetSpecialistYieldChange(int i, int j) const

@@ -353,6 +353,9 @@ public:
 	int getYieldModifierFromFeature(FeatureTypes eIndex1, YieldTypes eIndex2) const;
 	void changeYieldModifierFromFeature(FeatureTypes eIndex1, YieldTypes eIndex2, int iChange);
 
+	int getYieldModifierFromTerrain(TerrainTypes eIndex1, YieldTypes eIndex2) const;
+	void changeYieldModifierFromTerrain(TerrainTypes eIndex1, YieldTypes eIndex2, int iChange);
+
 	int getYieldModifierFromImprovement(ImprovementTypes eIndex1, YieldTypes eIndex2) const;
 	void changeYieldModifierFromImprovement(ImprovementTypes eIndex1, YieldTypes eIndex2, int iChange);
 
@@ -360,6 +363,7 @@ public:
 	void changeYieldModifierFromResource(ResourceTypes eIndex1, YieldTypes eIndex2, int iChange);
 
 	void processFeature(FeatureTypes eFeature, int iChange);
+	void processTerrain(TerrainTypes eTerrain, int iChange);
 	void processImprovement(ImprovementTypes eImprovement, int iChange);
 	void processResource(ResourceTypes eResource, int iChange);
 	void processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, bool bObsolete = false, bool bApplyingAllCitiesBonus = false);
@@ -396,11 +400,20 @@ public:
 	void SetEverCapital(bool bValue);
 
 	bool isCoastal(int iMinWaterSize = -1) const;
+
+#if defined(MOD_MORE_NATURAL_WONDER)
+	int getImmueVolcanoDamage() const;
+	void changeImmueVolcanoDamage(int iChange);
+	bool isImmueVolcanoDamage() const;
+#endif
+
 #if defined(MOD_API_EXTENSIONS)
 	int getAddsFreshWater() const;
 	void changeAddsFreshWater(int iChange);
 	bool isAddsFreshWater() const;
 #endif
+
+
 
 	int getForbiddenForeignSpyCount() const;
 	void changeForbiddenForeignSpyCount(int iChange);
@@ -875,6 +888,9 @@ public:
 
 	int getFeatureYieldRateModifier(YieldTypes eIndex) const;
 	void changeFeatureYieldRateModifier(YieldTypes eIndex, int iChange);
+
+	int getTerrainYieldRateModifier(YieldTypes eIndex) const;
+	void changeTerrainYieldRateModifier(YieldTypes eIndex, int iChange);
 
 	int getImprovementYieldRateModifier(YieldTypes eIndex) const;
 	void changeImprovementYieldRateModifier(YieldTypes eIndex, int iChange);
@@ -1442,6 +1458,9 @@ protected:
 #if defined(MOD_RELIGION_CONVERSION_MODIFIERS)
 	int m_iConversionModifier;
 #endif
+#if defined(MOD_MORE_NATURAL_WONDER)
+	int m_iImmueVolcanoDamage;
+#endif
 	int m_iAddsFreshWater;
 	int m_iForbiddenForeignSpyCount;
 #if defined(MOD_ROG_CORE)
@@ -1532,6 +1551,7 @@ protected:
 	std::vector<int> m_aiYieldPerReligion;
 	FAutoVariable<std::vector<int>, CvCity> m_aiPowerYieldRateModifier;
 	FAutoVariable<std::vector<int>, CvCity> m_aiFeatureYieldRateModifier;
+	FAutoVariable<std::vector<int>, CvCity> m_aiTerrainYieldRateModifier;
 	FAutoVariable<std::vector<int>, CvCity> m_aiImprovementYieldRateModifier;
 	FAutoVariable<std::vector<int>, CvCity> m_aiResourceYieldRateModifier;
 	FAutoVariable<std::vector<int>, CvCity> m_aiExtraSpecialistYield;
@@ -1563,6 +1583,7 @@ protected:
 	FAutoVariable<std::vector<int>, CvCity> m_viTradeRouteDomainGoldBonus;
 
 	std::vector< Firaxis::Array<int, NUM_YIELD_TYPES > > m_ppiYieldModifierFromFeature;
+	std::vector< Firaxis::Array<int, NUM_YIELD_TYPES > > m_ppiYieldModifierFromTerrain;
 	std::vector< Firaxis::Array<int, NUM_YIELD_TYPES > > m_ppiYieldModifierFromImprovement;
 	std::vector< Firaxis::Array<int, NUM_YIELD_TYPES > > m_ppiYieldModifierFromResource;
 

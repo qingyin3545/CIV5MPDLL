@@ -59,7 +59,7 @@ ALTER TABLE Buildings ADD COLUMN 'GlobalRangedStrikeModifier' INTEGER DEFAULT 0;
 ALTER TABLE Buildings ADD COLUMN 'NukeInterceptionChance' INTEGER DEFAULT 0;
 ALTER TABLE Buildings ADD COLUMN 'ExtraDamageHeal' INTEGER DEFAULT 0;
 ALTER TABLE Buildings ADD COLUMN 'ExtraAttacks' INTEGER DEFAULT 0;
-
+ALTER TABLE Buildings ADD ImmueVolcanoDamage INTEGER DEFAULT 0;
 ALTER TABLE Buildings ADD COLUMN 'ForbiddenForeignSpyGlobal' BOOLEAN DEFAULT 0;
 ALTER TABLE Buildings ADD COLUMN 'ForbiddenForeignSpy' BOOLEAN DEFAULT 0;
 ALTER TABLE Buildings ADD COLUMN 'WaterTileDamage' INTEGER DEFAULT 0;

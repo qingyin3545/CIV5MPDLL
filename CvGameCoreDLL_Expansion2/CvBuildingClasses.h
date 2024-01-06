@@ -321,6 +321,9 @@ public:
 	bool IsWater() const;
 	bool IsRiver() const;
 	bool IsFreshWater() const;
+#if defined(MOD_MORE_NATURAL_WONDER)
+	bool IsImmueVolcanoDamage() const;
+#endif
 #if defined(MOD_API_EXTENSIONS)
 	bool IsAddsFreshWater() const;
 	bool IsPurchaseOnly() const;
@@ -468,6 +471,11 @@ public:
 	int* GetResourceYieldChangeArray(int i) const;
 	int GetFeatureYieldChange(int i, int j) const;
 	int* GetFeatureYieldChangeArray(int i) const;
+
+
+	int GetTerrainYieldModifier(int i, int j) const;
+	int* GetTerrainYieldModifierArray(int i) const;
+
 	int GetSpecialistYieldChange(int i, int j) const;
 	int* GetSpecialistYieldChangeArray(int i) const;
 	int GetImprovementYieldModifier(int i, int j) const;
@@ -746,6 +754,9 @@ private:
 	bool m_bWater;
 	bool m_bRiver;
 	bool m_bFreshWater;
+#if defined(MOD_MORE_NATURAL_WONDER)
+	bool m_bImmueVolcanoDamage;
+#endif
 #if defined(MOD_API_EXTENSIONS)
 	bool m_bAddsFreshWater;
 	bool m_bPurchaseOnly;
@@ -875,6 +886,7 @@ private:
 
 	int** m_ppaiResourceYieldChange;
 	int** m_ppaiFeatureYieldChange;
+	int** m_ppaiTerrainYieldModifier;  
 	int** m_ppaiSpecialistYieldChange;
 	int** m_ppaiImprovementYieldModifier;
 	int** m_ppaiFeatureYieldModifier;
