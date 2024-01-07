@@ -480,6 +480,10 @@ public:
 	int* GetSpecialistYieldChangeArray(int i) const;
 	int GetImprovementYieldModifier(int i, int j) const;
 	int* GetImprovementYieldModifierArray(int i) const;
+	int GetSpecialistYieldModifier(int i, int j) const;
+	int* GetSpecialistYieldModifierArray(int i) const;
+	int GetSpecialistYieldModifierGlobal(int i, int j) const;
+	int* GetSpecialistYieldModifierGlobalArray(int i) const;
 	int GetFeatureYieldModifier(int i, int j) const;
 	int* GetFeatureYieldModifierArray(int i) const;
 	int GetResourceYieldModifier(int i, int j) const;
@@ -889,6 +893,8 @@ private:
 	int** m_ppaiTerrainYieldModifier;  
 	int** m_ppaiSpecialistYieldChange;
 	int** m_ppaiImprovementYieldModifier;
+	int** m_ppaiSpecialistYieldModifier;
+	int** m_ppaiSpecialistYieldModifierGlobal;
 	int** m_ppaiFeatureYieldModifier;
 	int** m_ppaiResourceYieldModifier;
 	int** m_ppaiTerrainYieldChange;

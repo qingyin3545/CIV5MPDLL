@@ -53,6 +53,9 @@
 		<Row Tag="TXT_KEY_PRODMOD_YIELD_IMPROVEMENTS">
 			<Text>[NEWLINE][ICON_BULLET]來自有市民工作的改良設施的修正: {1_Num}%</Text>
 		</Row>
+		<Row Tag="TXT_KEY_PRODMOD_YIELD_SPECIALIST">
+			<Text>[NEWLINE][ICON_BULLET]來自专家: {1_Num}%</Text>
+		</Row>
 		<Row Tag="TXT_KEY_PRODMOD_SPIES">
 			<Text>[NEWLINE][ICON_BULLET]活躍間諜數的城市修正值: {1_Num}%</Text>
 		</Row>

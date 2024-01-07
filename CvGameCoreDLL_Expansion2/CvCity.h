@@ -359,6 +359,9 @@ public:
 	int getYieldModifierFromImprovement(ImprovementTypes eIndex1, YieldTypes eIndex2) const;
 	void changeYieldModifierFromImprovement(ImprovementTypes eIndex1, YieldTypes eIndex2, int iChange);
 
+	int getYieldModifierFromSpecialist(SpecialistTypes eIndex1, YieldTypes eIndex2) const;
+	void changeYieldModifierFromSpecialist(SpecialistTypes eIndex1, YieldTypes eIndex2, int iChange);
+
 	int getYieldModifierFromResource(ResourceTypes eIndex1, YieldTypes eIndex2) const;
 	void changeYieldModifierFromResource(ResourceTypes eIndex1, YieldTypes eIndex2, int iChange);
 
@@ -894,6 +897,9 @@ public:
 
 	int getImprovementYieldRateModifier(YieldTypes eIndex) const;
 	void changeImprovementYieldRateModifier(YieldTypes eIndex, int iChange);
+
+	int getSpecialistYieldRateModifier(YieldTypes eIndex) const;
+	void changeSpecialistYieldRateModifier(YieldTypes eIndex, int iChange);
 
 	int getResourceYieldRateModifier(YieldTypes eIndex) const;
 	void changeResourceYieldRateModifier(YieldTypes eIndex, int iChange);
@@ -1553,6 +1559,7 @@ protected:
 	FAutoVariable<std::vector<int>, CvCity> m_aiFeatureYieldRateModifier;
 	FAutoVariable<std::vector<int>, CvCity> m_aiTerrainYieldRateModifier;
 	FAutoVariable<std::vector<int>, CvCity> m_aiImprovementYieldRateModifier;
+	FAutoVariable<std::vector<int>, CvCity> m_aiSpecialistYieldRateModifier;
 	FAutoVariable<std::vector<int>, CvCity> m_aiResourceYieldRateModifier;
 	FAutoVariable<std::vector<int>, CvCity> m_aiExtraSpecialistYield;
 	FAutoVariable<std::vector<int>, CvCity> m_aiProductionToYieldModifier;
@@ -1585,6 +1592,7 @@ protected:
 	std::vector< Firaxis::Array<int, NUM_YIELD_TYPES > > m_ppiYieldModifierFromFeature;
 	std::vector< Firaxis::Array<int, NUM_YIELD_TYPES > > m_ppiYieldModifierFromTerrain;
 	std::vector< Firaxis::Array<int, NUM_YIELD_TYPES > > m_ppiYieldModifierFromImprovement;
+	std::vector< Firaxis::Array<int, NUM_YIELD_TYPES > > m_ppiYieldModifierFromSpecialist;
 	std::vector< Firaxis::Array<int, NUM_YIELD_TYPES > > m_ppiYieldModifierFromResource;
 
 	int m_iBaseHappinessFromBuildings;

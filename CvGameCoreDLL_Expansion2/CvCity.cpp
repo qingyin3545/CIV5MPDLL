@@ -346,6 +346,7 @@ CvCity::CvCity() :
 	, m_aiFeatureYieldRateModifier("CvCity::m_aiFeatureYieldRateModifier", m_syncArchive)
 	, m_aiTerrainYieldRateModifier("CvCity::m_aiTerrainYieldRateModifier", m_syncArchive)
 	, m_aiImprovementYieldRateModifier("CvCity::m_aiImprovementYieldRateModifier", m_syncArchive)
+	, m_aiSpecialistYieldRateModifier("CvCity::m_aiSpecialistYieldRateModifier", m_syncArchive)
 	, m_aiResourceYieldRateModifier("CvCity::m_aiResourceYieldRateModifier", m_syncArchive)
 	, m_aiExtraSpecialistYield("CvCity::m_aiExtraSpecialistYield", m_syncArchive)
 	, m_aiProductionToYieldModifier("CvCity::m_aiProductionToYieldModifier", m_syncArchive)
@@ -855,6 +856,20 @@ void CvCity::init(int iID, PlayerTypes eOwner, int iX, int iY, bool bBumpUnits, 
 
 		UpdateCityYields(eYield);
 
+
+		for (int iI = 0; iI < GC.getNumSpecialistInfos(); iI++)
+		{
+			SpecialistTypes eSpecialist = (SpecialistTypes)iI;
+			CvSpecialistInfo* pSpecialistInfo = GC.getSpecialistInfo(eSpecialist);
+			if (pSpecialistInfo)
+			{
+				int iGlobalConversionYield = owningPlayer.GetYieldModifierFromSpecialistGlobal(eSpecialist, eYield);
+				if (iGlobalConversionYield > 0)
+				{
+					changeYieldModifierFromSpecialist(eSpecialist, eYield, iGlobalConversionYield);
+				}
+			}
+		}
 	}
 
 	// A new City might change our victory progress
@@ -999,6 +1014,7 @@ void CvCity::uninit()
 	m_ppiYieldModifierFromFeature.clear();
 	m_ppiYieldModifierFromTerrain.clear();
 	m_ppiYieldModifierFromImprovement.clear();
+	m_ppiYieldModifierFromSpecialist.clear();
 	m_ppiYieldModifierFromResource.clear();
 	m_paiHurryModifier.clear();
 }
@@ -1198,6 +1214,7 @@ void CvCity::reset(int iID, PlayerTypes eOwner, int iX, int iY, bool bConstructo
 	m_aiFeatureYieldRateModifier.resize(NUM_YIELD_TYPES);
 	m_aiTerrainYieldRateModifier.resize(NUM_YIELD_TYPES);
 	m_aiImprovementYieldRateModifier.resize(NUM_YIELD_TYPES);
+	m_aiSpecialistYieldRateModifier.resize(NUM_YIELD_TYPES);
 	m_aiResourceYieldRateModifier.resize(NUM_YIELD_TYPES);
 	m_aiExtraSpecialistYield.resize(NUM_YIELD_TYPES);
 	m_aiProductionToYieldModifier.resize(NUM_YIELD_TYPES);
@@ -1222,6 +1239,7 @@ void CvCity::reset(int iID, PlayerTypes eOwner, int iX, int iY, bool bConstructo
 		m_aiFeatureYieldRateModifier.setAt(iI, 0);
 		m_aiTerrainYieldRateModifier.setAt(iI, 0);
 		m_aiImprovementYieldRateModifier.setAt(iI, 0);
+		m_aiSpecialistYieldRateModifier.setAt(iI, 0);
 		m_aiResourceYieldRateModifier.setAt(iI, 0);
 		m_aiExtraSpecialistYield.setAt(iI, 0);
 		m_aiProductionToYieldModifier.setAt(iI, 0);
@@ -1552,6 +1570,13 @@ void CvCity::reset(int iID, PlayerTypes eOwner, int iX, int iY, bool bConstructo
 	for(unsigned int i = 0; i < m_ppiYieldModifierFromImprovement.size(); ++i)
 	{
 		m_ppiYieldModifierFromImprovement[i] = yield;
+	}
+
+	m_ppiYieldModifierFromSpecialist.clear();
+	m_ppiYieldModifierFromSpecialist.resize(GC.getNumSpecialistInfos());
+	for (unsigned int i = 0; i < m_ppiYieldModifierFromSpecialist.size(); ++i)
+	{
+		m_ppiYieldModifierFromSpecialist[i] = yield;
 	}
 
 	m_ppiYieldModifierFromResource.clear();
@@ -7146,6 +7171,35 @@ void CvCity::changeYieldModifierFromImprovement(ImprovementTypes eIndex1, YieldT
 	UpdateCityYields(eIndex2);
 }
 
+
+
+//	--------------------------------------------------------------------------------
+int CvCity::getYieldModifierFromSpecialist(SpecialistTypes eIndex1, YieldTypes eIndex2) const
+{
+	CvAssertMsg(eIndex1 >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eIndex1 < GC.getNumSpecialistInfos(), "eIndex1 is expected to be within maximum bounds (invalid Index)");
+	CvAssertMsg(eIndex2 >= 0, "eIndex2 is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eIndex2 < NUM_YIELD_TYPES, "eIndex2 is expected to be within maximum bounds (invalid Index)");
+	return m_ppiYieldModifierFromSpecialist[eIndex1][eIndex2];
+}
+void CvCity::changeYieldModifierFromSpecialist(SpecialistTypes eIndex1, YieldTypes eIndex2, int iChange)
+{
+	if (iChange == 0) return;
+	CvAssertMsg(eIndex1 >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eIndex1 < GC.getNumSpecialistInfos(), "eIndex1 is expected to be within maximum bounds (invalid Index)");
+	CvAssertMsg(eIndex2 >= 0, "eIndex2 is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eIndex2 < NUM_YIELD_TYPES, "eIndex2 is expected to be within maximum bounds (invalid Index)");
+
+
+	Firaxis::Array<int, NUM_YIELD_TYPES> yields = m_ppiYieldModifierFromSpecialist[eIndex1];
+	yields[eIndex2] = (m_ppiYieldModifierFromSpecialist[eIndex1][eIndex2] + iChange);
+	m_ppiYieldModifierFromSpecialist[eIndex1] = yields;
+
+	changeSpecialistYieldRateModifier(eIndex2, iChange * GetCityCitizens()->GetSpecialistCount(eIndex1));
+	UpdateCityYields(eIndex2);
+}
+
+
 //	--------------------------------------------------------------------------------
 int CvCity::getYieldModifierFromResource(ResourceTypes eIndex1, YieldTypes eIndex2) const
 {
@@ -7609,9 +7663,40 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 
 		for (int iI = 0; iI < GC.getNumSpecialistInfos(); iI++)
 		{
+			SpecialistTypes eSpecialist = (SpecialistTypes)iI;
+			CvSpecialistInfo* pSpecialistInfo = GC.getSpecialistInfo(eSpecialist);
+			if (pSpecialistInfo)
+			{
+				int iValue = pBuildingInfo->GetSpecificGreatPersonRateModifier(eSpecialist);
+				if (iValue > 0)
+				{
+					ChangeSpecialistRateModifier(eSpecialist, (pBuildingInfo->GetSpecificGreatPersonRateModifier(eSpecialist) * iChange));
+				}
+			}
+
 			for (int iJ = 0; iJ < NUM_YIELD_TYPES; iJ++)
 			{
-				changeSpecialistExtraYield(((SpecialistTypes)iI), ((YieldTypes)iJ), (pBuildingInfo->GetSpecialistYieldChangeLocal(iI, iJ) * iChange));
+				YieldTypes eYield2 = (YieldTypes)iJ;
+
+				changeSpecialistExtraYield(eSpecialist, eYield2, (pBuildingInfo->GetSpecialistYieldChangeLocal(iI, iJ) * iChange));
+
+
+
+				int iYieldMod = pBuildingInfo->GetSpecialistYieldModifier(iI, iJ);
+				changeYieldModifierFromSpecialist(eSpecialist, eYield2,  iYieldMod * iChange);
+
+
+				int iGlobalValue = pBuildingInfo->GetSpecialistYieldModifierGlobal(eSpecialist, eYield2);
+				if (iGlobalValue > 0)
+				{
+					GET_PLAYER(getOwner()).ChangeYieldModifierFromSpecialistGlobal(eSpecialist, eYield2, iGlobalValue);
+					int iLoop = 0;
+					for (CvCity* pLoopCity = GET_PLAYER(getOwner()).firstCity(&iLoop); pLoopCity != NULL; pLoopCity = GET_PLAYER(getOwner()).nextCity(&iLoop))
+					{
+						pLoopCity->changeYieldModifierFromSpecialist(eSpecialist, eYield2, iGlobalValue * iChange);
+					}
+				}
+
 			}
 		}
 
@@ -7783,21 +7868,6 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 		CvBuildingClassInfo* pkBuildingClassInfo = GC.getBuildingClassInfo(eBuildingClass);
 #endif
 
-#if defined(MOD_ROG_CORE)
-		for (int iL = 0; iL < GC.getNumSpecialistInfos(); iL++)
-		{
-			SpecialistTypes eSpecialist = (SpecialistTypes)iL;
-			CvSpecialistInfo* pSpecialistInfo = GC.getSpecialistInfo((SpecialistTypes)iL);
-			if (pSpecialistInfo)
-			{
-				int iValue = pBuildingInfo->GetSpecificGreatPersonRateModifier((SpecialistTypes)iL);
-				if (iValue > 0)
-				{
-					ChangeSpecialistRateModifier(eSpecialist, (pBuildingInfo->GetSpecificGreatPersonRateModifier((SpecialistTypes)iL) * iChange));
-				}
-			}
-		}
-#endif
 
 		YieldTypes eYield;
 
@@ -8170,6 +8240,11 @@ void CvCity::processSpecialist(SpecialistTypes eSpecialist, int iChange)
 	for(iI = 0; iI < NUM_YIELD_TYPES; iI++)
 	{
 		ChangeBaseYieldRateFromSpecialists(((YieldTypes)iI), (pkSpecialist->getYieldChange(iI) * iChange));
+
+		//int globalModifier = GET_PLAYER(getOwner()).GetYieldModifierFromSpecialistGlobal(eSpecialist, ((YieldTypes)iI));
+		int LocalModifier = getYieldModifierFromSpecialist(eSpecialist, ((YieldTypes)iI));
+		changeSpecialistYieldRateModifier(((YieldTypes)iI), (LocalModifier)*iChange);
+		UpdateCityYields(((YieldTypes)iI));
 	}
 
 	updateExtraSpecialistYield();
@@ -12346,6 +12421,13 @@ int CvCity::getBaseYieldRateModifier(YieldTypes eIndex, int iExtra, CvString* to
 	if (toolTipSink)
 		GC.getGame().BuildProdModHelpText(toolTipSink, "TXT_KEY_PRODMOD_YIELD_IMPROVEMENTS", iTempMod);
 
+	// Specialist Yield Rate Modifier
+	iTempMod = getSpecialistYieldRateModifier(eIndex) + GET_PLAYER(getOwner()).getSpecialistYieldRateModifier(eIndex);
+	iModifier += iTempMod;
+	if (toolTipSink)
+		GC.getGame().BuildProdModHelpText(toolTipSink, "TXT_KEY_PRODMOD_YIELD_SPECIALIST", iTempMod);
+
+
 	// Resource Yield Rate Modifier
 	iTempMod = getResourceYieldRateModifier(eIndex);
 	iModifier += iTempMod;
@@ -14256,6 +14338,32 @@ void CvCity::changeImprovementYieldRateModifier(YieldTypes eIndex, int iChange)
 	}
 }
 
+
+//	--------------------------------------------------------------------------------
+int CvCity::getSpecialistYieldRateModifier(YieldTypes eIndex) const
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
+	CvAssertMsg(eIndex < NUM_YIELD_TYPES, "eIndex expected to be < NUM_YIELD_TYPES");
+	return m_aiSpecialistYieldRateModifier[eIndex];
+}
+
+
+//	--------------------------------------------------------------------------------
+void CvCity::changeSpecialistYieldRateModifier(YieldTypes eIndex, int iChange)
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
+	CvAssertMsg(eIndex < NUM_YIELD_TYPES, "eIndex expected to be < NUM_YIELD_TYPES");
+
+	if (iChange != 0)
+	{
+		m_aiSpecialistYieldRateModifier.setAt(eIndex, m_aiSpecialistYieldRateModifier[eIndex] + iChange);
+		CvAssert(getYieldRate(eIndex, false) >= 0);
+
+		GET_PLAYER(getOwner()).invalidateYieldRankCache(eIndex);
+	}
+}
 
 //	--------------------------------------------------------------------------------
 int CvCity::getResourceYieldRateModifier(YieldTypes eIndex) const
@@ -19221,6 +19329,7 @@ void CvCity::read(FDataStream& kStream)
 	kStream >> m_aiFeatureYieldRateModifier;
 	kStream >> m_aiTerrainYieldRateModifier;
 	kStream >> m_aiImprovementYieldRateModifier;
+	kStream >> m_aiSpecialistYieldRateModifier;
 	kStream >> m_aiResourceYieldRateModifier;
 	kStream >> m_aiExtraSpecialistYield;
 	kStream >> m_aiProductionToYieldModifier;
@@ -19462,6 +19571,7 @@ void CvCity::read(FDataStream& kStream)
 	kStream >> m_ppiYieldModifierFromFeature;
 	kStream >> m_ppiYieldModifierFromTerrain;
 	kStream >> m_ppiYieldModifierFromImprovement;
+	kStream >> m_ppiYieldModifierFromSpecialist;
 	kStream >> m_ppiYieldModifierFromResource;
 
 	if (uiVersion >= 3)
@@ -19665,6 +19775,7 @@ void CvCity::write(FDataStream& kStream) const
 	kStream << m_aiFeatureYieldRateModifier;
 	kStream << m_aiTerrainYieldRateModifier;
 	kStream << m_aiImprovementYieldRateModifier;
+	kStream << m_aiSpecialistYieldRateModifier;
 	kStream << m_aiResourceYieldRateModifier;
 	kStream << m_aiExtraSpecialistYield;
 	kStream << m_aiProductionToYieldModifier;
@@ -19830,6 +19941,7 @@ void CvCity::write(FDataStream& kStream) const
 	kStream << m_ppiYieldModifierFromFeature;
 	kStream << m_ppiYieldModifierFromTerrain;
 	kStream << m_ppiYieldModifierFromImprovement;
+	kStream << m_ppiYieldModifierFromSpecialist;
 	kStream << m_ppiYieldModifierFromResource;
 
 	kStream << m_iExtraHitPoints;

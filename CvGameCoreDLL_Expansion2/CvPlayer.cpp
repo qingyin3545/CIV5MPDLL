@@ -909,6 +909,7 @@ void CvPlayer::uninit()
 
 #if defined(MOD_ROG_CORE)
 	m_ppiImprovementYieldChange.clear();
+	m_ppiSpecialistYieldModifierGlobal.clear();
 #endif
 
 	m_ppaaiImprovementYieldChange.clear();
@@ -1375,6 +1376,7 @@ void CvPlayer::reset(PlayerTypes eID, bool bConstructorCall)
 	m_aiSpecialistExtraYield.clear();
 	m_aiSpecialistExtraYield.resize(NUM_YIELD_TYPES, 0);
 
+
 	m_aiProximityToPlayer.clear();
 	m_aiProximityToPlayer.resize(MAX_PLAYERS, 0);
 
@@ -1571,6 +1573,13 @@ void CvPlayer::reset(PlayerTypes eID, bool bConstructorCall)
 		for (unsigned int i = 0; i < m_ppiImprovementYieldChange.size(); ++i)
 		{
 			m_ppiImprovementYieldChange[i] = yield;
+		}
+
+		m_ppiSpecialistYieldModifierGlobal.clear();
+		m_ppiSpecialistYieldModifierGlobal.resize(GC.getNumSpecialistInfos());
+		for (unsigned int i = 0; i < m_ppiSpecialistYieldModifierGlobal.size(); ++i)
+		{
+			m_ppiSpecialistYieldModifierGlobal[i] = yield;
 		}
 #endif
 
@@ -20833,6 +20842,36 @@ void CvPlayer::ChangeImprovementExtraYield(ImprovementTypes eImprovement, YieldT
 	}
 }
 
+
+int CvPlayer::GetYieldModifierFromSpecialistGlobal(SpecialistTypes eSpecialist, YieldTypes eYield) const
+{
+	CvAssertMsg(eSpecialist >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eSpecialist < GC.getNumSpecialistInfos(), "eIndex1 is expected to be within maximum bounds (invalid Index)");
+	CvAssertMsg(eYield >= 0, "eIndex2 is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eYield < NUM_YIELD_TYPES, "eIndex2 is expected to be within maximum bounds (invalid Index)");
+	return m_ppiSpecialistYieldModifierGlobal[eSpecialist][eYield];
+}
+
+//	--------------------------------------------------------------------------------
+void CvPlayer::ChangeYieldModifierFromSpecialistGlobal(SpecialistTypes eSpecialist, YieldTypes eYield, int iChange)
+{
+	CvAssertMsg(eSpecialist >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eSpecialist < GC.getNumSpecialistInfos(), "eIndex1 is expected to be within maximum bounds (invalid Index)");
+	CvAssertMsg(eYield >= 0, "eIndex2 is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eYield < NUM_YIELD_TYPES, "eIndex2 is expected to be within maximum bounds (invalid Index)");
+
+	if (iChange != 0)
+	{
+		Firaxis::Array<int, NUM_YIELD_TYPES> yields = m_ppiSpecialistYieldModifierGlobal[eSpecialist];
+		yields[eYield] = (m_ppiSpecialistYieldModifierGlobal[eSpecialist][eYield] + iChange);
+		m_ppiSpecialistYieldModifierGlobal[eSpecialist] = yields;
+		CvAssert(GetYieldModifierFromSpecialistGlobal(eSpecialist, eYield) >= 0);
+
+		updateYield();
+	}
+}
+
+
 int CvPlayer::GetYieldFromPillage(YieldTypes eIndex) const
 {
 	VALIDATE_OBJECT
@@ -21468,6 +21507,8 @@ void CvPlayer::changeSpecialistExtraYield(YieldTypes eIndex, int iChange)
 		}
 	}
 }
+
+
 
 //	--------------------------------------------------------------------------------
 /// Returns how "close" we are to another player (useful for diplomacy, war planning, etc.)
@@ -28048,6 +28089,7 @@ void CvPlayer::Read(FDataStream& kStream)
 #if defined(MOD_ROG_CORE)
 	// MOD_SERIALIZE_READ - v57/v58/v59 and v61 broke the save format  couldn't be helped, but don't make a habit of it!!!
 	kStream >> m_ppiImprovementYieldChange;
+	kStream >> m_ppiSpecialistYieldModifierGlobal;
 #endif
 
 #if defined(MOD_API_UNIFIED_YIELDS)
@@ -28701,6 +28743,7 @@ void CvPlayer::Write(FDataStream& kStream) const
 #if defined(MOD_ROG_CORE)
 	// MOD_SERIALIZE_READ - v57/v58/v59 and v61 broke the save format  couldn't be helped, but don't make a habit of it!!!
 	kStream << m_ppiImprovementYieldChange;
+	kStream << m_ppiSpecialistYieldModifierGlobal;
 #endif
 
 #if defined(MOD_API_UNIFIED_YIELDS)
@@ -32745,3 +32788,5 @@ void CvPlayer::DoInstantResearchFromFriendlyGreatScientist(CvUnit* pUnit, int iX
 			bHasBoostThisPlayer = true;
 	}
 }
+
+
