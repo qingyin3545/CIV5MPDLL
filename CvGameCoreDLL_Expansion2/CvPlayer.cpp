@@ -20808,7 +20808,7 @@ void CvPlayer::setTeam(TeamTypes eTeam)
 int CvPlayer::GetImprovementExtraYield(ImprovementTypes eImprovement, YieldTypes eYield) const
 {
 	CvAssertMsg(eImprovement >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
-	CvAssertMsg(eImprovement < GC.getNumFeatureInfos(), "eIndex1 is expected to be within maximum bounds (invalid Index)");
+	CvAssertMsg(eImprovement < GC.getNumImprovementInfos(), "eIndex1 is expected to be within maximum bounds (invalid Index)");
 	CvAssertMsg(eYield >= 0, "eIndex2 is expected to be non-negative (invalid Index)");
 	CvAssertMsg(eYield < NUM_YIELD_TYPES, "eIndex2 is expected to be within maximum bounds (invalid Index)");
 	return m_ppiImprovementYieldChange[eImprovement][eYield];
