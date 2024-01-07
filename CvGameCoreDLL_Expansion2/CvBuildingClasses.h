@@ -85,6 +85,33 @@ protected:
 	int m_iAIPriority;
 };
 
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//  class : CvDoubleYieldInfo
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+class CvDoubleYieldInfo
+{
+	friend class CvBuildingEntry;
+
+public:
+	CvDoubleYieldInfo() :
+		m_iYieldIn(NO_YIELD),
+		m_iYieldOut(NO_YIELD),
+		m_iValue(0)
+	{
+
+	};
+
+	YieldTypes GetYieldIn() { return m_iYieldIn; };
+	YieldTypes GetYieldOut() { return m_iYieldOut; };
+	int GetValue() const { return m_iValue; };
+
+protected:
+	YieldTypes m_iYieldIn;
+	YieldTypes m_iYieldOut;
+	int m_iValue;
+};
+
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //  CLASS:      CvBuildingEntry
 //!  \brief		A single building available in the game
@@ -467,6 +494,7 @@ public:
 	int GetNumFreeUnitTotal() const;
 	std::pair<UnitTypes, int>* GetFreeUnits() const;
 
+	int GetYieldFromYieldGlobal(int i, int j) const;
 	int GetResourceYieldChange(int i, int j) const;
 	int* GetResourceYieldChangeArray(int i) const;
 	int GetFeatureYieldChange(int i, int j) const;
@@ -887,6 +915,8 @@ private:
 	int m_iNumFreeUnit;
 	int m_iNumFreeUnitTotal;
 	std::pair<UnitTypes, int>* m_pFreeUnits;
+
+	CvDoubleYieldInfo* m_paYieldFromYieldGlobal;
 
 	int** m_ppaiResourceYieldChange;
 	int** m_ppaiFeatureYieldChange;

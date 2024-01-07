@@ -798,6 +798,7 @@ public:
 
 	// Base Yield
 	int getBaseYieldRate(const YieldTypes eIndex, const bool bIgnoreFromOtherYield) const;
+	void UpdateCityYieldFromYield(YieldTypes eIndex1, YieldTypes eIndex2, int iModifiedYield);
 #if defined(MOD_API_UNIFIED_YIELDS_MORE)
 	int getNumForeignSpy() const;
 	int getCrimeFromSpy() const;
@@ -862,7 +863,8 @@ public:
 	int GetYieldFromProcessModifier(YieldTypes eIndex1) const;
 	void ChangeYieldFromProcessModifier(YieldTypes eIndex, int iChange);
 
-
+	int GetRealYieldFromYield(YieldTypes eIndex1, YieldTypes eIndex2) const;
+	void SetRealYieldFromYield(YieldTypes eIndex1, YieldTypes eIndex2, int iValue);
 
 #if defined(MOD_ROG_CORE)
 	void ChangeSpecialistRateModifier(SpecialistTypes eSpecialist, int iChange);
@@ -938,7 +940,8 @@ public:
 	void ChangeYieldPerAlly(YieldTypes eYield, int iChange);
 	int GetYieldPerFriend(YieldTypes eIndex) const;
 	void ChangeYieldPerFriend(YieldTypes eYield, int iChange);
-
+	int GetBuildingYieldFromYield(YieldTypes eIndex1, YieldTypes eIndex2) const;
+	void ChangeBuildingYieldFromYield(YieldTypes eIndex, YieldTypes eIndex2, int iValue);
 	int GetYieldPerEspionageSpy(YieldTypes eIndex) const;
 	void ChangeYieldPerEspionageSpy(YieldTypes eYield, int iChange);
 	int GetBaseYieldRateFromEspionageSpy(YieldTypes eIndex) const;

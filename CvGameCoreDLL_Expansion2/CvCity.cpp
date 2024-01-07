@@ -856,6 +856,19 @@ void CvCity::init(int iID, PlayerTypes eOwner, int iX, int iY, bool bBumpUnits, 
 
 		UpdateCityYields(eYield);
 
+		for (int iK = 0; iK < NUM_YIELD_TYPES; iK++)
+		{
+			YieldTypes eYield2 = (YieldTypes)iK;
+
+			if (eYield == eYield2)
+				continue;
+
+			int iGlobalConversionYield = owningPlayer.getYieldFromYieldGlobal(eYield, eYield2);
+			if (iGlobalConversionYield > 0)
+			{
+				ChangeBuildingYieldFromYield(eYield, eYield2, iGlobalConversionYield);
+			}
+		}
 
 		for (int iI = 0; iI < GC.getNumSpecialistInfos(); iI++)
 		{
@@ -7919,6 +7932,28 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 				ChangeYieldFromConstruction(eYield, pBuildingInfo->GetYieldFromConstruction(eYield) * iChange);
 			}
 
+			for (int iK = 0; iK < NUM_YIELD_TYPES; iK++)
+			{
+				YieldTypes eYield2 = (YieldTypes)iK;
+
+				//protect against modder stupidity!
+				if (eYield == eYield2)
+					continue;
+
+				int iGlobalConversionYield = pBuildingInfo->GetYieldFromYieldGlobal(eYield, eYield2);
+				if (iGlobalConversionYield > 0)
+				{
+					GET_PLAYER(getOwner()).changeYieldFromYieldGlobal(eYield, eYield2, iGlobalConversionYield);
+					int iLoop = 0;
+					for (CvCity* pLoopCity = GET_PLAYER(getOwner()).firstCity(&iLoop); pLoopCity != NULL; pLoopCity = GET_PLAYER(getOwner()).nextCity(&iLoop))
+					{
+						pLoopCity->ChangeBuildingYieldFromYield(eYield, eYield2, (iGlobalConversionYield * iChange));
+					}
+				}
+			}
+
+
+
 			if ((pBuildingInfo->GetYieldFromBirth(eYield) > 0))
 			{
 				ChangeYieldFromBirth(eYield, pBuildingInfo->GetYieldFromBirth(eYield) * iChange);
@@ -10038,6 +10073,21 @@ int CvCity::GetBaseJONSCulturePerTurn() const
 		iCulturePerTurn += GetBaseYieldRateFromOtherYield(YIELD_CULTURE);
 #endif
 
+	//Update Yields from yields ... need to sidestep constness
+	CvCity* pThisCity = const_cast<CvCity*>(this);
+	for (int iI = 0; iI < NUM_YIELD_TYPES; iI++)
+	{
+		YieldTypes eIndex2 = (YieldTypes)iI;
+		if (eIndex2 == NO_YIELD)
+			continue;
+		if (YIELD_CULTURE == eIndex2)
+			continue;
+
+		pThisCity->UpdateCityYieldFromYield(YIELD_CULTURE, eIndex2, iCulturePerTurn);
+
+		//NOTE! We flip it here, because we want the OUT yield
+		iCulturePerTurn += GetRealYieldFromYield(eIndex2, YIELD_CULTURE);
+	}
 
 	if (MOD_API_UNIFIED_YIELDS_MORE)
 	{
@@ -10157,6 +10207,21 @@ int CvCity::GetFaithPerTurn(bool bStatic) const
 	iFaith += (GetYieldPerPopInEmpireTimes100(YIELD_FAITH) * GET_PLAYER(getOwner()).getTotalPopulation()) / 100;
 #endif
 
+	//Update Yields from yields ... need to sidestep constness
+	CvCity* pThisCity = const_cast<CvCity*>(this);
+	for (int iI = 0; iI < NUM_YIELD_TYPES; iI++)
+	{
+		YieldTypes eIndex2 = (YieldTypes)iI;
+		if (eIndex2 == NO_YIELD)
+			continue;
+		if (YIELD_FAITH == eIndex2)
+			continue;
+
+		pThisCity->UpdateCityYieldFromYield(YIELD_FAITH, eIndex2, iFaith);
+
+		//NOTE! We flip it here, because we want the OUT yield
+		iFaith += GetRealYieldFromYield(eIndex2, YIELD_FAITH);
+	}
 
 #if defined(MOD_API_UNIFIED_YIELDS)
 	if (IsRouteToCapitalConnected())
@@ -12422,7 +12487,7 @@ int CvCity::getBaseYieldRateModifier(YieldTypes eIndex, int iExtra, CvString* to
 		GC.getGame().BuildProdModHelpText(toolTipSink, "TXT_KEY_PRODMOD_YIELD_IMPROVEMENTS", iTempMod);
 
 	// Specialist Yield Rate Modifier
-	iTempMod = getSpecialistYieldRateModifier(eIndex) + GET_PLAYER(getOwner()).getSpecialistYieldRateModifier(eIndex);
+	iTempMod = getSpecialistYieldRateModifier(eIndex);
 	iModifier += iTempMod;
 	if (toolTipSink)
 		GC.getGame().BuildProdModHelpText(toolTipSink, "TXT_KEY_PRODMOD_YIELD_SPECIALIST", iTempMod);
@@ -12927,7 +12992,29 @@ void CvCity::ChangeResourceQuantityFromPOP(ResourceTypes eResource, int iChange)
 }
 
 
-
+void CvCity::UpdateCityYieldFromYield(YieldTypes eIndex1, YieldTypes eIndex2, int iModifiedYield)
+{
+	if (iModifiedYield > 0)
+	{
+		int iYieldVal = GetBuildingYieldFromYield(eIndex1, eIndex2);
+		if (iYieldVal > 0)
+		{
+			int iBonusYield = (iModifiedYield * iYieldVal / 100);
+			if (iBonusYield > 0)
+			{
+				SetRealYieldFromYield(eIndex1, eIndex2, iBonusYield);
+			}
+			else
+			{
+				SetRealYieldFromYield(eIndex1, eIndex2, 0);
+			}
+		}
+		else
+		{
+			SetRealYieldFromYield(eIndex1, eIndex2, 0);
+		}
+	}
+}
 
 
 //	--------------------------------------------------------------------------------
@@ -12964,6 +13051,21 @@ int CvCity::getBaseYieldRate(YieldTypes eIndex, const bool bIgnoreFromOtherYield
 		iValue += GetBaseYieldRateFromOtherYield(eIndex);
 	}
 #endif
+
+	CvCity* pThisCity = const_cast<CvCity*>(this);
+	for (int iI = 0; iI < NUM_YIELD_TYPES; iI++)
+	{
+		YieldTypes eIndex2 = (YieldTypes)iI;
+		if (eIndex2 == NO_YIELD)
+			continue;
+		if (eIndex == eIndex2)
+			continue;
+
+		pThisCity->UpdateCityYieldFromYield(eIndex, eIndex2, iValue);
+
+		//NOTE! We flip it here, because we want the OUT yield
+		iValue += GetRealYieldFromYield(eIndex2, eIndex);
+	}
 
 #if defined(MOD_API_UNIFIED_YIELDS)
 	if (IsRouteToCapitalConnected())
@@ -13226,13 +13328,29 @@ CvString CvCity::getYieldRateInfoTool(YieldTypes eIndex, bool bIgnoreTrade) cons
 #ifdef MOD_BUILDINGS_YIELD_FROM_OTHER_YIELD
 	if (MOD_BUILDINGS_YIELD_FROM_OTHER_YIELD)
 	{
-		iBaseValue = GetBaseYieldRateFromOtherYield(eIndex);
+		for (int iI = 0; iI < NUM_YIELD_TYPES; iI++)
+		{
+			YieldTypes eIndex2 = (YieldTypes)iI;
+			if (eIndex2 == NO_YIELD)
+				continue;
+			if (eIndex == eIndex2)
+				continue;
+
+			//NOTE! We flip it here, because we want the OUT yield
+			iBaseValue += GetRealYieldFromYield(eIndex2, eIndex);
+		}
+
+		iBaseValue += GetBaseYieldRateFromOtherYield(eIndex);
 		if(iBaseValue != 0)
 		{
 			szRtnValue += GetLocalizedText("TXT_KEY_CITYVIEW_BASE_YIELD_TT_FROM_OTHER_YIELD", iBaseValue, YieldIcon);
 		}
 	}
 #endif
+
+
+
+
 
 #if defined(MOD_API_UNIFIED_YIELDS)
 	if (IsRouteToCapitalConnected())
@@ -13857,6 +13975,59 @@ void CvCity::ChangeYieldPerFriend(YieldTypes eIndex, int iChange)
 		CvAssert(GetYieldPerFriend(eIndex) >= 0);
 	}
 }
+
+//	--------------------------------------------------------------------------------
+/// Extra yield from building
+int CvCity::GetRealYieldFromYield(YieldTypes eIndex1, YieldTypes eIndex2) const
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex1 >= 0, "eIndex1 expected to be >= 0");
+	CvAssertMsg(eIndex1 < NUM_YIELD_TYPES, "eIndex1 expected to be < NUM_YIELD_TYPES");
+	CvAssertMsg(eIndex2 >= 0, "eIndex2 expected to be >= 0");
+	CvAssertMsg(eIndex2 < NUM_YIELD_TYPES, "eIndex2 expected to be < NUM_YIELD_TYPES");
+
+	return ModifierLookup(m_yieldChanges[eIndex2].forActualYield, eIndex1);
+}
+
+//	--------------------------------------------------------------------------------
+/// Extra yield from building
+void CvCity::SetRealYieldFromYield(YieldTypes eIndex1, YieldTypes eIndex2, int iValue)
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex1 >= 0, "eIndex1 expected to be >= 0");
+	CvAssertMsg(eIndex1 < NUM_YIELD_TYPES, "eIndex1 expected to be < NUM_YIELD_TYPES");
+	CvAssertMsg(eIndex2 >= 0, "eIndex2 expected to be >= 0");
+	CvAssertMsg(eIndex2 < NUM_YIELD_TYPES, "eIndex2 expected to be < NUM_YIELD_TYPES");
+
+	ModifierUpdateInsertRemove(m_yieldChanges[eIndex2].forActualYield, eIndex1, iValue, false);
+}
+//	--------------------------------------------------------------------------------
+/// Extra yield from building
+int CvCity::GetBuildingYieldFromYield(YieldTypes eIndex1, YieldTypes eIndex2) const
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex1 >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eIndex1 < NUM_YIELD_TYPES, "eIndex1 is expected to be within maximum bounds (invalid Index)");
+	CvAssertMsg(eIndex2 >= 0, "eIndex2 is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eIndex2 < NUM_YIELD_TYPES, "eIndex2 is expected to be within maximum bounds (invalid Index)");
+
+	return ModifierLookup(m_yieldChanges[eIndex2].forYield, eIndex1);
+}
+
+//	--------------------------------------------------------------------------------
+/// Extra yield from building
+void CvCity::ChangeBuildingYieldFromYield(YieldTypes eIndex1, YieldTypes eIndex2, int iValue)
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex1 >= 0, "eIndex1 is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eIndex1 < NUM_YIELD_TYPES, "eIndex1 is expected to be within maximum bounds (invalid Index)");
+	CvAssertMsg(eIndex2 >= 0, "eIndex2 is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eIndex2 < NUM_YIELD_TYPES, "eIndex2 is expected to be within maximum bounds (invalid Index)");
+
+	ModifierUpdateInsertRemove(m_yieldChanges[eIndex2].forYield, eIndex1, iValue, true);
+}
+
+
 
 //	--------------------------------------------------------------------------------
 /// Base yield rate from CS Alliances
