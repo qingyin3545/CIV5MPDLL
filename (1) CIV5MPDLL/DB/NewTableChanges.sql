@@ -76,7 +76,8 @@ ALTER TABLE Buildings ADD COLUMN 'LandTileDamageGlobal' INTEGER DEFAULT 0;
 ALTER TABLE Buildings ADD COLUMN 'LandTileMovementReduceGlobal' INTEGER DEFAULT 0;
 ALTER TABLE Buildings ADD COLUMN 'LandTileTurnDamageGlobal' INTEGER DEFAULT 0;
 
-
+ALTER TABLE Buildings ADD COLUMN 'CityCollateralDamage' BOOLEAN DEFAULT 0;
+ALTER TABLE Technologies ADD COLUMN 'CitySplashDamage' BOOLEAN DEFAULT 0;
 ALTER TABLE Improvements ADD COLUMN 'NearbyFriendHeal' INTEGER DEFAULT 0;
 ALTER TABLE Improvements ADD COLUMN 'ImprovementResource' TEXT DEFAULT NULL;
 ALTER TABLE Improvements ADD COLUMN 'ImprovementResourceQuantity' INTEGER DEFAULT 0;
