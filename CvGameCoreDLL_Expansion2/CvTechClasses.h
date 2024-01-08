@@ -84,6 +84,7 @@ public:
 #endif
 	bool IsBridgeBuilding() const;
 	bool IsWaterWork() const;
+	bool IsCitySplashDamage() const;
 	int IsFreePromotion(int i) const;
 	bool IsTriggersArchaeologicalSites() const;
 	bool IsAllowsWorldCongress() const;
@@ -163,6 +164,7 @@ private:
 #endif
 	bool m_bBridgeBuilding;
 	bool m_bWaterWork;
+	bool m_bCitySplashDamage;
 	bool m_bTriggersArchaeologicalSites;
 	bool m_bAllowsWorldCongress;
 

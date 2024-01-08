@@ -411,11 +411,11 @@ public:
 #endif
 
 #if defined(MOD_API_EXTENSIONS)
-	int getAddsFreshWater() const;
 	void changeAddsFreshWater(int iChange);
 	bool isAddsFreshWater() const;
 #endif
-
+	void changeExtraAttackOnKill(int iChange);
+	bool isExtraAttackOnKill() const;
 
 
 	int getForbiddenForeignSpyCount() const;
@@ -1471,6 +1471,7 @@ protected:
 	int m_iImmueVolcanoDamage;
 #endif
 	int m_iAddsFreshWater;
+	FAutoVariable<int, CvCity> m_iExtraAttackOnKill;
 	int m_iForbiddenForeignSpyCount;
 #if defined(MOD_ROG_CORE)
 	FAutoVariable<int, CvCity> m_iExtraDamageHeal;

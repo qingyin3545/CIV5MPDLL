@@ -69,6 +69,7 @@ CvTechEntry::CvTechEntry(void):
 #endif
 	m_bBridgeBuilding(false),
 	m_bWaterWork(false),
+	m_bCitySplashDamage(false),
 	m_bTriggersArchaeologicalSites(false),
 	m_bAllowsWorldCongress(false),
 	m_piDomainExtraMoves(NULL),
@@ -144,6 +145,7 @@ bool CvTechEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility& k
 #endif
 	m_bBridgeBuilding = kResults.GetBool("BridgeBuilding");
 	m_bWaterWork = kResults.GetBool("WaterWork");
+	m_bCitySplashDamage = kResults.GetBool("CitySplashDamage");
 	m_iGridX = kResults.GetInt("GridX");
 	m_iGridY = kResults.GetInt("GridY");
 
@@ -524,6 +526,12 @@ bool CvTechEntry::IsBridgeBuilding() const
 bool CvTechEntry::IsWaterWork() const
 {
 	return m_bWaterWork;
+}
+
+/// Enable working of water tiles?
+bool CvTechEntry::IsCitySplashDamage() const
+{
+	return m_bCitySplashDamage;
 }
 
 /// Grants free promotion?

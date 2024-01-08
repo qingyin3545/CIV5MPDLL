@@ -202,6 +202,7 @@ void CvTeam::uninit()
 #endif
 	m_iBridgeBuildingCount = 0;
 	m_iWaterWorkCount = 0;
+	m_iCitySplashDamageCount = 0;
 	m_iRiverTradeCount = 0;
 	m_iBorderObstacleCount = 0;
 	m_iVictoryPoints = 0;
@@ -3403,6 +3404,33 @@ void CvTeam::changeWaterWorkCount(int iChange)
 		CvAssert(getWaterWorkCount() >= 0);
 	}
 }
+
+
+
+//	--------------------------------------------------------------------------------
+int CvTeam::getCitySplashDamageCount() const
+{
+	return m_iCitySplashDamageCount;
+}
+
+
+//	--------------------------------------------------------------------------------
+bool CvTeam::isCitySplashDamage() const
+{
+	return (getCitySplashDamageCount() > 0);
+}
+
+
+//	--------------------------------------------------------------------------------
+void CvTeam::changeCitySplashDamageCount(int iChange)
+{
+	if (iChange != 0)
+	{
+		m_iCitySplashDamageCount = (m_iCitySplashDamageCount + iChange);
+		CvAssert(getCitySplashDamageCount() >= 0);
+	}
+}
+
 
 //	--------------------------------------------------------------------------------
 int CvTeam::getBorderObstacleCount() const
@@ -6683,6 +6711,12 @@ void CvTeam::processTech(TechTypes eTech, int iChange)
 		changeWaterWorkCount(iChange);
 	}
 
+
+	if (pTech->IsCitySplashDamage())
+	{
+		changeCitySplashDamageCount(iChange);
+	}
+
 	if(pTech->IsAllowsEmbarking())
 	{
 		changeCanEmbarkCount(iChange);
@@ -7561,6 +7595,7 @@ void CvTeam::Read(FDataStream& kStream)
 #endif
 	kStream >> m_iBridgeBuildingCount;
 	kStream >> m_iWaterWorkCount;
+	kStream >> m_iCitySplashDamageCount;
 	kStream >> m_iRiverTradeCount;
 	kStream >> m_iBorderObstacleCount;
 	kStream >> m_iVictoryPoints;
@@ -7761,6 +7796,7 @@ void CvTeam::Write(FDataStream& kStream) const
 #endif
 	kStream << m_iBridgeBuildingCount;
 	kStream << m_iWaterWorkCount;
+	kStream << m_iCitySplashDamageCount;
 	kStream << m_iRiverTradeCount;
 	kStream << m_iBorderObstacleCount;
 	kStream << m_iVictoryPoints;

@@ -226,6 +226,7 @@ CvCity::CvCity() :
 	, m_iNumAttacks("CvCity::m_iNumAttacks", m_syncArchive)
 	, m_iAttacksMade("CvCity::m_iAttacksMade", m_syncArchive)
 	, m_iAddsFreshWater(0)
+	, m_iExtraAttackOnKill("CvCity::m_iExtraAttackOnKill", m_syncArchive)
 	, m_iForbiddenForeignSpyCount(0)
 #if defined(MOD_ROG_CORE)
 	, m_aiNumTimesAttackedThisTurn("CvCity::m_aiNumTimesAttackedThisTurn", m_syncArchive)
@@ -1067,6 +1068,7 @@ void CvCity::reset(int iID, PlayerTypes eOwner, int iX, int iY, bool bConstructo
 	m_iImmueVolcanoDamage = 0;
 #endif
 	m_iAddsFreshWater = 0;
+	m_iExtraAttackOnKill = 0;
 	m_iForbiddenForeignSpyCount = 0;
 #if defined(MOD_ROG_CORE)
 	m_aiNumTimesAttackedThisTurn.resize(REALLY_MAX_PLAYERS);
@@ -7608,6 +7610,7 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 		changeImmueVolcanoDamage(pBuildingInfo->IsImmueVolcanoDamage()* iChange);  
 #endif
 		changeAddsFreshWater(pBuildingInfo->IsAddsFreshWater()* iChange);
+		changeExtraAttackOnKill((pBuildingInfo->IsExtraAttackOnKill()) ? iChange : 0);
 		changeForbiddenForeignSpyCount(pBuildingInfo->IsForbiddenForeignSpy()* iChange);
 		changeExtraAttacks(pBuildingInfo->GetExtraAttacks()* iChange);
 
@@ -8693,14 +8696,26 @@ void CvCity::changeImmueVolcanoDamage(int iChange)
 
 #if defined(MOD_API_EXTENSIONS)
 //	--------------------------------------------------------------------------------
-int CvCity::getAddsFreshWater() const
+bool CvCity::isExtraAttackOnKill() const
 {
-	return m_iAddsFreshWater;
+	return (m_iExtraAttackOnKill > 0);
 }
+
+//	--------------------------------------------------------------------------------
+void CvCity::changeExtraAttackOnKill(int iChange)
+{
+	if (iChange != 0)
+	{
+		m_iExtraAttackOnKill = (m_iExtraAttackOnKill + iChange);
+		CvAssert(m_iExtraAttackOnKill >= 0);
+	}
+}
+
+
 //	--------------------------------------------------------------------------------
 bool CvCity::isAddsFreshWater() const
 {
-	return (getAddsFreshWater() > 0);
+	return (m_iAddsFreshWater > 0);
 }
 
 //	--------------------------------------------------------------------------------
@@ -8709,7 +8724,7 @@ void CvCity::changeAddsFreshWater(int iChange)
 	if (iChange != 0)
 	{
 		m_iAddsFreshWater = (m_iAddsFreshWater + iChange);
-		CvAssert(getAddsFreshWater() >= 0);
+		CvAssert(m_iAddsFreshWater >= 0);
 	}
 }
 
@@ -19349,6 +19364,7 @@ void CvCity::read(FDataStream& kStream)
 	kStream >> m_iImmueVolcanoDamage;
 #endif
 	kStream >> m_iAddsFreshWater;
+	kStream >> m_iExtraAttackOnKill;
 	kStream >> m_iForbiddenForeignSpyCount;
 #ifdef MOD_ROG_CORE
 	kStream >> m_iCityBuildingRangeStrikeModifier;
@@ -19827,6 +19843,7 @@ void CvCity::write(FDataStream& kStream) const
 	kStream << m_iImmueVolcanoDamage;
 #endif
 	kStream << m_iAddsFreshWater;
+	kStream << m_iExtraAttackOnKill;
 	kStream << m_iForbiddenForeignSpyCount;
 #ifdef MOD_ROG_CORE
 	kStream << m_iCityBuildingRangeStrikeModifier;

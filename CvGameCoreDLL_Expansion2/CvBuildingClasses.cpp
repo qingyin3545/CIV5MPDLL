@@ -229,6 +229,7 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_bMapCentering(false),
 	m_bNeverCapture(false),
 	m_bNukeImmune(false),
+	m_bExtraAttackOnKill(false),
 	m_bIsForbiddenForeignSpy(false),
 	m_bIsForbiddenForeignSpyGlobal(false),
 	m_bExtraLuxuries(false),
@@ -576,6 +577,7 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	m_bMapCentering = kResults.GetBool("MapCentering");
 	m_bNeverCapture = kResults.GetBool("NeverCapture");
 	m_bNukeImmune = kResults.GetBool("NukeImmune");
+	m_bExtraAttackOnKill = kResults.GetBool("CityCollateralDamage");
 	m_bIsForbiddenForeignSpy = kResults.GetBool("ForbiddenForeignSpy");
 	m_bIsForbiddenForeignSpyGlobal = kResults.GetBool("ForbiddenForeignSpyGlobal");
 	m_bCityWall = kResults.GetBool("CityWall");
@@ -2918,6 +2920,13 @@ bool CvBuildingEntry::IsNukeImmune() const
 {
 	return m_bNukeImmune;
 }
+
+
+bool CvBuildingEntry::IsExtraAttackOnKill() const
+{
+	return m_bExtraAttackOnKill;
+}
+
 
 bool CvBuildingEntry::IsForbiddenForeignSpy() const
 {

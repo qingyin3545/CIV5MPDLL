@@ -241,6 +241,10 @@ public:
 	bool isWaterWork() const;
 	void changeWaterWorkCount(int iChange);
 
+	int getCitySplashDamageCount() const;
+	bool isCitySplashDamage() const;
+	void changeCitySplashDamageCount(int iChange);
+
 	int getBorderObstacleCount() const;
 	bool isBorderObstacle() const;
 	void changeBorderObstacleCount(int iChange);
@@ -499,6 +503,7 @@ protected:
 
 	int m_iBridgeBuildingCount;
 	int m_iWaterWorkCount;
+	int m_iCitySplashDamageCount;
 	int m_iRiverTradeCount;
 	int m_iBorderObstacleCount;
 	int m_iVictoryPoints;
