@@ -1557,6 +1557,9 @@ void CvCity::reset(int iID, PlayerTypes eOwner, int iX, int iY, bool bConstructo
 	}
 #endif
 
+#if defined(MOD_INTERNATIONAL_IMMIGRATION_FOR_SP)
+	m_iCanDoImmigration = true;
+#endif
 #ifdef MOD_GLOBAL_CITY_SCALES
 	m_eCityScale = NO_CITY_SCALE;
 #endif
@@ -2202,6 +2205,10 @@ void CvCity::doTurn()
 		doProduction(bAllowNoProduction);
 
 		doDecay();
+
+#if defined(MOD_INTERNATIONAL_IMMIGRATION_FOR_SP)
+		SetCanDoImmigration(true);
+#endif
 
 
 		{
@@ -19708,6 +19715,9 @@ void CvCity::read(FDataStream& kStream)
 
 	kStream >> *m_pCityEspionage;
 
+#if defined(MOD_INTERNATIONAL_IMMIGRATION_FOR_SP)
+	kStream >> m_iCanDoImmigration;
+#endif
 #ifdef MOD_GLOBAL_CITY_SCALES
 	int iCityScale;
 	kStream >> iCityScale;
@@ -20081,6 +20091,9 @@ void CvCity::write(FDataStream& kStream) const
 	m_pEmphases->Write(kStream);
 	kStream << *m_pCityEspionage;
 
+#if defined(MOD_INTERNATIONAL_IMMIGRATION_FOR_SP)
+	kStream << m_iCanDoImmigration;
+#endif
 #ifdef MOD_GLOBAL_CITY_SCALES
 	kStream << (int) m_eCityScale;
 #endif
@@ -22676,6 +22689,16 @@ bool CvCity::HasYieldFromOtherYield() const
 }
 #endif
 
+#if defined(MOD_INTERNATIONAL_IMMIGRATION_FOR_SP)
+bool CvCity::IsCanDoImmigration() const
+{
+	return m_iCanDoImmigration;
+}
+void CvCity::SetCanDoImmigration(bool iValue)
+{
+	m_iCanDoImmigration = iValue;
+}
+#endif
 #ifdef MOD_GLOBAL_CITY_SCALES
 void CvCity::SetScale(CityScaleTypes eNewScale)
 {
