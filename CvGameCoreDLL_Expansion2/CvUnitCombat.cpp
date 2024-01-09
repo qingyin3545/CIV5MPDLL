@@ -981,9 +981,7 @@ void CvUnitCombat::GenerateRangedCombatInfo(CvCity& kAttacker, CvUnit* pkDefende
 
 
 	if (MOD_EVENTS_CITY_RANGE_STRIKE)
-	{
-
-		
+	{	
 		if (GET_TEAM(kAttacker.getTeam()).isCitySplashDamage());
 		{
 			for (int iI = 0; iI < NUM_DIRECTION_TYPES; ++iI)
@@ -1034,44 +1032,38 @@ void CvUnitCombat::GenerateRangedCombatInfo(CvCity& kAttacker, CvUnit* pkDefende
 
 					else
 					{
-						CvUnit* loopUnit = pAdjacentPlot->getUnitByIndex(0);
-						if (loopUnit == NULL)
-							continue;
-						if (!loopUnit->IsCombatUnit())
-							continue;
-						if (!GET_PLAYER(kAttacker.getOwner()).IsAtWarWith(loopUnit->getOwner()))
-							continue;
+						CvUnit* loopUnit = pAdjacentPlot->getBestDefender(NO_PLAYER, kAttacker.getOwner()).pointer();
 
-						int CityDamage = kAttacker.rangeCombatDamage(loopUnit, false);
-
-
-						if (loopUnit->getForcedDamageValue() != 0)
+						if (loopUnit != NULL && loopUnit->IsCombatUnit() && GET_PLAYER(kAttacker.getOwner()).IsAtWarWith(loopUnit->getOwner()))
 						{
-							CityDamage = loopUnit->getForcedDamageValue();
-						}
+							int CityDamage = kAttacker.rangeCombatDamage(loopUnit, false);
 
-						if (loopUnit->getChangeDamageValue() != 0)
-						{
-							CityDamage += loopUnit->getChangeDamageValue();
-							if (CityDamage <= 0)
-								CityDamage = 0;
-						}
-
-						if (loopUnit->GetIgnoreDamageChance() > 0)
-						{
-							int iRand = GC.getGame().getJonRandNum(100, "Ignore Damage Chance");
-							if (iRand <= loopUnit->GetIgnoreDamageChance())
+							if (loopUnit->getForcedDamageValue() != 0)
 							{
-								CityDamage = 0;
+								CityDamage = loopUnit->getForcedDamageValue();
 							}
+
+							if (loopUnit->getChangeDamageValue() != 0)
+							{
+								CityDamage += loopUnit->getChangeDamageValue();
+								if (CityDamage <= 0)
+									CityDamage = 0;
+							}
+
+							if (loopUnit->GetIgnoreDamageChance() > 0)
+							{
+								int iRand = GC.getGame().getJonRandNum(100, "Ignore Damage Chance");
+								if (iRand <= loopUnit->GetIgnoreDamageChance())
+								{
+									CityDamage = 0;
+								}
+							}
+							loopUnit->changeDamage(CityDamage, kAttacker.getOwner());
 						}
-						loopUnit->changeDamage(CityDamage, kAttacker.getOwner());
 					}
 				}
 			}
-		}
-		
-
+		}	
 		GAMEEVENTINVOKE_HOOK(GAMEEVENT_CityRangedStrike, kAttacker.getOwner(), kAttacker.GetID(), pkDefender->getOwner(), pkDefender->GetID(), plot.getX(), plot.getY());
 	}
 	else
@@ -1135,6 +1127,7 @@ void CvUnitCombat::GenerateRangedCombatInfo(CvCity& kAttacker, CvUnit* pkDefende
 	pkCombatInfo->setDefenderRetaliates(false);
 
 	GC.GetEngineUserInterface()->setDirty(UnitInfo_DIRTY_BIT, true);
+
 }
 
 //	---------------------------------------------------------------------------
