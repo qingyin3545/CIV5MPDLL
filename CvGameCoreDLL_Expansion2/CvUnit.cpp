@@ -5697,6 +5697,17 @@ int CvUnit::GetCaptureChance(CvUnit *pEnemy)
 
 	if ((m_iCaptureDefeatedEnemyCount > 0 || m_iCaptureDefeatedEnemyChance > 0) && AreUnitsOfSameType(*pEnemy))
 	{
+#if defined(MOD_GLOBAL_CAPTURE_UNIT_CANNOT_MAX_OUT)
+		CvUnitClassInfo *pkEnemyClassInfo = GC.getUnitClassInfo(pEnemy->getUnitClassType());
+		if (MOD_GLOBAL_CAPTURE_UNIT_CANNOT_MAX_OUT && pkEnemyClassInfo)
+		{
+			int iMaxPlayerInstances = pkEnemyClassInfo->getMaxPlayerInstances();
+			if(iMaxPlayerInstances > 0 && GET_PLAYER(getOwner()).getUnitClassCount(pEnemy->getUnitClassType()) >= iMaxPlayerInstances)
+			{
+				return 0;
+			}
+		}
+#endif
 		// Look at ratio of intrinsic combat strengths
 		CvUnitEntry *pkEnemyInfo = GC.getUnitInfo(pEnemy->getUnitType());
 		if (pkEnemyInfo)
@@ -14533,9 +14544,16 @@ int CvUnit::GetGenericMaxStrengthModifier(const CvUnit* pOtherUnit, const CvPlot
 	if(IsFriendlyUnitAdjacent(/*bCombatUnit*/ true))
 		iModifier += GetAdjacentModifier();
 
-	// Our empire fights well in Golden Ages?
 	if(kPlayer.isGoldenAge())
+	{
+		// Our empire fights well in Golden Ages?
 		iModifier += kPlayer.GetPlayerTraits()->GetGoldenAgeCombatModifier();
+#ifdef MOD_BUILDINGS_GOLDEN_AGE_EXTEND
+		iModifier += kPlayer.GetGoldenAgeUnitCombatModifier();
+#endif
+		// GoldenAge modifier always applies for attack and defense
+		iModifier += GetGoldenAgeMod();
+	}
 
 	
 	////////////////////////
@@ -14609,7 +14627,7 @@ int CvUnit::GetGenericMaxStrengthModifier(const CvUnit* pOtherUnit, const CvPlot
 		iTempModifier = GetCapitalDefenseModifier();
 		if(iTempModifier > 0)
 		{
-			CvCity* pCapital = GET_PLAYER(getOwner()).getCapitalCity();
+			CvCity* pCapital = kPlayer.getCapitalCity();
 			if(pCapital)
 			{
 				int iDistanceToCapital = plotDistance(pBattlePlot->getX(), pBattlePlot->getY(), pCapital->getX(), pCapital->getY());
@@ -14622,7 +14640,7 @@ int CvUnit::GetGenericMaxStrengthModifier(const CvUnit* pOtherUnit, const CvPlot
 		}
 
 		// Trait (player level) bonus against higher tech units
-		iTempModifier = GET_PLAYER(getOwner()).GetPlayerTraits()->GetCombatBonusVsHigherTech();
+		iTempModifier = kPlayer.GetPlayerTraits()->GetCombatBonusVsHigherTech();
 		if(iTempModifier > 0)
 		{
 			// Only applies defending friendly territory
@@ -14638,7 +14656,7 @@ int CvUnit::GetGenericMaxStrengthModifier(const CvUnit* pOtherUnit, const CvPlot
 		}
 
 		// Trait (player level) bonus against larger civs
-		iTempModifier = GET_PLAYER(getOwner()).GetPlayerTraits()->GetCombatBonusVsLargerCiv();
+		iTempModifier = kPlayer.GetPlayerTraits()->GetCombatBonusVsLargerCiv();
 		if(iTempModifier > 0)
 		{
 			if(pOtherUnit && pOtherUnit->IsLargerCivThan(this))
@@ -14720,8 +14738,7 @@ int CvUnit::GetGenericMaxStrengthModifier(const CvUnit* pOtherUnit, const CvPlot
 		}
 	}
 
-	CvPlayerAI& onwer = GET_PLAYER(getOwner());
-	iModifier += onwer.GetStrengthModifierFromAlly();
+	iModifier += kPlayer.GetStrengthModifierFromAlly();
 
 #if defined(MOD_PROMOTIONS_ALLYCITYSTATE_BONUS)
 	iModifier += GetStrengthModifierFromAlly();
@@ -14732,12 +14749,6 @@ int CvUnit::GetGenericMaxStrengthModifier(const CvUnit* pOtherUnit, const CvPlot
 	iModifier += GetStrengthModifierFromExtraHappiness();
 #endif
 
-#ifdef MOD_BUILDINGS_GOLDEN_AGE_EXTEND
-	if (MOD_BUILDINGS_GOLDEN_AGE_EXTEND && onwer.isGoldenAge())
-	{
-		iModifier += onwer.GetGoldenAgeUnitCombatModifier();
-	}
-#endif // MOD_BUILDINGS_GOLDEN_AGE_EXTEND
 
 	return iModifier;
 }
@@ -14852,11 +14863,6 @@ int CvUnit::GetMaxAttackStrength(const CvPlot* pFromPlot, const CvPlot* pToPlot,
 
 	// GoldenAge modifier always applies for attack
 
-	if (kPlayer.isGoldenAge())
-	{
-		iTempModifier = GetGoldenAgeMod();
-		iModifier += iTempModifier;
-	}
 
 
 	// spy modifier always applies for  attack
@@ -15287,17 +15293,6 @@ int CvUnit::GetMaxDefenseStrength(const CvPlot* pInPlot, const CvUnit* pAttacker
 
 
 #if defined(MOD_ROG_CORE)
-	// GoldenAge modifier always applies for defense
-
-	if (kPlayer.isGoldenAge())
-	{
-		iModifier += GetGoldenAgeMod();
-	}
-#endif
-
-
-
-#if defined(MOD_ROG_CORE)
 	// spy modifier always applies for  attack
 	int iSpy;
 	int iSpyDefenseModValue;
@@ -15696,9 +15691,15 @@ int CvUnit::GetMaxRangedCombatStrength(const CvUnit* pOtherUnit, const CvCity* p
 	
 #endif
 
-	// Our empire fights well in Golden Ages?
 	if(kPlayer.isGoldenAge())
+	{
+		// Our empire fights well in Golden Ages?
 		iModifier += pTraits->GetGoldenAgeCombatModifier();
+#ifdef MOD_BUILDINGS_GOLDEN_AGE_EXTEND
+		iModifier += kPlayer.GetGoldenAgeUnitCombatModifier();
+#endif
+		iModifier += GetGoldenAgeMod();
+	}
 
 	// Adjacent Friendly military Unit?
 	if(IsFriendlyUnitAdjacent(/*bCombatUnit*/ true))
@@ -16079,13 +16080,6 @@ int CvUnit::GetMaxRangedCombatStrength(const CvUnit* pOtherUnit, const CvCity* p
 			iTempModifier = (imovesUsed * iMoveUsedAttackModValue);
 			iModifier += iTempModifier;
 		}
-#
-		if (kPlayer.isGoldenAge())
-		{
-			iTempModifier = GetGoldenAgeMod();
-			iModifier += iTempModifier;
-		}
-
 
 		// spy modifier always applies for  attack
 		int iSpy;
@@ -16378,21 +16372,11 @@ int CvUnit::GetMaxRangedCombatStrength(const CvUnit* pOtherUnit, const CvCity* p
 	//this may be always zero when defending (on defense -> fewer targets, harder to hit)
 	iModifier += GetDamageCombatModifier(!bAttacking);
 
-#if defined(MOD_ROG_CORE)
-	// GoldenAge modifier always applies for attack
-	//CvPlayerAI& kPlayer = GET_PLAYER(getOwner());
-	if (kPlayer.isGoldenAge())
-	{
-		iModifier += GetGoldenAgeMod();
-	}
-#endif
-
 	// Unit can't drop below 10% strength
 	if(iModifier < -90)
 		iModifier = -90;
 
-	CvPlayerAI& onwer = GET_PLAYER(getOwner());
-	iModifier += onwer.GetStrengthModifierFromAlly();
+	iModifier += kPlayer.GetStrengthModifierFromAlly();
 
 #if defined(MOD_PROMOTIONS_ALLYCITYSTATE_BONUS)
 	iModifier += GetStrengthModifierFromAlly();
@@ -16403,12 +16387,6 @@ int CvUnit::GetMaxRangedCombatStrength(const CvUnit* pOtherUnit, const CvCity* p
 	iModifier += GetStrengthModifierFromExtraHappiness();
 #endif
 
-#ifdef MOD_BUILDINGS_GOLDEN_AGE_EXTEND
-	if (MOD_BUILDINGS_GOLDEN_AGE_EXTEND && onwer.isGoldenAge())
-	{
-		iModifier += onwer.GetGoldenAgeUnitCombatModifier();
-	}
-#endif // MOD_BUILDINGS_GOLDEN_AGE_EXTEND
 
 	iCombat = (iStr * (iModifier + 100));
 
