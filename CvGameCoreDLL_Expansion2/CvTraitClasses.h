@@ -181,6 +181,7 @@ public:
 	bool IsNoResistance() const;
 	bool IsBonusReligiousBelief() const;
 	bool IsAbleToAnnexCityStates() const;
+	bool IsAbleToDualEmpire() const;
 	bool IsCrossesMountainsAfterGreatGeneral() const;
 #if defined(MOD_TRAITS_CROSSES_ICE)
 	bool IsCrossesIce() const;
@@ -452,6 +453,7 @@ protected:
 	bool m_bNoResistance;
 	bool m_bBonusReligiousBelief;
 	bool m_bAbleToAnnexCityStates;
+	bool m_bAbleToDualEmpire = false;
 	bool m_bCrossesMountainsAfterGreatGeneral;
 #if defined(MOD_TRAITS_CROSSES_ICE)
 	bool m_bCrossesIce;
@@ -1070,6 +1072,10 @@ public:
 	{
 		return m_bAbleToAnnexCityStates;
 	};
+	bool IsAbleToDualEmpire() const
+	{
+		return m_bAbleToDualEmpire;
+	};
 	bool IsCrossesMountainsAfterGreatGeneral() const
 	{
 		return m_bCrossesMountainsAfterGreatGeneral;
@@ -1442,6 +1448,7 @@ private:
 	bool m_bNoResistance = false;
 	bool m_bBonusReligiousBelief = false;
 	bool m_bAbleToAnnexCityStates = false;
+	bool m_bAbleToDualEmpire = false;
 	bool m_bCrossesMountainsAfterGreatGeneral = false;
 #if defined(MOD_TRAITS_CROSSES_ICE)
 	bool m_bCrossesIce = false;

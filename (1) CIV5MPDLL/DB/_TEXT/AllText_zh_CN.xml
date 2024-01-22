@@ -717,6 +717,16 @@
 		<Row Tag="TXT_KEY_NOTIFICATION_MARRIAGE_S">
 			<Text>{1_CivName:textkey}与{2_CivName:textkey}现在达成联姻了！</Text>
 		</Row>
+
+		<Row Tag="TXT_KEY_DUAL_EMPIRE_TREATY">
+			<Text>二元帝国协定</Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_DUAL_EMPIRE_TREATY">
+			<Text>{1_CivName:textkey}与{2_CivName:textkey}完成了建立二元帝国的协定，两国正式统一在同一面旗帜下。</Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_DUAL_EMPIRE_TREATY_S">
+			<Text>{1_CivName:textkey}与{2_CivName:textkey}现在达成二元帝国协定了！</Text>
+		</Row>
 		
 	</Language_zh_CN>
 

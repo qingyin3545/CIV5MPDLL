@@ -714,6 +714,21 @@
 		<Row Tag="TXT_KEY_NOTIFICATION_MARRIAGE_S">
 			<Text>{1_CivName:textkey} and {2_CivName:textkey} are now married! </Text>
 		</Row>
+
+		<Row Tag="TXT_KEY_DUAL_EMPIRE_TREATY">
+			<Text>Dual Empire Treaty</Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_DUAL_EMPIRE_TREATY">
+			<Text>{1_CivName:textkey} and {2_CivName:textkey} completed the agreement to establish a
+				dual empire, and the two countries were officially unified under the same flag. </Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_DUAL_EMPIRE_TREATY_S">
+			<Text>
+				{1_CivName:textkey} and {2_CivName:textkey} have now reached a dual empire
+				treaty!
+			</Text>
+		</Row>
+
 	</Language_en_US>
 
 </GameData>

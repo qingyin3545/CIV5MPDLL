@@ -1330,6 +1330,9 @@ public:
 	bool IsCorruptionLevelReduceByOne() const;
 #endif
 
+	bool IsSecondCapital() const;
+	void SetSecondCapital(bool value);
+
 	int GetAdditionalFood() const;
 	void SetAdditionalFood(int iValue);
 
@@ -1636,6 +1639,8 @@ protected:
 	int m_iCorruptionScoreChangeFromBuilding = 0;
 	int m_iCorruptionLevelChangeFromBuilding = 0;
 #endif
+
+	bool m_bIsSecondCapital = false;
 
 #ifdef MOD_PROMOTION_CITY_DESTROYER
 	int m_iSiegeKillCitizensModifier = 0;

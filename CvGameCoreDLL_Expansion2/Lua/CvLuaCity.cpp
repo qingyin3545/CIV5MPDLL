@@ -796,6 +796,7 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 	Method(GetHurryModifier);
 	Method(GetHurryModifierLocal);
 	Method(GetUnitMaxExperienceLocal);
+	Method(IsSecondCapital);
 }
 //------------------------------------------------------------------------------
 void CvLuaCity::HandleMissingInstance(lua_State* L)
@@ -5250,3 +5251,5 @@ LUAAPIIMPL(City, GetHurryModifier);
 LUAAPIIMPL(City, GetHurryModifierLocal);
 LUAAPIIMPL(City, GetUnitMaxExperienceLocal);
 #endif
+
+LUAAPIIMPL(City, IsSecondCapital);

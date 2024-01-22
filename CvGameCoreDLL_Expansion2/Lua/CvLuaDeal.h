@@ -189,6 +189,11 @@ protected:
 		return BasicLuaMethod(L, &CvDeal::AddDiplomaticMarriage);
 	}
 
+	static int lAddDualEmpireTreaty(lua_State* L)
+	{
+		return BasicLuaMethod(L, &CvDeal::AddDualEmpireTreaty);
+	}
+
 	static int lChangeGoldTrade(lua_State* L)
 	{
 		return BasicLuaMethod(L, &CvDeal::ChangeGoldTrade);
@@ -243,6 +248,10 @@ protected:
 	static int lRemoveDiplomaticMarriage(lua_State* L)
 	{
 		return BasicLuaMethod(L, &CvDeal::RemoveDiplomaticMarriage);
+	}
+	static int lRemoveDualEmpireTreaty(lua_State* L)
+	{
+		return BasicLuaMethod(L, &CvDeal::RemoveDualEmpireTreaty);
 	}
 
 	static TradedItemList::iterator m_iterator;

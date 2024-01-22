@@ -19731,6 +19731,8 @@ void CvCity::read(FDataStream& kStream)
 	kStream >> m_iCorruptionLevelChangeFromBuilding;
 #endif
 
+	kStream >> m_bIsSecondCapital;
+
 #ifdef MOD_PROMOTION_CITY_DESTROYER
 	kStream >> m_iSiegeKillCitizensModifier;
 #endif
@@ -20104,6 +20106,8 @@ void CvCity::write(FDataStream& kStream) const
 	kStream << m_iCorruptionScoreChangeFromBuilding;
 	kStream << m_iCorruptionLevelChangeFromBuilding;
 #endif
+
+	kStream << m_bIsSecondCapital;
 
 #ifdef MOD_PROMOTION_CITY_DESTROYER
 	kStream << m_iSiegeKillCitizensModifier;
@@ -22953,12 +22957,20 @@ int CvCity::CalculateCorruptionScoreFromDistance() const
 		return 0;
 	}
 
-	int capX = capital->plot()->getX();
-	int capY = capital->plot()->getY();
-	int cityX = this->plot()->getX();
-	int cityY = this->plot()->getY();
+	int score = plotDistance(capital->plot()->getX(), capital->plot()->getY(), this->plot()->getX(), this->plot()->getY()) * GC.getCORRUPTION_SCORE_PER_DISTANCE(); // calculate by major capital
+	for (const int cityId : owner.GetSecondCapitals()) // calculate by second capitals
+	{
+		CvCity* pSecondCapital = owner.getCity(cityId);
+		if (pSecondCapital == nullptr)
+		{
+			continue;
+		}
 
-	return plotDistance(capX, capY, cityX, cityY) * GC.getCORRUPTION_SCORE_PER_DISTANCE();
+		int scoreBySecondCapital = plotDistance(pSecondCapital->plot()->getX(), pSecondCapital->plot()->getY(), this->plot()->getX(), this->plot()->getY()) * GC.getCORRUPTION_SCORE_PER_DISTANCE();
+		score = std::min(scoreBySecondCapital, score);
+	}
+
+	return score;
 }
 
 int CvCity::CalculateCorruptionScoreModifierFromSpy() const
@@ -23002,6 +23014,15 @@ bool CvCity::IsCorruptionLevelReduceByOne() const
 {
 	CvPlayerAI& owner = GET_PLAYER(getOwner());
 	return owner.IsCorruptionLevelReduceByOne() || owner.GetPlayerTraits()->GetCorruptionLevelReduceByOne();
+}
+
+bool CvCity::IsSecondCapital() const
+{
+	return m_bIsSecondCapital;
+}
+void CvCity::SetSecondCapital(bool value)
+{
+	m_bIsSecondCapital = value;
 }
 
 int CvCity::GetMaxCorruptionLevel() const

@@ -101,7 +101,7 @@ public:
 #endif
 #if defined(MOD_API_EXTENSIONS)
 #if defined(MOD_GLOBAL_VENICE_KEEPS_RESOURCES) || defined(MOD_GLOBAL_CS_MARRIAGE_KEEPS_RESOURCES)
-	CvCity* acquireCity(CvCity* pCity, bool bConquest, bool bGift, bool bKeepResources = false);
+	CvCity* acquireCity(CvCity* pCity, bool bConquest, bool bGift, bool bKeepResources = false, bool bIsMajorCivBuyout = false);
 #else
 	CvCity* acquireCity(CvCity* pCity, bool bConquest, bool bGift);
 #endif
@@ -2205,6 +2205,15 @@ public:
 	std::tr1::unordered_set<BuildingTypes>& GetCanConstructBuildingsFromCapturedOriginalCapitals();
 	std::tr1::unordered_set<ImprovementTypes>& GetCanBuildImprovementsFromCapturedOriginalCapitals();
 
+	std::tr1::unordered_set<UnitTypes>& GetUUFromDualEmpire();
+	std::tr1::unordered_set<BuildingTypes>& GetUBFromDualEmpire();
+	std::tr1::unordered_set<ImprovementTypes>& GetUIFromDualEmpire();
+
+	static void GetUCTypesFromPlayer(const CvPlayer& player,
+		std::tr1::unordered_set<UnitTypes>* m_sUU,
+		std::tr1::unordered_set<BuildingTypes>* m_sUB,
+		std::tr1::unordered_set<ImprovementTypes>* m_sUI);
+
 	bool CanAllUc() const {
 		return isHuman() && GC.getGame().isOption(GAMEOPTION_HUMAN_ALL_UC);
 	}
@@ -2218,6 +2227,10 @@ public:
 	int GetInstantResearchFromFriendlyGreatScientist() const;
 
 	void DoInstantResearchFromFriendlyGreatScientist(CvUnit* pUnit, int iX, int iY);
+
+	const std::vector<int>& GetSecondCapitals() const;
+	void AddSecondCapital(int iNewSecondCapitalID);
+	void RemoveSecondCapital(int iSecondCapitalID);
 
 protected:
 	class ConqueredByBoolField
@@ -2905,9 +2918,15 @@ protected:
 	FAutoVariable<std::vector<int>, CvPlayer> m_aiImmigrationCounter;
 #endif
 
+	std::vector<int> m_viSecondCapitals;
+
 	std::tr1::unordered_set<UnitTypes> m_sCanTrainUnitsFromCapturedOriginalCapitals;
 	std::tr1::unordered_set<BuildingTypes> m_sCanConstructBuildingsFromCapturedOriginalCapitals;
 	std::tr1::unordered_set<ImprovementTypes> m_sCanBuildImprovementsFromCapturedOriginalCapitals;
+
+	std::tr1::unordered_set<UnitTypes> m_sUUFromDualEmpire;
+	std::tr1::unordered_set<BuildingTypes> m_sUBFromDualEmpire;
+	std::tr1::unordered_set<ImprovementTypes> m_sUIFromDualEmpire;
 
 	std::tr1::array<unsigned long long, MAX_MAJOR_CIVS> m_aScienceTimes100FromMajorFriends; // length = MAX_MAJOR_CIVS
 

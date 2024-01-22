@@ -2219,7 +2219,7 @@ CvCity* CvPlayer::initCity(int iX, int iY, bool bBumpUnits, bool bInitialFoundin
 // NOTE: bGift set to true if the city is given as a gift, as in the case for trades and Austria UA of annexing city-states
 #if defined(MOD_API_EXTENSIONS)
 #if defined(MOD_GLOBAL_VENICE_KEEPS_RESOURCES) || defined(MOD_GLOBAL_CS_MARRIAGE_KEEPS_RESOURCES)
-CvCity* CvPlayer::acquireCity(CvCity* pOldCity, bool bConquest, bool bGift, bool bKeepResources)
+CvCity* CvPlayer::acquireCity(CvCity* pOldCity, bool bConquest, bool bGift, bool bKeepResources, bool bIsMajorCivBuyout)
 #else
 CvCity* CvPlayer::acquireCity(CvCity* pOldCity, bool bConquest, bool bGift)
 #endif
@@ -2844,6 +2844,13 @@ void CvPlayer::acquireCity(CvCity* pOldCity, bool bConquest, bool bGift)
 
 		AwardFreeBuildings(pNewCity);
 	}
+	else if (bIsMajorCivBuyout)
+	{
+		pNewCity->setPreviousOwner(NO_PLAYER);
+		pNewCity->setOriginalOwner(m_eID);
+		pNewCity->setGameTurnFounded(iGameTurnFounded);
+		pNewCity->SetEverCapital(bEverCapital);
+	}
 	// Otherwise, set it up using the data from the old city
 	else
 	{
@@ -2879,6 +2886,16 @@ void CvPlayer::acquireCity(CvCity* pOldCity, bool bConquest, bool bGift)
 	pNewCity->SetJONSCultureLevel(iOldCultureLevel);
 	pNewCity->GetCityReligions()->Copy(&tempReligions);
 	pNewCity->GetCityReligions()->RemoveFormerPantheon();
+
+	if (pOldCity->IsSecondCapital())
+	{
+		GET_PLAYER(eOldOwner).RemoveSecondCapital(pOldCity->GetID());
+	}
+	pNewCity->SetSecondCapital(bCapital && bIsMajorCivBuyout); // for major buyout, we treat the capital as the second capital (new Austria UA)
+	if (pNewCity->IsSecondCapital())
+	{
+		this->AddSecondCapital(pNewCity->GetID());
+	}
 
 	if(bCapital)
 	{
@@ -3290,7 +3307,7 @@ void CvPlayer::acquireCity(CvCity* pOldCity, bool bConquest, bool bGift)
 	pCityPlot->setRevealed(GET_PLAYER(eOldOwner).getTeam(), true);
 
 	// If the old owner is "killed," then notify everyone's Grand Strategy AI
-	if(GET_PLAYER(eOldOwner).getNumCities() == 0 && !GET_PLAYER(eOldOwner).GetPlayerTraits()->IsStaysAliveZeroCities() && !bIsMinorCivBuyout)
+	if(GET_PLAYER(eOldOwner).getNumCities() == 0 && !GET_PLAYER(eOldOwner).GetPlayerTraits()->IsStaysAliveZeroCities() && !bIsMinorCivBuyout && !bIsMajorCivBuyout)
 	{
 		if(!isMinorCiv() && !isBarbarian())
 		{
@@ -3417,6 +3434,10 @@ void CvPlayer::acquireCity(CvCity* pOldCity, bool bConquest, bool bGift)
 				if (GetPlayerTraits()->IsNoAnnexing() && bIsMinorCivBuyout)
 				{
 					pNewCity->DoCreatePuppet();
+				}
+				else if (bIsMajorCivBuyout)
+				{
+					pNewCity->DoAnnex();
 				}
 				else if (pNewCity->getOriginalOwner() != GetID() || GetPlayerTraits()->IsNoAnnexing() || bIsMinorCivBuyout)
 				{
@@ -8281,6 +8302,7 @@ bool CvPlayer::canTrain(UnitTypes eUnit, bool bContinue, bool bTestVisible, bool
 		if (eThisPlayersUnitType != eUnit) {
 			bool bCivFilter = (MOD_TRAIN_ALL_CORE && GetPlayerTraits()->IsTrainedAll())
 				|| const_cast<CvPlayer*>(this)->GetCanTrainUnitsFromCapturedOriginalCapitals().count(eUnit) > 0
+				|| const_cast<CvPlayer*>(this)->GetUUFromDualEmpire().count(eUnit) > 0
 				|| this->CanAllUc();
 			if (!bCivFilter) return false;
 
@@ -8600,7 +8622,9 @@ bool CvPlayer::canConstruct(BuildingTypes eBuilding, bool bContinue, bool bTestV
 	// Checks to make sure civilization doesn't have an override that prevents construction of this building
 	if(getCivilizationInfo().getCivilizationBuildings(eBuildingClass) != eBuilding)
 	{
-		if (const_cast<CvPlayer*>(this)->GetCanConstructBuildingsFromCapturedOriginalCapitals().count(eBuilding) == 0 && !this->CanAllUc())
+		if (const_cast<CvPlayer*>(this)->GetCanConstructBuildingsFromCapturedOriginalCapitals().count(eBuilding) == 0
+			&& const_cast<CvPlayer*>(this)->GetUBFromDualEmpire().count(eBuilding) == 0
+			&& !this->CanAllUc())
 			return false;
 	}
 
@@ -10357,7 +10381,9 @@ bool CvPlayer::canBuild(const CvPlot* pPlot, BuildTypes eBuild, bool bTestEra, b
 			CivilizationTypes eCiv = pkEntry->GetRequiredCivilization();
 			if(eCiv != getCivilizationType())
 			{
-				if (const_cast<CvPlayer*>(this)->GetCanBuildImprovementsFromCapturedOriginalCapitals().count(eImprovement) == 0 && !CanAllUc())
+				if (const_cast<CvPlayer*>(this)->GetCanBuildImprovementsFromCapturedOriginalCapitals().count(eImprovement) == 0
+					&& const_cast<CvPlayer*>(this)->GetUIFromDualEmpire().count(eImprovement) == 0
+					&& !CanAllUc())
 					return false;
 			}
 		}
@@ -28404,9 +28430,15 @@ void CvPlayer::Read(FDataStream& kStream)
 	kStream >> m_aiImmigrationCounter;
 #endif
 
+	kStream >> m_viSecondCapitals;
+
 	kStream >> m_sCanTrainUnitsFromCapturedOriginalCapitals;
 	kStream >> m_sCanConstructBuildingsFromCapturedOriginalCapitals;
 	kStream >> m_sCanBuildImprovementsFromCapturedOriginalCapitals;
+
+	kStream >> m_sUUFromDualEmpire;
+	kStream >> m_sUBFromDualEmpire;
+	kStream >> m_sUIFromDualEmpire;
 
 	kStream >> m_aScienceTimes100FromMajorFriends;
 
@@ -29050,9 +29082,15 @@ void CvPlayer::Write(FDataStream& kStream) const
 	kStream << m_aiImmigrationCounter;
 #endif
 
+	kStream << m_viSecondCapitals;
+
 	kStream << m_sCanTrainUnitsFromCapturedOriginalCapitals;
 	kStream << m_sCanConstructBuildingsFromCapturedOriginalCapitals;
 	kStream << m_sCanBuildImprovementsFromCapturedOriginalCapitals;
+
+	kStream << m_sUUFromDualEmpire;
+	kStream << m_sUBFromDualEmpire;
+	kStream << m_sUIFromDualEmpire;
 
 	kStream << m_aScienceTimes100FromMajorFriends;
 
@@ -32764,6 +32802,58 @@ void CvPlayer::ChangeProductionNeededProjectModifier(int change) {
 	m_iProductionNeededProjectModifier += change;
 }
 
+void CvPlayer::GetUCTypesFromPlayer(const CvPlayer& player,
+	std::tr1::unordered_set<UnitTypes>* m_sUU,
+	std::tr1::unordered_set<BuildingTypes>* m_sUB,
+	std::tr1::unordered_set<ImprovementTypes>* m_sUI)
+{
+	CvCivilizationInfo* pkInfo = GC.getCivilizationInfo(player.getCivilizationType());
+	if (!pkInfo)
+		return;
+
+	if (m_sUU)
+	{
+		for (size_t i = 0; i < GC.getNumUnitClassInfos(); ++i) {
+			if (!pkInfo->isCivilizationUnitOverridden(i))
+				continue;
+			UnitTypes eUnit = static_cast<UnitTypes>(pkInfo->getCivilizationUnits(i));
+			if (eUnit == NO_UNIT)
+				continue;
+
+			m_sUU->insert(eUnit);
+		}
+	}
+
+	if (m_sUB)
+	{
+		for (size_t i = 0; i < GC.getNumBuildingClassInfos(); ++i) {
+			if (!pkInfo->isCivilizationBuildingOverridden(i))
+				continue;
+
+			BuildingTypes eBuilding = static_cast<BuildingTypes>(pkInfo->getCivilizationBuildings(i));
+			if (eBuilding == NO_BUILDING)
+				continue;
+
+			m_sUB->insert(eBuilding);
+		}
+	}
+
+	if (m_sUI)
+	{
+		for (size_t i = 0; i < GC.getNumImprovementInfos(); ++i) {
+			ImprovementTypes eImprovement = (ImprovementTypes)i;
+			CvImprovementEntry* pkEntry = GC.getImprovementInfo(eImprovement);
+			if (pkEntry && pkEntry->IsSpecificCivRequired())
+			{
+				CivilizationTypes eCiv = pkEntry->GetRequiredCivilization();
+				if (eCiv == pkInfo->GetID()) {
+					m_sUI->insert(eImprovement);
+				}
+			}
+		}
+	}
+}
+
 void CvPlayer::UpdateUCsFromCapturedOriginalCapitals() {
 	m_sCanTrainUnitsFromCapturedOriginalCapitals.clear();
 	m_sCanConstructBuildingsFromCapturedOriginalCapitals.clear();
@@ -32780,42 +32870,9 @@ void CvPlayer::UpdateUCsFromCapturedOriginalCapitals() {
 		if (!kOriginalOwner.isMajorCiv())
 			continue;
 
-		CvCivilizationInfo* pkInfo = GC.getCivilizationInfo(kOriginalOwner.getCivilizationType());
-		if (!pkInfo)
-			continue;
-
-		for (size_t i = 0; i < GC.getNumUnitClassInfos(); ++i) {
-			if (!pkInfo->isCivilizationUnitOverridden(i))
-				continue;
-			UnitTypes eUnit = static_cast<UnitTypes>(pkInfo->getCivilizationUnits(i));
-			if (eUnit == NO_UNIT)
-				continue;
-
-			m_sCanTrainUnitsFromCapturedOriginalCapitals.insert(eUnit);
-		}
-
-		for (size_t i = 0; i < GC.getNumBuildingClassInfos(); ++i) {
-			if (!pkInfo->isCivilizationBuildingOverridden(i))
-				continue;
-
-			BuildingTypes eBuilding = static_cast<BuildingTypes>(pkInfo->getCivilizationBuildings(i));
-			if (eBuilding == NO_BUILDING)
-				continue;
-
-			m_sCanConstructBuildingsFromCapturedOriginalCapitals.insert(eBuilding);
-		}
-
-		for (size_t i = 0; i < GC.getNumImprovementInfos(); ++i) {
-			ImprovementTypes eImprovement = (ImprovementTypes)i;
-			CvImprovementEntry* pkEntry = GC.getImprovementInfo(eImprovement);
-			if (pkEntry && pkEntry->IsSpecificCivRequired())
-			{
-				CivilizationTypes eCiv = pkEntry->GetRequiredCivilization();
-				if (eCiv == pkInfo->GetID()) {
-					m_sCanBuildImprovementsFromCapturedOriginalCapitals.insert(eImprovement);
-				}
-			}
-		}
+		GetUCTypesFromPlayer(kOriginalOwner, &m_sCanTrainUnitsFromCapturedOriginalCapitals,
+						&m_sCanConstructBuildingsFromCapturedOriginalCapitals,
+						&m_sCanBuildImprovementsFromCapturedOriginalCapitals);
 	}
 }
 
@@ -32829,6 +32886,19 @@ std::tr1::unordered_set<BuildingTypes>& CvPlayer::GetCanConstructBuildingsFromCa
 
 std::tr1::unordered_set<ImprovementTypes>& CvPlayer::GetCanBuildImprovementsFromCapturedOriginalCapitals() {
 	return m_sCanBuildImprovementsFromCapturedOriginalCapitals;
+}
+
+std::tr1::unordered_set<UnitTypes>& CvPlayer::GetUUFromDualEmpire()
+{
+	return m_sUUFromDualEmpire;
+}
+std::tr1::unordered_set<BuildingTypes>& CvPlayer::GetUBFromDualEmpire()
+{
+	return m_sUBFromDualEmpire;
+}
+std::tr1::unordered_set<ImprovementTypes>& CvPlayer::GetUIFromDualEmpire()
+{
+	return m_sUIFromDualEmpire;
 }
 
 void CvPlayer::SetInstantResearchFromFriendlyGreatScientist(int value) {
@@ -32937,4 +33007,27 @@ void CvPlayer::DoInstantResearchFromFriendlyGreatScientist(CvUnit* pUnit, int iX
 	}
 }
 
+const std::vector<int>& CvPlayer::GetSecondCapitals() const
+{
+	return m_viSecondCapitals;
+}
 
+void CvPlayer::AddSecondCapital(int iNewSecondCapitalID)
+{
+	if (std::find(m_viSecondCapitals.begin(), m_viSecondCapitals.end(), iNewSecondCapitalID) != m_viSecondCapitals.end())
+	{
+		return; // already exist
+	}
+	m_viSecondCapitals.push_back(iNewSecondCapitalID);
+}
+
+void CvPlayer::RemoveSecondCapital(int iSecondCapitalID)
+{
+	auto it = std::find(m_viSecondCapitals.begin(), m_viSecondCapitals.end(), iSecondCapitalID);
+	if (it == m_viSecondCapitals.end())
+	{
+		return;
+	}
+
+	m_viSecondCapitals.erase(it);
+}

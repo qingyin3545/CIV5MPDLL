@@ -809,6 +809,13 @@ public:
 	void SetMarriageCounter(PlayerTypes ePlayer, int iValue);
 	void ChangeMarriageCounter(PlayerTypes ePlayer, int iChange);
 
+	short GetMarriageFinishCounter(PlayerTypes ePlayer) const;
+	void SetMarriageFinishCounter(PlayerTypes ePlayer, int iValue);
+	void ChangeMarriageFinishCounter(PlayerTypes ePlayer, int iChange);
+
+	short GetDualEmpireTreatyCounter() const;
+	void  ChangeDualEmpireTreatyCounter(const int value);
+
 	// Working Against Player
 	//bool DoTestWorkingAgainstPlayersDesire(PlayerTypes ePlayer, PlayerTypes &eChosenAgainstPlayer);
 
@@ -1388,6 +1395,9 @@ private:
 
 		std::tr1::array<bool, MAX_MAJOR_CIVS> m_pabMarriageAccepted;
 		std::tr1::array<short, MAX_MAJOR_CIVS> m_paiMarriageCounter;
+		std::tr1::array<short, MAX_MAJOR_CIVS> m_paiMarriageFinishCounter;
+
+		int m_iDualEmpireTreatyCounter = 0;
 
 #if defined(MOD_AI_MP_DIPLOMACY)
 		float m_aTradePriority[MAX_MAJOR_CIVS]; // current ai to human trade priority
@@ -1606,6 +1616,9 @@ private:
 
 	std::tr1::array<bool, MAX_MAJOR_CIVS> m_pabMarriageAccepted;
 	std::tr1::array<short, MAX_MAJOR_CIVS> m_paiMarriageCounter;
+	std::tr1::array<short, MAX_MAJOR_CIVS> m_paiMarriageFinishCounter;
+
+	short m_iDualEmpireTreatyCounter = 0;
 
 	// Memory of what we've talked about with people
 	DiploLogData** m_ppaDiploStatementsLog;

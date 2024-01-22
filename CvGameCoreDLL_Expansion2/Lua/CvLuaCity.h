@@ -722,6 +722,8 @@ protected:
 	LUAAPIEXTN(GetHurryModifier, int);
 	LUAAPIEXTN(GetHurryModifierLocal, int);
 	LUAAPIEXTN(GetUnitMaxExperienceLocal, int);
+
+	LUAAPIEXTN(IsSecondCapital, bool);
 };
 
 #endif //CVLUACITY_H

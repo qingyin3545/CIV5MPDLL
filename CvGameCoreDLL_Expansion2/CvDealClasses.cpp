@@ -831,6 +831,10 @@ bool CvDeal::IsPossibleToTradeItem(PlayerTypes ePlayer, PlayerTypes eToPlayer, T
 		for (int i = 0; i < MAX_MAJOR_CIVS; ++i)
 		{
 			PlayerTypes otherPlayer = static_cast<PlayerTypes>(i);
+			if (!GET_PLAYER(otherPlayer).isAlive())
+			{
+				continue;
+			}
 			if (otherPlayer != ePlayer && GET_PLAYER(ePlayer).GetDiplomacyAI()->IsMarriageAccepted(otherPlayer))
 			{
 				return false;
@@ -840,6 +844,46 @@ bool CvDeal::IsPossibleToTradeItem(PlayerTypes ePlayer, PlayerTypes eToPlayer, T
 				return false;
 			}
 		}
+		return true;
+	}
+	else if (eItem == TRADE_ITEM_DUAL_EMPIRE_TREATY)
+	{
+		if (GET_PLAYER(ePlayer).GetDiplomacyAI()->GetMarriageFinishCounter(eToPlayer) < 2 ||
+			GET_PLAYER(eToPlayer).GetDiplomacyAI()->GetMarriageFinishCounter(ePlayer) < 2)
+		{
+			return false;
+		}
+
+		const int dualEmpireTimesLimit = 1;
+		if (GET_PLAYER(ePlayer).GetDiplomacyAI()->GetDualEmpireTreatyCounter() >= dualEmpireTimesLimit ||
+			GET_PLAYER(eToPlayer).GetDiplomacyAI()->GetDualEmpireTreatyCounter() >= dualEmpireTimesLimit)
+		{
+			return false;
+		}
+
+		CvPlayer* leader = nullptr;
+		CvPlayer* follower = nullptr;
+		if (GET_PLAYER(ePlayer).GetPlayerTraits()->IsAbleToDualEmpire())
+		{
+			leader = &GET_PLAYER(ePlayer);
+			follower = &GET_PLAYER(eToPlayer);
+		}
+		else if (GET_PLAYER(eToPlayer).GetPlayerTraits()->IsAbleToDualEmpire())
+		{
+			leader = &GET_PLAYER(eToPlayer);
+			follower = &GET_PLAYER(ePlayer);
+		}
+		else
+		{
+			return false;
+		}
+
+		if (leader->getTotalPopulation() < follower->getTotalPopulation() * 2
+			|| leader->getNumCities() < follower->getNumCities() * 2)
+		{
+			return false;
+		}
+
 		return true;
 	}
 
@@ -1401,6 +1445,22 @@ void CvDeal::AddDiplomaticMarriage(PlayerTypes eFrom, int iDuration)
 	}
 }
 
+void CvDeal::AddDualEmpireTreaty(PlayerTypes eFrom)
+{
+	CvAssertMsg(eFrom == m_eFromPlayer || eFrom == m_eToPlayer, "DEAL: Adding deal item for a player that's not actually in this deal!");
+	if(IsPossibleToTradeItem(eFrom, GetOtherPlayer(eFrom), TRADE_ITEM_DUAL_EMPIRE_TREATY))
+	{
+		CvTradedItem item;
+		item.m_eItemType = TRADE_ITEM_DUAL_EMPIRE_TREATY;
+		item.m_eFromPlayer = eFrom;
+		m_TradedItems.push_back(item);
+	}
+	else
+	{
+		CvAssertMsg(false, "DEAL: Trying to add an invalid Dual Empire Treaty to a deal");
+	}
+}
+
 int CvDeal::GetGoldTrade(PlayerTypes eFrom)
 {
 	TradedItemList::iterator it;
@@ -1666,6 +1726,19 @@ bool CvDeal::IsDiplomaticMarriage(PlayerTypes eFrom)
 	return false;
 }
 
+bool CvDeal::IsDualEmpireTreaty(PlayerTypes eFrom)
+{
+	TradedItemList::iterator it;
+	for(it = m_TradedItems.begin(); it != m_TradedItems.end(); ++it)
+	{
+		if(it->m_eItemType == TRADE_ITEM_DUAL_EMPIRE_TREATY && it->m_eFromPlayer == eFrom)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 CvDeal::DealRenewStatus CvDeal::GetItemTradeableState(TradeableItems eTradeItem)
 {
 	switch(eTradeItem)
@@ -1682,6 +1755,7 @@ CvDeal::DealRenewStatus CvDeal::GetItemTradeableState(TradeableItems eTradeItem)
 	case TRADE_ITEM_THIRD_PARTY_WAR:
 	case TRADE_ITEM_VOTE_COMMITMENT:
 	case TRADE_ITEM_DIPLOMATIC_MARRIAGE:
+	case TRADE_ITEM_DUAL_EMPIRE_TREATY:
 		return DEAL_NONRENEWABLE;
 		break;
 
@@ -1865,6 +1939,20 @@ void CvDeal::RemoveDiplomaticMarriage(PlayerTypes eFrom)
 	for(it = m_TradedItems.begin(); it != m_TradedItems.end(); ++it)
 	{
 		if (it->m_eItemType == TRADE_ITEM_DIPLOMATIC_MARRIAGE &&
+			it->m_eFromPlayer == eFrom)
+		{
+			m_TradedItems.erase(it);
+			break;
+		}
+	}
+}
+
+void CvDeal::RemoveDualEmpireTreaty(PlayerTypes eFrom)
+{
+	TradedItemList::iterator it;
+	for(it = m_TradedItems.begin(); it != m_TradedItems.end(); ++it)
+	{
+		if (it->m_eItemType == TRADE_ITEM_DUAL_EMPIRE_TREATY &&
 			it->m_eFromPlayer == eFrom)
 		{
 			m_TradedItems.erase(it);
@@ -2419,6 +2507,42 @@ void CvGameDeals::FinalizeDealValidAndAccepted(PlayerTypes eFromPlayer, PlayerTy
 			GET_PLAYER(eAcceptedToPlayer).GetDiplomacyAI()->SetDenouncedPlayer(eAcceptedFromPlayer, false);
 			GET_PLAYER(eAcceptedToPlayer).GetDiplomacyAI()->SetDenouncedPlayerCounter(eAcceptedFromPlayer, -1);
 		}
+		else if (it->m_eItemType == TRADE_ITEM_DUAL_EMPIRE_TREATY)
+		{
+			CvPlayer* pLeader = nullptr;
+			CvPlayer* pFollower = nullptr;
+			if (GET_PLAYER(eAcceptedFromPlayer).GetPlayerTraits()->IsAbleToDualEmpire())
+			{
+				pLeader = &GET_PLAYER(eAcceptedFromPlayer);
+				pFollower = &GET_PLAYER(eAcceptedToPlayer);
+			}
+			else if (GET_PLAYER(eAcceptedToPlayer).GetPlayerTraits()->IsAbleToDualEmpire())
+			{
+				pLeader = &GET_PLAYER(eAcceptedToPlayer);
+				pFollower = &GET_PLAYER(eAcceptedFromPlayer);
+			}
+
+			if (pLeader != nullptr && pFollower != nullptr)
+			{
+				int iLoop = 0;
+				for (CvCity* pCity = pFollower->firstCity(&iLoop); pCity != NULL; pCity = pFollower->nextCity(&iLoop))
+				{
+					pLeader->acquireCity(pCity, false, true, true, true);
+				}
+
+				for (CvCity* pCity = pLeader->firstCity(&iLoop); pCity != NULL; pCity = pLeader->nextCity(&iLoop))
+				{
+					pCity->UpdateCorruption();
+				}
+
+				CvPlayer::GetUCTypesFromPlayer(*pFollower, &pLeader->GetUUFromDualEmpire(),
+					&pLeader->GetUBFromDualEmpire(),
+					&pLeader->GetUIFromDualEmpire());
+			}
+
+			GET_PLAYER(eAcceptedFromPlayer).GetDiplomacyAI()->ChangeDualEmpireTreatyCounter(1);
+			GET_PLAYER(eAcceptedToPlayer).GetDiplomacyAI()->ChangeDualEmpireTreatyCounter(1);
+		}
 		// Open Borders
 		else if(it->m_eItemType == TRADE_ITEM_OPEN_BORDERS)
 		{
@@ -2769,16 +2893,11 @@ bool CvGameDeals::FinalizeDeal(PlayerTypes eFromPlayer, PlayerTypes eToPlayer, b
 				}
 				else if (it->m_eItemType == TRADE_ITEM_DIPLOMATIC_MARRIAGE)
 				{
-					GET_PLAYER(eAcceptedFromPlayer).GetDiplomacyAI()->SetMarriageAccepted(eAcceptedToPlayer, true);
-					GET_PLAYER(eAcceptedFromPlayer).GetDiplomacyAI()->SetMarriageCounter(eAcceptedToPlayer, 0);
-					GET_PLAYER(eAcceptedToPlayer).GetDiplomacyAI()->SetMarriageAccepted(eAcceptedFromPlayer, true);
-					GET_PLAYER(eAcceptedToPlayer).GetDiplomacyAI()->SetMarriageCounter(eAcceptedFromPlayer, 0);
-
-					// let's forget the denounce
-					GET_PLAYER(eAcceptedFromPlayer).GetDiplomacyAI()->SetDenouncedPlayer(eAcceptedToPlayer, false);
-					GET_PLAYER(eAcceptedFromPlayer).GetDiplomacyAI()->SetDenouncedPlayerCounter(eAcceptedToPlayer, -1);
-					GET_PLAYER(eAcceptedToPlayer).GetDiplomacyAI()->SetDenouncedPlayer(eAcceptedFromPlayer, false);
-					GET_PLAYER(eAcceptedToPlayer).GetDiplomacyAI()->SetDenouncedPlayerCounter(eAcceptedFromPlayer, -1);
+					// NOTE: This scope will not be compile. leave it blank
+				}
+				else if (it->m_eItemType == TRADE_ITEM_DUAL_EMPIRE_TREATY)
+				{
+					// NOTE: This scope will not be compile. leave it blank
 				}
 				// Open Borders
 				else if(it->m_eItemType == TRADE_ITEM_OPEN_BORDERS)
@@ -4073,6 +4192,9 @@ void CvGameDeals::LogDealFailed(CvDeal* pDeal, bool bNoRenew, bool bNotAccepted,
 				break;
 			case TRADE_ITEM_DIPLOMATIC_MARRIAGE:
 				strTemp.Format("***** Diplomatic Marriage *****");
+				break;
+			case TRADE_ITEM_DUAL_EMPIRE_TREATY:
+				strTemp.Format("***** Dual Empire Treaty *****");
 				break;
 			default:
 				strTemp.Format("***** UNKNOWN TRADE!!! *****");

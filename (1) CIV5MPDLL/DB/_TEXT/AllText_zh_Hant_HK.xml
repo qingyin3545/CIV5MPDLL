@@ -716,5 +716,16 @@
 		<Row Tag="TXT_KEY_NOTIFICATION_MARRIAGE_S">
 			<Text>{1_CivName:textkey}與{2_CivName:textkey}現在達成聯姻了！ </Text>
 		</Row>
+
+		<Row Tag="TXT_KEY_DUAL_EMPIRE_TREATY">
+			<Text>二元帝國協定</Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_DUAL_EMPIRE_TREATY">
+			<Text>{1_CivName:textkey}與{2_CivName:textkey}完成了建立二元帝國的協定，兩國正式統一在同一面旗幟下。 </Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_DUAL_EMPIRE_TREATY_S">
+			<Text>{1_CivName:textkey}與{2_CivName:textkey}現在達成二元帝國協定了！ </Text>
+		</Row>
+
 	</Language_zh_Hant_HK>
 </GameData>

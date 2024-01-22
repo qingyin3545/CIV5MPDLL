@@ -39,6 +39,7 @@ enum TradeableItems
 	TRADE_ITEM_DECLARATION_OF_FRIENDSHIP,	// Only "traded" between human players
 	TRADE_ITEM_VOTE_COMMITMENT,
 	TRADE_ITEM_DIPLOMATIC_MARRIAGE,
+	TRADE_ITEM_DUAL_EMPIRE_TREATY,
 	NUM_TRADEABLE_ITEMS,
 };
 FDataStream& operator>>(FDataStream&, TradeableItems&);
@@ -194,6 +195,7 @@ public:
 	void AddDeclarationOfFriendship(PlayerTypes eFrom);
 	void AddVoteCommitment(PlayerTypes eFrom, int iResolutionID, int iVoteChoice, int iNumVotes, bool bRepeal);
 	void AddDiplomaticMarriage(PlayerTypes eFrom, int iDuration);
+	void AddDualEmpireTreaty(PlayerTypes eFrom);
 
 	int GetGoldTrade(PlayerTypes eFrom);
 	bool ChangeGoldTrade(PlayerTypes eFrom, int iNewAmount);
@@ -218,6 +220,7 @@ public:
 	bool IsThirdPartyWarTrade(PlayerTypes eFrom, TeamTypes eThirdPartyTeam);
 	bool IsVoteCommitmentTrade(PlayerTypes eFrom);
 	bool IsDiplomaticMarriage(PlayerTypes eFrom);
+	bool IsDualEmpireTreaty(PlayerTypes eFrom);
 
 	static DealRenewStatus GetItemTradeableState(TradeableItems eItem);
 	bool IsPotentiallyRenewable();
@@ -231,6 +234,7 @@ public:
 	void RemoveThirdPartyEmbargo(PlayerTypes eFrom, PlayerTypes eThirdParty);
 	void RemoveVoteCommitment(PlayerTypes eFrom, int iResolutionID, int iVoteChoice, int iNumVotes, bool bRepeal);
 	void RemoveDiplomaticMarriage(PlayerTypes eFrom);
+	void RemoveDualEmpireTreaty(PlayerTypes eFrom);
 
 	bool ContainsItemType(TradeableItems eItemType, PlayerTypes eFrom = NO_PLAYER);
 };
