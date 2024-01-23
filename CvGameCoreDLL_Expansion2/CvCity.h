@@ -804,6 +804,11 @@ public:
 	int getCrimeFromSpy() const;
 	int getCrimeFromOpinion() const;
 	int getCrimeFromGarrisonedUnit() const;
+	int getDiseaseFromConnectionAndTradeRoute() const;
+	int getPlagueThreshold() const;
+	int getPlagueTurnsAfter() const;
+	int getPlagueNumTurn() const;
+	void KillPopulation();
 	int getHeresyFromDiscord() const;
 #endif
 
@@ -1049,6 +1054,9 @@ public:
 #if defined(MOD_ROG_CORE)
 	int getExtraDamageHeal() const;
 	void changeExtraDamageHeal(int iChange);
+
+	int getPlagueMod() const;
+	void changePlagueMod(int iChange);
 
 	int getExtraBombardRange() const;
 	void changeExtraBombardRange(int iChange);
@@ -1482,6 +1490,7 @@ protected:
 	int m_iForbiddenForeignSpyCount;
 #if defined(MOD_ROG_CORE)
 	FAutoVariable<int, CvCity> m_iExtraDamageHeal;
+	FAutoVariable<int, CvCity> m_iPlagueMod;
 	FAutoVariable<int, CvCity> m_iBombardRange;
 	int m_iBombardIndirect;
 	FAutoVariable<int, CvCity> m_iCityBuildingRangeStrikeModifier;

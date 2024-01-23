@@ -168,6 +168,9 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_iGlobalCityStrengthMod(0),
 	m_iGlobalRangedStrikeModifier(0),
 
+	m_iPlagueMod(0),
+	m_iPlagueModGlobal(0),
+
 	m_iWaterTileDamage(0),
 	m_iWaterTileMovementReduce(0),
 	m_iWaterTileTurnDamage(0),
@@ -535,6 +538,8 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	m_iGlobalCityStrengthMod = kResults.GetInt("GlobalCityStrengthMod");
 	m_iGlobalRangedStrikeModifier = kResults.GetInt("GlobalRangedStrikeModifier");
 
+	m_iPlagueMod = kResults.GetInt("PlagueMod");
+	m_iPlagueModGlobal = kResults.GetInt("PlagueModGlobal");
 
 	m_iWaterTileDamage = kResults.GetInt("WaterTileDamage");
 	m_iWaterTileMovementReduce = kResults.GetInt("WaterTileMovementReduce");
@@ -2268,6 +2273,19 @@ int CvBuildingEntry::GetGlobalRangedStrikeModifier() const
 {
 	return m_iGlobalRangedStrikeModifier;
 }
+
+
+int CvBuildingEntry::GetPlagueMod() const
+{
+	return m_iPlagueMod;
+}
+
+int CvBuildingEntry::GetPlagueModGlobal() const
+{
+	return m_iPlagueModGlobal;
+}
+
+
 
 /// Does this Building allow us to Range Strike?
 int CvBuildingEntry::CityRangedStrikeModifier() const

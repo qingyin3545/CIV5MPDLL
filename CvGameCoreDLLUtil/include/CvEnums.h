@@ -1036,6 +1036,7 @@ enum TerrainTypes
 	NUM_TERRAIN_TYPES
 };
 
+
 enum PlotTypes							
 {
 	NO_PLOT = -1,

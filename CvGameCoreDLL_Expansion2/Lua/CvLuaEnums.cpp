@@ -332,6 +332,7 @@ int CvLuaEnums::pRegister(lua_State* L)
 	RegisterEnum(NUM_TERRAIN_TYPES);
 	EnumEnd(L);
 
+	
 	//InterfaceModeTypes
 	EnumStart(L, "InterfaceModeTypes");
 	RegisterEnum(NO_INTERFACEMODE);

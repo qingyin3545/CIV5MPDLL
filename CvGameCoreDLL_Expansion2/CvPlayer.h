@@ -1696,6 +1696,11 @@ public:
 	int GetGlobalRangedStrikeModifier() const;
 	void SetGlobalRangedStrikeModifier(int iValue);
 	void ChangeGlobalRangedStrikeModifier(int iChange);
+
+	int GetPlagueModGlobal() const;
+	void SetPlagueModGlobal(int iValue);
+	void ChangePlagueModGlobal(int iChange);
+
 	int GetLiberatedInfluence() const;
 	void SetLiberatedInfluence(int iValue);
 	void ChangeLiberatedInfluence(int iChange);
@@ -2533,6 +2538,7 @@ protected:
 #if defined(MOD_ROG_CORE)
 	FAutoVariable<int, CvPlayer> m_iGlobalCityStrengthMod;
 	FAutoVariable<int, CvPlayer> m_iGlobalRangedStrikeModifier;
+	FAutoVariable<int, CvPlayer> m_iPlagueModGlobal;
 	FAutoVariable<int, CvPlayer> m_iLiberatedInfluence;
 
 	FAutoVariable<int, CvPlayer> m_iWaterTileDamageGlobal;

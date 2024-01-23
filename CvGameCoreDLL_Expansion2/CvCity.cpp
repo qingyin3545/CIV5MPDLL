@@ -206,6 +206,7 @@ CvCity::CvCity() :
 
 #if defined(MOD_ROG_CORE)
 	, m_iExtraDamageHeal("CvCity::m_iExtraDamageHeal", m_syncArchive)
+	, m_iPlagueMod("CvCity::m_iPlagueMod", m_syncArchive)
 	, m_iBombardRange("CvCity::m_iBombardRange", m_syncArchive)
 	, m_iBombardIndirect(0)
 	, m_iCityBuildingRangeStrikeModifier("CvCity::m_iCityBuildingRangeStrikeModifier", m_syncArchive)
@@ -1074,6 +1075,7 @@ void CvCity::reset(int iID, PlayerTypes eOwner, int iX, int iY, bool bConstructo
 	m_aiNumTimesAttackedThisTurn.resize(REALLY_MAX_PLAYERS);
 	m_aiSpecialistRateModifier.resize(GC.getNumSpecialistInfos());
 	m_iExtraDamageHeal = 0;
+	m_iPlagueMod = 0;
 	m_iBombardRange = 0;
 	m_iBombardIndirect = 0;
 	m_iCityBuildingRangeStrikeModifier = 0;
@@ -2170,11 +2172,75 @@ void CvCity::doTurn()
 		setDamage(0);
 	}
 
-	if (MOD_API_UNIFIED_YIELDS_MORE)
+	if (MOD_DISEASE_BREAK)
 	{
-		if (GetPlagueTurns() > 0)
+		if (GET_PLAYER(getOwner()).isMajorCiv())
 		{
-			ChangePlagueTurns(-1);
+			if (GetPlagueTurns() > 0)
+			{
+				ChangePlagueTurns(-1);
+			}
+
+			int leftHealth = getYieldRate(YIELD_HEALTH,false)- getYieldRate(YIELD_DISEASE, false);
+			
+			if (!HasPlague())
+			{
+				if (leftHealth > 0)
+				{
+					if (GetPlagueCounter() > 0)
+					{
+						if (GetPlagueCounter() > leftHealth)
+						{
+							ChangePlagueCounter(-leftHealth);
+						}
+						else 
+						{
+							ChangePlagueCounter(-GetPlagueCounter());
+						}
+					}
+				}
+				else
+				{
+					ChangePlagueCounter(-leftHealth);
+					if (GetPlagueCounter() >= getPlagueThreshold())
+					{
+						ChangePlagueTurns(getPlagueNumTurn());
+						SetPlagueCounter(0);
+						changeDamage(100);
+						//Notification
+						if (isHuman())
+						{
+							//int plague = GameInfo.Plagues[plagueID]
+							CvString strBuffer = GetLocalizedText("TXT_KEY_CITY_PLAGUE_NOTIFICATION", getNameKey());
+							CvString strSummary = GetLocalizedText("TXT_KEY_CITY_PLAGUE_NOTIFICATION_SHORT");
+							GET_PLAYER(getOwner()).AddNotification(NOTIFICATION_STARVING, strBuffer, strSummary, getX(), getY());
+						}
+						//DiseaseUnits(city)
+					}
+				}
+			}
+			else
+			{
+				if (GetPlagueTurns() == 0)
+				{
+
+					//Notification
+					if (isHuman())
+					{
+						//int plague = GameInfo.Plagues[plagueID]
+						CvString strBuffer = GetLocalizedText("TXT_KEY_CITY_PLAGUE_ENDS_NOTIFICATION", getNameKey());
+						CvString strSummary = GetLocalizedText("TXT_KEY_CITY_PLAGUE_ENDS_NOTIFICATION_SHORT");
+						GET_PLAYER(getOwner()).AddNotification(NOTIFICATION_GENERIC, strBuffer, strSummary, getX(), getY());
+					}
+					KillPopulation();
+				}
+				else
+				{
+					changeDamage(100);
+					//DiseaseUnits(city)
+					KillPopulation();
+				}
+			}
 		}
 	}
 
@@ -7598,6 +7664,8 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 #if defined(MOD_ROG_CORE)
 		changeExtraDamageHeal(pBuildingInfo->GetExtraDamageHeal()* iChange);
 
+		changePlagueMod(pBuildingInfo->GetPlagueMod()* iChange);
+
 		changeExtraBombardRange(pBuildingInfo->GetBombardRange()* iChange);
 		changeBombardIndirect(pBuildingInfo->IsBombardIndirect()* iChange);
 
@@ -12434,7 +12502,7 @@ int CvCity::getBaseYieldRateModifier(YieldTypes eIndex, int iExtra, CvString* to
 
 
 #if defined(MOD_API_UNIFIED_YIELDS_MORE)
-	if (eIndex != YIELD_HEALTH)
+	if (eIndex != YIELD_HEALTH && eIndex != YIELD_FOOD )
 	{
 		iTempMod = GetYieldModifierFromHealth(eIndex);
 		iModifier += iTempMod;
@@ -12475,6 +12543,20 @@ int CvCity::getBaseYieldRateModifier(YieldTypes eIndex, int iExtra, CvString* to
 		if (iTempMod != 0 && toolTipSink)
 			GC.getGame().BuildProdModHelpText(toolTipSink, "TXT_KEY_PRODMOD_YIELD_GOLDEN_AGE", iTempMod);
 	}
+
+	if (MOD_DISEASE_BREAK)
+	{
+		if (eIndex == YIELD_FOOD)
+		{
+			iTempMod = getYieldRate(YIELD_HEALTH, false) - getYieldRate(YIELD_DISEASE, false);
+			if (iTempMod < 0 && toolTipSink)
+			{
+				iModifier += iTempMod;
+				GC.getGame().BuildProdModHelpText(toolTipSink, "TXT_KEY_PRODMOD_YIELD_FROM_HEALTH_MOD", iTempMod);
+			}
+		}
+	}
+
 #endif
 
 
@@ -13113,6 +13195,13 @@ int CvCity::getBaseYieldRate(YieldTypes eIndex, const bool bIgnoreFromOtherYield
 		}
 	}
 
+
+	if (eIndex == YIELD_DISEASE)
+	{
+		iValue += getDiseaseFromConnectionAndTradeRoute();
+	}
+
+
 	if (eIndex == YIELD_CRIME)
 	{
 		iValue += getCrimeFromSpy();
@@ -13127,11 +13216,28 @@ int CvCity::getBaseYieldRate(YieldTypes eIndex, const bool bIgnoreFromOtherYield
 	}
 
 
-	iValue += GetYieldFromHealth(eIndex);
+	if (eIndex != YIELD_HEALTH && eIndex != YIELD_FOOD)
+	{
+		iValue += GetYieldFromHealth(eIndex);
+	}
+
 	iValue += GetYieldFromHappiness(eIndex);
+
 	if (eIndex != YIELD_CRIME)
 	{
 		iValue += GetYieldFromCrime(eIndex);
+	}
+
+	if (MOD_DISEASE_BREAK)
+	{
+		if (eIndex == YIELD_FOOD)
+		{
+			int leftHealth = getYieldRate(YIELD_HEALTH, false) - getYieldRate(YIELD_DISEASE, false);
+			if (leftHealth < 0)
+			{
+				iValue += leftHealth;
+			}
+		}
 	}
 #endif
 
@@ -13245,6 +13351,117 @@ int CvCity::getCrimeFromGarrisonedUnit() const
 	}
 	return iCrimeFromGarrisonedUnit;
 }
+
+int CvCity::getDiseaseFromConnectionAndTradeRoute() const
+{
+	int DiseaseFromConnectionAndTradeRoute = 0;
+
+
+	//////////////////////////////////////////////////////////////////////////
+	CvCity* theCapital = GET_PLAYER(getOwner()).getCapitalCity();
+
+	if (!isCapital() && theCapital->HasPlague() && GET_PLAYER(getOwner()).IsCapitalConnectedToCity((CvCity*)this))
+	{
+		int diseaseConnections = ((theCapital->getYieldRate(YIELD_DISEASE, false) * GC.getHEALTH_DISEASE_CONNECTION_MOD()) / 100);
+		DiseaseFromConnectionAndTradeRoute += std::max(0, (int)ceil(diseaseConnections / 1.0));
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+
+	CvGameTrade* pTrade = GC.getGame().GetGameTrade();
+	for (uint ui = 0; ui < pTrade->m_aTradeConnections.size(); ui++)
+	{
+		if (pTrade->IsTradeRouteIndexEmpty(ui))
+		{
+			continue;
+		}
+
+		TradeConnection* pConnection = &(pTrade->m_aTradeConnections[ui]);
+
+		if (pConnection->m_eOriginOwner == GET_PLAYER(getOwner()).GetID())
+		{
+			CvCity* pFromCity = GC.getMap().plot(pConnection->m_iOriginX, pConnection->m_iOriginY)->getPlotCity();
+			CvCity* pToCity = GC.getMap().plot(pConnection->m_iDestX, pConnection->m_iDestY)->getPlotCity();
+
+			CvPlayer* pToPlayer = &GET_PLAYER(pToCity->getOwner());
+
+
+			if (pToCity == this);
+			{
+				DiseaseFromConnectionAndTradeRoute += std::max(0, (pFromCity->getYieldRate(YIELD_DISEASE, false) * GC.getHEALTH_DISEASE_TRADE_MOD() / 100));
+			}
+		}
+
+		if ((pConnection->m_eOriginOwner != pConnection->m_eDestOwner) && (pConnection->m_eDestOwner == GET_PLAYER(getOwner()).GetID()))
+		{
+			CvCity* pFromCity = GC.getMap().plot(pConnection->m_iOriginX, pConnection->m_iOriginY)->getPlotCity();
+			CvCity* pToCity = GC.getMap().plot(pConnection->m_iDestX, pConnection->m_iDestY)->getPlotCity();
+
+			CvPlayer* pFromPlayer = &GET_PLAYER(pFromCity->getOwner());
+			CvPlayer* pToPlayer = &GET_PLAYER(pToCity->getOwner());
+
+			if (pToCity == this);
+			{
+				DiseaseFromConnectionAndTradeRoute += std::max(0, (pFromCity->getYieldRate(YIELD_DISEASE, false) * GC.getHEALTH_DISEASE_TRADE_MOD() / 100));
+			}
+
+		}
+	}
+
+	return DiseaseFromConnectionAndTradeRoute;
+}
+
+
+int CvCity::getPlagueThreshold() const
+{
+	int defineCIDHealthPlagueMinThreshold = 150;
+	defineCIDHealthPlagueMinThreshold = 5*GC.getGameSpeedInfo(GC.getGame().getGameSpeedType())->GetDealDuration();
+	defineCIDHealthPlagueMinThreshold += getPlagueMod();
+	defineCIDHealthPlagueMinThreshold += GET_PLAYER(getOwner()).GetPlagueModGlobal();
+	return defineCIDHealthPlagueMinThreshold;
+}
+
+
+int CvCity::getPlagueTurnsAfter() const
+{
+	int plagueTurns = 0;
+	int lefthealth = getYieldRate(YIELD_HEALTH, false) - getYieldRate(YIELD_DISEASE, false);
+	if (lefthealth < 0)
+	{
+		plagueTurns = std::max(1, (getPlagueThreshold() - GetPlagueCounter()) / (-lefthealth));
+	}
+	return plagueTurns;
+}
+
+
+int CvCity::getPlagueNumTurn() const
+{
+	    int NumTurn =10;
+		NumTurn = max((int)ceil(getPopulation() / 10 * 1.0) + 6, 0);  
+		return NumTurn;
+}
+//	--------------------------------------------------------------------------------
+void CvCity::KillPopulation()
+{
+	int plagueID = GetPlagueType();
+	int pop = 0;
+	int bNotify = false;
+	if (getPopulation() > 2)
+	{
+		pop = std::max((int)floor(getPopulation() / 10 *1.0), 1);
+		changePopulation(-pop, true);
+		bNotify = true;
+	}
+	//Notification
+	if (bNotify && isHuman() && plagueID != -1)
+	{
+		//int plague = GameInfo.Plagues[plagueID]
+			CvString strBuffer = GetLocalizedText("TXT_KEY_PLAGUE_DEATH", getNameKey(), pop);
+			CvString strSummary = GetLocalizedText("TXT_KEY_PLAGUE_DEATH_SHORT");
+			GET_PLAYER(getOwner()).AddNotification(NOTIFICATION_STARVING, strBuffer, strSummary,getX(),getY());
+	}
+}
+
 #endif
 
 //	--------------------------------------------------------------------------------
@@ -13434,16 +13651,34 @@ CvString CvCity::getYieldRateInfoTool(YieldTypes eIndex, bool bIgnoreTrade) cons
 		}
 	}
 
-	iBaseValue = GetYieldFromHealth(eIndex);
-	if(iBaseValue != 0)
+
+	if (eIndex != YIELD_HEALTH && eIndex != YIELD_FOOD)
 	{
-		szRtnValue += GetLocalizedText("TXT_KEY_CITYVIEW_BASE_YIELD_TT_FROM_HEALTH", iBaseValue, YieldIcon);
+		iBaseValue = GetYieldFromHealth(eIndex);
+		if (iBaseValue != 0)
+		{
+			szRtnValue += GetLocalizedText("TXT_KEY_CITYVIEW_BASE_YIELD_TT_FROM_HEALTH", iBaseValue, YieldIcon);
+		}
 	}
+
+	if (MOD_DISEASE_BREAK)
+	{
+		if (eIndex == YIELD_FOOD)
+		{
+			iBaseValue = getYieldRate(YIELD_HEALTH, false) - getYieldRate(YIELD_DISEASE, false);
+			if (iBaseValue < 0)
+			{
+				szRtnValue += GetLocalizedText("TXT_KEY_CITYVIEW_BASE_YIELD_TT_FROM_HEALTH", iBaseValue, YieldIcon);
+			}
+		}
+	}
+
 	iBaseValue = GetYieldFromHappiness(eIndex);
 	if(iBaseValue != 0)
 	{
 		szRtnValue += GetLocalizedText("TXT_KEY_CITYVIEW_BASE_YIELD_TT_FROM_HAPPINESS", iBaseValue, YieldIcon);
 	}
+
 	if (eIndex != YIELD_CRIME)
 	{
 		iBaseValue = GetYieldFromCrime(eIndex);
@@ -19376,6 +19611,7 @@ void CvCity::read(FDataStream& kStream)
 #ifdef MOD_ROG_CORE
 	kStream >> m_iCityBuildingRangeStrikeModifier;
 	kStream >> m_iExtraDamageHeal;
+	kStream >> m_iPlagueMod;
 	kStream >> m_iBombardRange;
 	kStream >> m_iBombardIndirect;
 	kStream >> m_iNumAttacks;
@@ -19860,6 +20096,7 @@ void CvCity::write(FDataStream& kStream) const
 #ifdef MOD_ROG_CORE
 	kStream << m_iCityBuildingRangeStrikeModifier;
 	kStream << m_iExtraDamageHeal;
+	kStream << m_iPlagueMod;
 	kStream << m_iBombardRange;
 	kStream << m_iBombardIndirect;
 	kStream << m_iNumAttacks;
@@ -20425,6 +20662,24 @@ void CvCity::changeExtraDamageHeal(int iChange)
 		if (iChange != 0)
 		{
 			m_iExtraDamageHeal += iChange;
+		}
+}
+
+
+//	--------------------------------------------------------------------------------
+int CvCity::getPlagueMod() const
+{
+	VALIDATE_OBJECT
+	return m_iPlagueMod;
+}
+
+//	--------------------------------------------------------------------------------
+void CvCity::changePlagueMod(int iChange)
+{
+	VALIDATE_OBJECT
+		if (iChange != 0)
+		{
+			m_iPlagueMod += iChange;
 		}
 }
 
@@ -23812,7 +24067,6 @@ void CvCity::ChangeResourceFromImprovement(ResourceTypes eResource, ImprovementT
 	}
 }
 #endif
-
 
 
 
