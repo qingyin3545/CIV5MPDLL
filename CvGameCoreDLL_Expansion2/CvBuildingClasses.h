@@ -234,9 +234,6 @@ public:
 	int GetGlobalCityStrengthMod() const;
 	int GetGlobalRangedStrikeModifier() const;
 
-	int GetPlagueMod() const;
-	int GetPlagueModGlobal() const;
-
 	int GetResetDamageValue() const;
 	int GetReduceDamageValue() const;
 
@@ -669,9 +666,6 @@ private:
 
 	int m_iGlobalCityStrengthMod;
 	int m_iGlobalRangedStrikeModifier;
-
-	int m_iPlagueMod;
-	int m_iPlagueModGlobal;
 
 	int m_iWaterTileDamage;
 	int m_iWaterTileMovementReduce;

@@ -626,9 +626,6 @@ protected:
 
 	static int lGetYieldFromCrime(lua_State* L);
 	static int lSetYieldFromCrime(lua_State* L);
-
-	static int lGetPlagueThreshold(lua_State* L);
-	static int lGetPlagueTurnsAfter(lua_State* L);
 #endif
 
 #if defined(MOD_API_LUA_EXTENSIONS)

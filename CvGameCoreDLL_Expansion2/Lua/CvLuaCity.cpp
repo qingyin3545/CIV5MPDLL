@@ -140,9 +140,6 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 
 	Method(GetYieldFromCrime);
 	Method(SetYieldFromCrime);
-
-	Method(GetPlagueThreshold);
-	Method(GetPlagueTurnsAfter);
 #endif
 
 	Method(SendAndExecuteLuaFunction);
@@ -1107,20 +1104,6 @@ int CvLuaCity::lSetYieldModifierFromCrime(lua_State* L)
 	return 1;
 }
 
-
-int CvLuaCity::lGetPlagueThreshold(lua_State* L)
-{
-	CvCity* pkCity = GetInstance(L);
-	lua_pushinteger(L, pkCity->getPlagueThreshold());
-	return 1;
-}
-
-int CvLuaCity::lGetPlagueTurnsAfter(lua_State* L)
-{
-	CvCity* pkCity = GetInstance(L);
-	lua_pushinteger(L, pkCity->getPlagueTurnsAfter());
-	return 1;
-}
 #endif
 
 //------------------------------------------------------------------------------

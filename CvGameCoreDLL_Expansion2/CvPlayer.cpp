@@ -388,7 +388,6 @@ CvPlayer::CvPlayer() :
 	, m_aiYieldFromPillage()
 	, m_iGlobalCityStrengthMod("CvPlayer::m_iGlobalCityStrengthMod", m_syncArchive)
 	, m_iGlobalRangedStrikeModifier("CvPlayer::m_iGlobalRangedStrikeModifier", m_syncArchive)
-	, m_iPlagueModGlobal("CvPlayer::m_iPlagueModGlobal", m_syncArchive)
 	, m_iLiberatedInfluence("CvPlayer::m_iLiberatedInfluence", m_syncArchive)
 	, m_iWaterTileDamageGlobal("CvPlayer::m_iWaterTileDamageGlobal", m_syncArchive)
 	, m_iWaterTileMovementReduceGlobal("CvPlayer::m_iWaterTileMovementReduceGlobal", m_syncArchive)
@@ -1179,7 +1178,6 @@ void CvPlayer::uninit()
 #if defined(MOD_ROG_CORE)
 	m_iGlobalCityStrengthMod = 0;
 	m_iGlobalRangedStrikeModifier = 0;
-	m_iPlagueModGlobal = 0;
 	m_iLiberatedInfluence = 0;
 	m_iWaterTileDamageGlobal = 0;
 	m_iWaterTileMovementReduceGlobal = 0;
@@ -9938,7 +9936,6 @@ void CvPlayer::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst
 #if defined(MOD_ROG_CORE)
 	ChangeCityStrengthMod(pBuildingInfo->GetGlobalCityStrengthMod()* iChange);
 	ChangeGlobalRangedStrikeModifier(pBuildingInfo->GetGlobalRangedStrikeModifier()* iChange);
-	ChangePlagueModGlobal(pBuildingInfo->GetPlagueModGlobal()* iChange);
 	ChangeLiberatedInfluence(pBuildingInfo->GetLiberatedInfluence()* iChange);
 
 	ChangeWaterTileDamageGlobal(pBuildingInfo->GetWaterTileDamageGlobal()* iChange);
@@ -29684,27 +29681,6 @@ void CvPlayer::ChangeGlobalRangedStrikeModifier(int iChange)
 	if (iChange != 0)
 	{
 		SetGlobalRangedStrikeModifier(GetGlobalRangedStrikeModifier() + iChange);
-	}
-}
-
-
-//	--------------------------------------------------------------------------------
-int CvPlayer::GetPlagueModGlobal() const
-{
-	return m_iPlagueModGlobal;
-}
-
-void CvPlayer::SetPlagueModGlobal(int iValue)
-{
-	CvAssert(iValue >= 0);
-	m_iPlagueModGlobal = iValue;
-}
-
-void CvPlayer::ChangePlagueModGlobal(int iChange)
-{
-	if (iChange != 0)
-	{
-		SetPlagueModGlobal(GetPlagueModGlobal() + iChange);
 	}
 }
 
