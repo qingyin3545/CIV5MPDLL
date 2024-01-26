@@ -160,6 +160,13 @@ void CvUnitCombat::GenerateMeleeCombatInfo(CvUnit& kAttacker, CvUnit* pkDefender
 		pkCombatInfo->setFinalDamage(BATTLE_UNIT_DEFENDER, iAttackerTotalDamageInflicted);
 		pkCombatInfo->setDamageInflicted(BATTLE_UNIT_DEFENDER, iDefenderDamageInflicted);
 
+
+#if defined(MOD_ROG_CORE)
+		if (MOD_ROG_CORE) {
+			GAMEEVENTINVOKE_HOOK(GAMEEVENT_UnitAttackCity, kAttacker.getOwner(), kAttacker.GetID(), pkCity->getOwner(), pkCity->GetID(), plot.getX(), plot.getY());
+		}
+#endif
+
 		int iExperience = /*5*/ GC.getEXPERIENCE_ATTACKING_CITY_MELEE();
 #ifdef MOD_GLOBAL_UNIT_EXTRA_ATTACK_DEFENSE_EXPERENCE
 		if (MOD_GLOBAL_UNIT_EXTRA_ATTACK_DEFENSE_EXPERENCE)
@@ -812,6 +819,12 @@ void CvUnitCombat::GenerateRangedCombatInfo(CvUnit& kAttacker, CvUnit* pkDefende
 		eDefenderOwner = plot.getOwner();
 		/*		iDefenderStrength = pCity->getStrengthValue() / 2;
 		iOldDamage = pCity->getDamage();*/
+
+#if defined(MOD_ROG_CORE)
+		if (MOD_ROG_CORE) {
+			GAMEEVENTINVOKE_HOOK(GAMEEVENT_UnitAttackCity, kAttacker.getOwner(), kAttacker.GetID(), pCity->getOwner(), pCity->GetID(), plot.getX(), plot.getY());
+		}
+#endif
 
 		iExperience = /*3*/ GC.getEXPERIENCE_ATTACKING_CITY_RANGED();
 #ifdef MOD_GLOBAL_UNIT_EXTRA_ATTACK_DEFENSE_EXPERENCE
@@ -1870,6 +1883,12 @@ void CvUnitCombat::GenerateAirCombatInfo(CvUnit& kAttacker, CvUnit* pkDefender, 
 
 		/*		iDefenderStrength = pCity->getStrengthValue() / 2;
 		iOldDamage = pCity->getDamage();*/
+
+#if defined(MOD_ROG_CORE)
+		if (MOD_ROG_CORE) {
+			GAMEEVENTINVOKE_HOOK(GAMEEVENT_UnitAttackCity, kAttacker.getOwner(), kAttacker.GetID(), pCity->getOwner(), pCity->GetID(), plot.getX(), plot.getY());
+		}
+#endif
 
 		iExperience = /*4*/ GC.getEXPERIENCE_ATTACKING_CITY_AIR();
 #ifdef MOD_GLOBAL_UNIT_EXTRA_ATTACK_DEFENSE_EXPERENCE

@@ -2173,6 +2173,25 @@ void CvCity::doTurn()
 
 	if (GetPlagueTurns() > 0)
 	{
+		int extraRange = 2;
+		for (int iDX = -extraRange; iDX <= extraRange; iDX++)
+		{
+			for (int iDY = -extraRange; iDY <= extraRange; iDY++)
+			{
+				CvPlot* pTargetPlot = plotXYWithRangeCheck(getX(), getY(), iDX, iDY, 1);
+				if (pTargetPlot != NULL)
+				{
+					for (int iUnitLoop = 0; iUnitLoop < pTargetPlot->getNumUnits(); iUnitLoop++)
+					{
+						CvUnit* loopUnit = pTargetPlot->getUnitByIndex(iUnitLoop);
+						if (loopUnit != NULL && !loopUnit->isPlagueImmune())
+						{
+							loopUnit->changeDamage(33);
+						}
+					}
+				}
+			}
+		}
 		ChangePlagueTurns(-1);
 	}
 

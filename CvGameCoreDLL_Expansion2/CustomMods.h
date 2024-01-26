@@ -1262,6 +1262,7 @@ enum BattleTypeTypes
 #define GAMEEVENT_PlayerSetHasTech				"PlayerSetHasTech",				"iib"
 #define GAMEEVENT_TerraformingMap				"TerraformingMap",				"ii"
 #define GAMEEVENT_TerraformingPlot				"TerraformingPlot",				"iiiiiiii"
+#define GAMEEVENT_UnitAttackCity				"UnitAttackCity",				"iiiiii"
 #define GAMEEVENT_TileFeatureChanged			"TileFeatureChanged",			"iiiii"
 #define GAMEEVENT_TileImprovementChanged		"TileImprovementChanged",		"iiiiib"
 #define GAMEEVENT_TileOwnershipChanged			"TileOwnershipChanged",			"iiii"
