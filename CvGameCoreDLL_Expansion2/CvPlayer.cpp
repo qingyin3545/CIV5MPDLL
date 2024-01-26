@@ -5620,6 +5620,7 @@ void CvPlayer::DoUnitReset()
 
 		// Finally (now that healing is done), restore movement points
 		pLoopUnit->setMoves(pLoopUnit->maxMoves());
+		pLoopUnit->setHasWithdrawnThisTurn(false);
 #ifdef MOD_BATTLE_CAPTURE_NEW_RULE
 		pLoopUnit->SetIsNewCapture(false);
 #endif

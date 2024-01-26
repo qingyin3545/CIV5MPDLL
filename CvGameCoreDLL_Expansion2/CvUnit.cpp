@@ -197,6 +197,7 @@ CvUnit::CvUnit() :
 	, m_iCombatDamage("CvUnit::m_iCombatDamage", m_syncArchive)
 	, m_iFortifyTurns("CvUnit::m_iFortifyTurns", m_syncArchive, true)
 	, m_bFortifiedThisTurn("CvUnit::m_bFortifiedThisTurn", m_syncArchive)
+	, m_bHasWithdrawnThisTurn("CvUnit::m_bHasWithdrawnThisTurn", m_syncArchive)
 	, m_iBlitzCount("CvUnit::m_iBlitzCount", m_syncArchive)
 	, m_iAmphibCount("CvUnit::m_iAmphibCount", m_syncArchive)
 	, m_iRiverCrossingNoPenaltyCount("CvUnit::m_iRiverCrossingNoPenaltyCount", m_syncArchive)
@@ -380,6 +381,7 @@ CvUnit::CvUnit() :
 	, m_iNoDefensiveBonusCount("CvUnit::m_iNoDefensiveBonusCount", m_syncArchive)
 	, m_iNoCaptureCount("CvUnit::m_iNoCaptureCount", m_syncArchive)
 	, m_iNukeImmuneCount("CvUnit::m_iNukeImmuneCount", m_syncArchive)
+	, m_iPlagueImmuneCount("CvUnit::m_iPlagueImmuneCount", m_syncArchive)
     , m_iCanDoNukeDamageCount("CvUnit::m_iCanDoNukeDamageCount", m_syncArchive)
 	, m_iHiddenNationalityCount("CvUnit::m_iHiddenNationalityCount", m_syncArchive)
 	, m_iAlwaysHostileCount("CvUnit::m_iAlwaysHostileCount", m_syncArchive)
@@ -1174,6 +1176,7 @@ void CvUnit::reset(int iID, UnitTypes eUnit, PlayerTypes eOwner, bool bConstruct
 	m_iCombatDamage = 0;
 	m_iFortifyTurns = 0;
 	m_bFortifiedThisTurn = false;
+	m_bHasWithdrawnThisTurn = false;
 	m_iBlitzCount = 0;
 	m_iAmphibCount = 0;
 	m_iRiverCrossingNoPenaltyCount = 0;
@@ -1383,6 +1386,7 @@ void CvUnit::reset(int iID, UnitTypes eUnit, PlayerTypes eOwner, bool bConstruct
 	m_iNoDefensiveBonusCount = 0;
 	m_iNoCaptureCount = 0;
 	m_iNukeImmuneCount = 0;
+	m_iPlagueImmuneCount = 0;
 	m_iCanDoNukeDamageCount = 0;
 	m_iAlwaysHealCount = 0;
 	m_iHiddenNationalityCount = 0;
@@ -13479,6 +13483,7 @@ CvUnit* CvUnit::DoUpgradeTo(UnitTypes eUnitType, bool bFree)
 			pNewUnit->m_iAttacksMade = m_iAttacksMade;
 			pNewUnit->m_iMadeInterceptionCount = m_iMadeInterceptionCount;
 			pNewUnit->m_eActivityType = m_eActivityType;
+			pNewUnit->m_bHasWithdrawnThisTurn = m_bHasWithdrawnThisTurn;
 			if (IsFortifiedThisTurn()) {
 				pNewUnit->SetFortifiedThisTurn(true);
 			} else {
@@ -18418,11 +18423,13 @@ bool CvUnit::IsInvisibleInvalid() const
 	return false;
 }
 #endif
+
+
 //	--------------------------------------------------------------------------------
 bool CvUnit::isNukeImmune() const
 {
 	VALIDATE_OBJECT
-	return (getNukeImmuneCount() > 0);
+	return (m_iNukeImmuneCount > 0);
 }
 
 
@@ -18431,15 +18438,26 @@ void CvUnit::changeNukeImmuneCount(int iValue)
 {
 	VALIDATE_OBJECT
 	m_iNukeImmuneCount += iValue;
-	CvAssert(getNukeImmuneCount() >= 0);
+	CvAssert(m_iNukeImmuneCount >= 0);
 
 }
 
+
 //	--------------------------------------------------------------------------------
-int CvUnit::getNukeImmuneCount() const
+bool CvUnit::isPlagueImmune() const
 {
 	VALIDATE_OBJECT
-	return m_iNukeImmuneCount;
+	return (m_iPlagueImmuneCount > 0 || getUnitInfo().GetNukeDamageLevel() != -1);
+}
+
+
+//	--------------------------------------------------------------------------------
+void CvUnit::changePlagueImmuneCount(int iValue)
+{
+	VALIDATE_OBJECT
+	m_iPlagueImmuneCount += iValue;
+	CvAssert(m_iPlagueImmuneCount >= 0);
+
 }
 
 //	--------------------------------------------------------------------------------
@@ -21861,6 +21879,19 @@ void CvUnit::SetFortifiedThisTurn(bool bValue)
 
 
 
+bool CvUnit::getHasWithdrawnThisTurn() const
+{
+	VALIDATE_OBJECT
+	return m_bHasWithdrawnThisTurn;
+}
+
+void CvUnit::setHasWithdrawnThisTurn(bool bNewValue)
+{
+	VALIDATE_OBJECT
+	m_bHasWithdrawnThisTurn = bNewValue;
+}
+
+
 void CvUnit::MoveToEnemyPlotDamage(CvPlot* pWhere)
 {
 	if (pWhere == NULL)
@@ -22500,6 +22531,9 @@ bool CvUnit::CanPlague(CvUnit* pOtherUnit) const
 	if (getDomainType() != pOtherUnit->getDomainType())
 		return false;
 
+	if (pOtherUnit->isPlagueImmune())
+		return false;
+
 	return true;
 }
 
@@ -22550,7 +22584,7 @@ void CvUnit::DoPlagueTransfer(CvUnit& defender)
 		{
 			CvString szMsg;
 			szMsg.Format("Promotion, %s, Transferred by %s to %s in melee",
-				szPromotionDesc, getName().GetCString(), defender.getName().GetCString());
+			szPromotionDesc, getName().GetCString(), defender.getName().GetCString());
 			GET_PLAYER(m_eOwner).GetTacticalAI()->LogTacticalMessage(szMsg);
 		}
 
@@ -25983,6 +26017,7 @@ void CvUnit::setHasPromotion(PromotionTypes eIndex, bool bNewValue)
 		changeNoDefensiveBonusCount((thisPromotion.IsNoDefensiveBonus()) ? iChange : 0);
 		changeNoCaptureCount((thisPromotion.IsNoCapture()) ? iChange : 0);
 		changeNukeImmuneCount((thisPromotion.IsNukeImmune()) ? iChange: 0);
+		changePlagueImmuneCount((thisPromotion.IsPlagueImmune()) ? iChange : 0);
 		changeCanDoNukeDamageCount((thisPromotion.IsCanDoNukeDamage()) ? iChange : 0);
 		changeHiddenNationalityCount((thisPromotion.IsHiddenNationality()) ? iChange: 0);
 		changeAlwaysHostileCount((thisPromotion.IsAlwaysHostile()) ? iChange: 0);
@@ -29948,6 +29983,7 @@ bool CvUnit::DoFallBack(const CvUnit& attacker)
 
 			setXY(pDestPlot->getX(), pDestPlot->getY(), true, true, true, true);
 			PublishQueuedVisualizationMoves();
+			m_bHasWithdrawnThisTurn = true;
 			return true;
 		}
 	}

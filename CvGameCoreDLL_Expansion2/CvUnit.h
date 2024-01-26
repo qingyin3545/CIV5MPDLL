@@ -780,8 +780,9 @@ public:
 
 	bool isNukeImmune() const;
 	void changeNukeImmuneCount(int iValue);
-	int getNukeImmuneCount() const;
 
+	bool isPlagueImmune() const;
+	void changePlagueImmuneCount(int iValue);
 	bool isCanDoNukeDamage() const;
 	void changeCanDoNukeDamageCount(int iValue);
 	int getCanDoNukeDamageCount() const;
@@ -971,7 +972,8 @@ public:
 	void changeFortifyTurns(int iChange);
 	bool IsFortifiedThisTurn() const;
 	void SetFortifiedThisTurn(bool bValue);
-
+	bool getHasWithdrawnThisTurn() const;
+	void setHasWithdrawnThisTurn(bool bNewValue);
 	int getBlitzCount() const;
 	bool isBlitz() const;
 	void changeBlitzCount(int iChange);
@@ -2114,6 +2116,7 @@ protected:
 	FAutoVariable<int, CvUnit> m_iCombatDamage;
 	FAutoVariable<int, CvUnit> m_iFortifyTurns;
 	FAutoVariable<bool, CvUnit> m_bFortifiedThisTurn;
+	FAutoVariable<bool, CvUnit> m_bHasWithdrawnThisTurn;
 	FAutoVariable<int, CvUnit> m_iBlitzCount;
 	FAutoVariable<int, CvUnit> m_iAmphibCount;
 	FAutoVariable<int, CvUnit> m_iRiverCrossingNoPenaltyCount;
@@ -2299,6 +2302,7 @@ protected:
 	FAutoVariable<int, CvUnit> m_iNoDefensiveBonusCount;
 	FAutoVariable<int, CvUnit> m_iNoCaptureCount;
 	FAutoVariable<int, CvUnit> m_iNukeImmuneCount;
+	FAutoVariable<int, CvUnit> m_iPlagueImmuneCount;
 	FAutoVariable<int, CvUnit> m_iCanDoNukeDamageCount;
 	FAutoVariable<int, CvUnit> m_iHiddenNationalityCount;
 	FAutoVariable<int, CvUnit> m_iAlwaysHostileCount;

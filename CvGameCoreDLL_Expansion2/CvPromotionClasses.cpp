@@ -279,6 +279,7 @@ CvPromotionEntry::CvPromotionEntry():
 	m_bOnlyDefensive(false),
 	m_bNoDefensiveBonus(false),
 	m_bNukeImmune(false),
+	m_bPlagueImmune(false),
 	m_bCanDoNukeDamage(false),
 	m_bHiddenNationality(false),
 	m_bAlwaysHostile(false),
@@ -577,6 +578,7 @@ bool CvPromotionEntry::CacheResults(Database::Results& kResults, CvDatabaseUtili
 	m_bOnlyDefensive = kResults.GetBool("OnlyDefensive");
 	m_bNoDefensiveBonus = kResults.GetBool("NoDefensiveBonus");
 	m_bNukeImmune = kResults.GetBool("NukeImmune");
+	m_bPlagueImmune = kResults.GetBool("PlagueImmune");
 	m_bCanDoNukeDamage = kResults.GetBool("CanDoNukeDamage");
 	m_bHiddenNationality = kResults.GetBool("HiddenNationality");
 	m_bAlwaysHostile = kResults.GetBool("AlwaysHostile");
@@ -2795,6 +2797,12 @@ bool CvPromotionEntry::IsNoDefensiveBonus() const
 bool CvPromotionEntry::IsNukeImmune() const
 {
 	return m_bNukeImmune;
+}
+
+
+bool CvPromotionEntry::IsPlagueImmune() const
+{
+	return m_bPlagueImmune;
 }
 
 bool CvPromotionEntry::IsCanDoNukeDamage() const

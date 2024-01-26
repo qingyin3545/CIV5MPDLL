@@ -366,6 +366,7 @@ protected:
 #endif
 
 	static int lIsNukeImmune(lua_State* L);
+	static int lIsPlagueImmune(lua_State* L);
 	static int lMaxInterceptionProbability(lua_State* L);
 	static int lCurrInterceptionProbability(lua_State* L);
 	static int lEvasionProbability(lua_State* L);
