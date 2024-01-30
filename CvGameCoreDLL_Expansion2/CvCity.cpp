@@ -13281,8 +13281,12 @@ int CvCity::getCrimeFromGarrisonedUnit() const
 	CvUnit* pGarrisonedUnit = GetGarrisonedUnit();
 	if (pGarrisonedUnit)
 	{
-		int iGarrisonedStrength = 0;
-		iGarrisonedStrength = pGarrisonedUnit->GetBaseCombatStrength()/10;
+		int iGarrisonedStrength = pGarrisonedUnit->GetBaseCombatStrength()/10;
+		if (iGarrisonedStrength < 6)
+		{
+			iGarrisonedStrength=5;
+		}
+		iCrimeFromGarrisonedUnit+= iGarrisonedStrength;
 	}
 	return iCrimeFromGarrisonedUnit;
 }
