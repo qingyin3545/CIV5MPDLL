@@ -8289,6 +8289,7 @@ bool CvPlayer::canTrain(UnitTypes eUnit, bool bContinue, bool bTestVisible, bool
 			bool bCivFilter = (MOD_TRAIN_ALL_CORE && GetPlayerTraits()->IsTrainedAll())
 				|| const_cast<CvPlayer*>(this)->GetCanTrainUnitsFromCapturedOriginalCapitals().count(eUnit) > 0
 				|| const_cast<CvPlayer*>(this)->GetUUFromDualEmpire().count(eUnit) > 0
+				|| const_cast<CvPlayer*>(this)->GetUUFromExtra().count(eUnit) > 0
 				|| this->CanAllUc();
 			if (!bCivFilter) return false;
 
@@ -8610,6 +8611,7 @@ bool CvPlayer::canConstruct(BuildingTypes eBuilding, bool bContinue, bool bTestV
 	{
 		if (const_cast<CvPlayer*>(this)->GetCanConstructBuildingsFromCapturedOriginalCapitals().count(eBuilding) == 0
 			&& const_cast<CvPlayer*>(this)->GetUBFromDualEmpire().count(eBuilding) == 0
+			&& const_cast<CvPlayer*>(this)->GetUBFromExtra().count(eBuilding) == 0
 			&& !this->CanAllUc())
 			return false;
 	}
@@ -10379,6 +10381,7 @@ bool CvPlayer::canBuild(const CvPlot* pPlot, BuildTypes eBuild, bool bTestEra, b
 			{
 				if (const_cast<CvPlayer*>(this)->GetCanBuildImprovementsFromCapturedOriginalCapitals().count(eImprovement) == 0
 					&& const_cast<CvPlayer*>(this)->GetUIFromDualEmpire().count(eImprovement) == 0
+					&& const_cast<CvPlayer*>(this)->GetUIFromExtra().count(eImprovement) == 0
 					&& !CanAllUc())
 					return false;
 			}
@@ -28577,6 +28580,10 @@ void CvPlayer::Read(FDataStream& kStream)
 	kStream >> m_sUBFromDualEmpire;
 	kStream >> m_sUIFromDualEmpire;
 
+	kStream >> m_sUUFromExtra;
+	kStream >> m_sUBFromExtra;
+	kStream >> m_sUIFromExtra;
+
 	kStream >> m_aScienceTimes100FromMajorFriends;
 
 	kStream >> m_iInstantResearchFromFriendlyGreatScientist;
@@ -29244,6 +29251,10 @@ void CvPlayer::Write(FDataStream& kStream) const
 	kStream << m_sUUFromDualEmpire;
 	kStream << m_sUBFromDualEmpire;
 	kStream << m_sUIFromDualEmpire;
+
+	kStream << m_sUUFromExtra;
+	kStream << m_sUBFromExtra;
+	kStream << m_sUIFromExtra;
 
 	kStream << m_aScienceTimes100FromMajorFriends;
 
@@ -33149,6 +33160,57 @@ std::tr1::unordered_set<BuildingTypes>& CvPlayer::GetUBFromDualEmpire()
 std::tr1::unordered_set<ImprovementTypes>& CvPlayer::GetUIFromDualEmpire()
 {
 	return m_sUIFromDualEmpire;
+}
+
+std::tr1::unordered_set<UnitTypes>& CvPlayer::GetUUFromExtra()
+{
+	return m_sUUFromExtra;
+}
+std::tr1::unordered_set<BuildingTypes>& CvPlayer::GetUBFromExtra()
+{
+	return m_sUBFromExtra;
+}
+std::tr1::unordered_set<ImprovementTypes>& CvPlayer::GetUIFromExtra()
+{
+	return m_sUIFromExtra;
+}
+
+void CvPlayer::ChangeUUFromExtra(UnitTypes eUnitTypes, bool bIsAdd)
+{
+	if(eUnitTypes < 0 || eUnitTypes >= GC.getNumUnitInfos()) return;
+	if(bIsAdd)
+	{
+		m_sUUFromExtra.insert(eUnitTypes);
+	}
+	else
+	{
+		m_sUUFromExtra.erase(eUnitTypes);
+	}
+	
+}
+void CvPlayer::ChangeUBFromExtra(BuildingTypes eBuildingTypes, bool bIsAdd)
+{
+	if(eBuildingTypes < 0 || eBuildingTypes >= GC.getNumBuildingInfos()) return;
+	if (bIsAdd)
+	{
+		m_sUBFromExtra.insert(eBuildingTypes);
+	}
+	else
+	{
+		m_sUBFromExtra.erase(eBuildingTypes);
+	}
+}
+void CvPlayer::ChangeUIFromExtra(ImprovementTypes eImprovementTypes, bool bIsAdd)
+{
+	if (eImprovementTypes < 0 || eImprovementTypes >= GC.getNumImprovementInfos()) return;
+	if (bIsAdd)
+	{
+		m_sUIFromExtra.insert(eImprovementTypes);
+	}
+	else
+	{
+		m_sUIFromExtra.erase(eImprovementTypes);
+	}
 }
 
 void CvPlayer::SetInstantResearchFromFriendlyGreatScientist(int value) {

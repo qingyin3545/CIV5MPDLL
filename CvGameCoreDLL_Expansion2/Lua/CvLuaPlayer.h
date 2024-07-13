@@ -1281,6 +1281,13 @@ protected:
 	LUAAPIEXTN(GetBossLevel, int);
 	LUAAPIEXTN(ChangeBossLevel, void, iChange);
 	LUAAPIEXTN(SetBossLevel, void, iValue);
+
+	LUAAPIEXTN(GetUUFromExtra, int);
+	LUAAPIEXTN(GetUBFromExtra, int);
+	LUAAPIEXTN(GetUIFromExtra, int);
+	LUAAPIEXTN(ChangeUUFromExtra, void, eUnitTypes, bIsAdd);
+	LUAAPIEXTN(ChangeUBFromExtra, void, eBuildingTypes, bIsAdd);
+	LUAAPIEXTN(ChangeUIFromExtra, void, eImprovementTypes, bIsAdd);
 };
 
 #endif //CVLUAPLAYER_H

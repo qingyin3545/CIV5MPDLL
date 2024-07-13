@@ -2222,6 +2222,13 @@ public:
 	std::tr1::unordered_set<BuildingTypes>& GetUBFromDualEmpire();
 	std::tr1::unordered_set<ImprovementTypes>& GetUIFromDualEmpire();
 
+	std::tr1::unordered_set<UnitTypes>& GetUUFromExtra();
+	std::tr1::unordered_set<BuildingTypes>& GetUBFromExtra();
+	std::tr1::unordered_set<ImprovementTypes>& GetUIFromExtra();
+	void ChangeUUFromExtra(UnitTypes eUnitTypes, bool bIsAdd = true);
+	void ChangeUBFromExtra(BuildingTypes eBuildingTypes, bool bIsAdd = true);
+	void ChangeUIFromExtra(ImprovementTypes eImprovementTypes, bool bIsAdd = true);
+
 	static void GetUCTypesFromPlayer(const CvPlayer& player,
 		std::tr1::unordered_set<UnitTypes>* m_sUU,
 		std::tr1::unordered_set<BuildingTypes>* m_sUB,
@@ -2961,6 +2968,10 @@ protected:
 	std::tr1::unordered_set<UnitTypes> m_sUUFromDualEmpire;
 	std::tr1::unordered_set<BuildingTypes> m_sUBFromDualEmpire;
 	std::tr1::unordered_set<ImprovementTypes> m_sUIFromDualEmpire;
+
+	std::tr1::unordered_set<UnitTypes> m_sUUFromExtra;
+	std::tr1::unordered_set<BuildingTypes> m_sUBFromExtra;
+	std::tr1::unordered_set<ImprovementTypes> m_sUIFromExtra;
 
 	std::tr1::array<unsigned long long, MAX_MAJOR_CIVS> m_aScienceTimes100FromMajorFriends; // length = MAX_MAJOR_CIVS
 
