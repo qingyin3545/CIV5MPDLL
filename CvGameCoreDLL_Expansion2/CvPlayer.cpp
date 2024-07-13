@@ -8282,7 +8282,8 @@ bool CvPlayer::canTrain(UnitTypes eUnit, bool bContinue, bool bTestVisible, bool
 	// Should we check whether this Unit has been blocked out by the civ XML?
 	if(!bIgnoreUniqueUnitStatus)
 	{
-		UnitTypes eThisPlayersUnitType = (UnitTypes) getCivilizationInfo().getCivilizationUnits(eUnitClass);	
+		UnitTypes eThisPlayersUnitType = (UnitTypes)getCivilizationInfo().getCivilizationUnits(eUnitClass);
+		if(IsLostUC()) eThisPlayersUnitType = (UnitTypes)pkUnitClassInfo->getDefaultUnitIndex();
 
 #if defined(MOD_TRAIN_ALL_CORE)
 		if (eThisPlayersUnitType != eUnit) {
@@ -8607,7 +8608,9 @@ bool CvPlayer::canConstruct(BuildingTypes eBuilding, bool bContinue, bool bTestV
 	const CvBuildingClassInfo& kBuildingClass = pkBuildingInfo->GetBuildingClassInfo();
 
 	// Checks to make sure civilization doesn't have an override that prevents construction of this building
-	if(getCivilizationInfo().getCivilizationBuildings(eBuildingClass) != eBuilding)
+	BuildingTypes eThisPlayersBuildingType = (BuildingTypes)getCivilizationInfo().getCivilizationBuildings(eBuildingClass);
+	if(IsLostUC()) eThisPlayersBuildingType = (BuildingTypes)kBuildingClass.getDefaultBuildingIndex();
+	if(eThisPlayersBuildingType != eBuilding)
 	{
 		if (const_cast<CvPlayer*>(this)->GetCanConstructBuildingsFromCapturedOriginalCapitals().count(eBuilding) == 0
 			&& const_cast<CvPlayer*>(this)->GetUBFromDualEmpire().count(eBuilding) == 0
@@ -10377,7 +10380,7 @@ bool CvPlayer::canBuild(const CvPlot* pPlot, BuildTypes eBuild, bool bTestEra, b
 		if(pkEntry->IsSpecificCivRequired())
 		{
 			CivilizationTypes eCiv = pkEntry->GetRequiredCivilization();
-			if(eCiv != getCivilizationType())
+			if(eCiv != getCivilizationType() || IsLostUC())
 			{
 				if (const_cast<CvPlayer*>(this)->GetCanBuildImprovementsFromCapturedOriginalCapitals().count(eImprovement) == 0
 					&& const_cast<CvPlayer*>(this)->GetUIFromDualEmpire().count(eImprovement) == 0
@@ -28583,6 +28586,7 @@ void CvPlayer::Read(FDataStream& kStream)
 	kStream >> m_sUUFromExtra;
 	kStream >> m_sUBFromExtra;
 	kStream >> m_sUIFromExtra;
+	kStream >> m_bLostUC;
 
 	kStream >> m_aScienceTimes100FromMajorFriends;
 
@@ -29255,6 +29259,7 @@ void CvPlayer::Write(FDataStream& kStream) const
 	kStream << m_sUUFromExtra;
 	kStream << m_sUBFromExtra;
 	kStream << m_sUIFromExtra;
+	kStream << m_bLostUC;
 
 	kStream << m_aScienceTimes100FromMajorFriends;
 
@@ -33370,6 +33375,15 @@ void CvPlayer::ChangeBossLevel(int iChange)
 void CvPlayer::SetBossLevel(int iValue)
 {
 	m_iBossLevel = iValue;
+}
+
+bool CvPlayer::IsLostUC() const
+{
+	return m_bLostUC;
+}
+void CvPlayer::SetLostUC(bool bValue)
+{
+	m_bLostUC = bValue;
 }
 
 int CvPlayer::GetNumGreatPersonSincePolicy() const

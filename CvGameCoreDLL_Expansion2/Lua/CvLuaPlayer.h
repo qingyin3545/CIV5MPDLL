@@ -1288,6 +1288,9 @@ protected:
 	LUAAPIEXTN(ChangeUUFromExtra, void, eUnitTypes, bIsAdd);
 	LUAAPIEXTN(ChangeUBFromExtra, void, eBuildingTypes, bIsAdd);
 	LUAAPIEXTN(ChangeUIFromExtra, void, eImprovementTypes, bIsAdd);
+
+	LUAAPIEXTN(IsLostUC, int);
+	LUAAPIEXTN(SetLostUC, void, bIsLost);
 };
 
 #endif //CVLUAPLAYER_H

@@ -126,6 +126,8 @@ void CvLuaPlayer::RegistStaticFunctions() {
 	REGIST_STATIC_FUNCTION(CvLuaPlayer::lChangeUUFromExtra);
 	REGIST_STATIC_FUNCTION(CvLuaPlayer::lChangeUBFromExtra);
 	REGIST_STATIC_FUNCTION(CvLuaPlayer::lChangeUIFromExtra);
+
+	REGIST_STATIC_FUNCTION(CvLuaPlayer::lSetLostUC);
 }
 
 //------------------------------------------------------------------------------
@@ -1372,6 +1374,9 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(ChangeUUFromExtra);
 	Method(ChangeUBFromExtra);
 	Method(ChangeUIFromExtra);
+
+	Method(IsLostUC);
+	Method(SetLostUC);
 }
 //------------------------------------------------------------------------------
 void CvLuaPlayer::HandleMissingInstance(lua_State* L)
@@ -12887,3 +12892,6 @@ int CvLuaPlayer::lChangeUIFromExtra(lua_State* L)
 	pkPlayer->ChangeUIFromExtra(eImprovementTypes, bIsAdd);
 	return 0;
 }
+
+LUAAPIIMPL(Player, IsLostUC)
+LUAAPIIMPL(Player, SetLostUC)

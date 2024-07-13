@@ -2259,6 +2259,9 @@ public:
 	void ChangeBossLevel(int iChange);
 	void SetBossLevel(int iValue);
 
+	bool IsLostUC() const;
+	void SetLostUC(bool bValue);
+
 	int GetNumGreatPersonSincePolicy() const;
 	void ChangeNumGreatPersonSincePolicy(int iChange);
 
@@ -2972,6 +2975,8 @@ protected:
 	std::tr1::unordered_set<UnitTypes> m_sUUFromExtra;
 	std::tr1::unordered_set<BuildingTypes> m_sUBFromExtra;
 	std::tr1::unordered_set<ImprovementTypes> m_sUIFromExtra;
+
+	bool m_bLostUC = false;
 
 	std::tr1::array<unsigned long long, MAX_MAJOR_CIVS> m_aScienceTimes100FromMajorFriends; // length = MAX_MAJOR_CIVS
 
