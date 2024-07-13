@@ -1279,6 +1279,11 @@ void CvPlayer::uninit()
 	m_bAlliesGreatPersonBiasApplied = false;
 	m_lastGameTurnInitialAIProcessed = -1;
 
+	m_sUUFromExtra.clear();
+	m_sUBFromExtra.clear();
+	m_sUIFromExtra.clear();
+	m_bLostUC = false;
+
 	m_eID = NO_PLAYER;
 }
 
