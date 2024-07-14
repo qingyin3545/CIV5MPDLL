@@ -3367,7 +3367,7 @@ bool CvCity::canConstruct(BuildingTypes eBuilding, bool bContinue, bool bTestVis
 #endif
 {
 	VALIDATE_OBJECT
-	BuildingTypes ePrereqBuilding;
+	BuildingTypes ePrereqBuilding = NO_BUILDING;
 	int iI;
 
 	if(eBuilding == NO_BUILDING)
@@ -3463,8 +3463,8 @@ bool CvCity::canConstruct(BuildingTypes eBuilding, bool bContinue, bool bTestVis
 
 		if(pkBuildingInfo->IsBuildingClassNeededInCity(iI))
 		{
-			ePrereqBuilding = ((BuildingTypes)(thisCivInfo.getCivilizationBuildings(iI)));
 			if(kPlayer.IsLostUC()) ePrereqBuilding  = (BuildingTypes)pkBuildingClassInfo->getDefaultBuildingIndex();
+			else ePrereqBuilding = ((BuildingTypes)(thisCivInfo.getCivilizationBuildings(iI)));
 
 			if(ePrereqBuilding != NO_BUILDING)
 			{
@@ -18156,7 +18156,8 @@ bool CvCity::IsCanPurchase(bool bTestPurchaseCost, bool bTestTrainable, UnitType
 	// slewis - The Venetian Exception
 	bool bIsPuppet = IsPuppet();
 	bool bVenetianException = false;
-	if (GET_PLAYER(m_eOwner).GetPlayerTraits()->IsNoAnnexing() && bIsPuppet)
+	CvPlayerAI &kPlayer = GET_PLAYER(m_eOwner);
+	if (kPlayer.GetPlayerTraits()->IsNoAnnexing() && bIsPuppet)
 	{
 		bVenetianException = true;
 	}
@@ -18379,7 +18380,7 @@ bool CvCity::IsCanPurchase(bool bTestPurchaseCost, bool bTestTrainable, UnitType
 
 				// Does this city have prereq buildings?
 				int iNumBuildingClassInfos = GC.getNumBuildingClassInfos();
-				BuildingTypes ePrereqBuilding;
+				BuildingTypes ePrereqBuilding = NO_BUILDING;
 				for(int iI = 0; iI < iNumBuildingClassInfos; iI++)
 				{
 					CvBuildingClassInfo* pkBuildingClassInfo = GC.getBuildingClassInfo((BuildingClassTypes)iI);
@@ -18391,13 +18392,13 @@ bool CvCity::IsCanPurchase(bool bTestPurchaseCost, bool bTestTrainable, UnitType
 					if(pkBuildingInfo->IsBuildingClassNeededInCity(iI))
 					{
 						CvCivilizationInfo& thisCivInfo = getCivilizationInfo();
-						ePrereqBuilding = ((BuildingTypes)(thisCivInfo.getCivilizationBuildings(iI)));
-						if(GET_PLAYER(m_eOwner).IsLostUC()) ePrereqBuilding  = (BuildingTypes)pkBuildingClassInfo->getDefaultBuildingIndex();
+						if(kPlayer.IsLostUC()) ePrereqBuilding  = (BuildingTypes)pkBuildingClassInfo->getDefaultBuildingIndex();
+						else ePrereqBuilding = ((BuildingTypes)(thisCivInfo.getCivilizationBuildings(iI)));
 
 						if(ePrereqBuilding != NO_BUILDING)
 						{
 							bool bHasUB = false;
-							for (auto iBuilding : GET_PLAYER(m_eOwner).GetUBFromExtra())
+							for (auto iBuilding : kPlayer.GetUBFromExtra())
 							{
 								if (GC.getBuildingInfo(iBuilding)->GetBuildingClassType() != iI) continue;
 								if (m_pCityBuildings->GetNumBuilding(iBuilding) <= 0) continue;
@@ -18419,7 +18420,7 @@ bool CvCity::IsCanPurchase(bool bTestPurchaseCost, bool bTestTrainable, UnitType
 						
 						if(ePrereqBuilding != NO_BUILDING)
 						{
-							if(0 == GET_PLAYER(getOwner()).getNumBuildings(ePrereqBuilding))
+							if(0 == kPlayer.getNumBuildings(ePrereqBuilding))
 							{
 								return false;
 							}
@@ -18441,7 +18442,7 @@ bool CvCity::IsCanPurchase(bool bTestPurchaseCost, bool bTestTrainable, UnitType
 			if(bTestPurchaseCost)
 			{
 				// Trying to buy something when you don't have enough faith!!
-				if(iFaithCost > GET_PLAYER(getOwner()).GetFaith())
+				if(iFaithCost > kPlayer.GetFaith())
 				{
 					return false;
 				}

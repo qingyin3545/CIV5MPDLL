@@ -8293,9 +8293,10 @@ bool CvPlayer::canTrain(UnitTypes eUnit, bool bContinue, bool bTestVisible, bool
 	// Should we check whether this Unit has been blocked out by the civ XML?
 	if(!bIgnoreUniqueUnitStatus)
 	{
-		UnitTypes eThisPlayersUnitType = (UnitTypes)getCivilizationInfo().getCivilizationUnits(eUnitClass);
+		UnitTypes eThisPlayersUnitType = NO_UNIT;
 		// if this player lost uu, he can trait default one
 		if(IsLostUC()) eThisPlayersUnitType = (UnitTypes)pkUnitClassInfo->getDefaultUnitIndex();
+		else eThisPlayersUnitType = (UnitTypes)getCivilizationInfo().getCivilizationUnits(eUnitClass);
 
 #if defined(MOD_TRAIN_ALL_CORE)
 		if (eThisPlayersUnitType != eUnit) {
@@ -8624,9 +8625,11 @@ bool CvPlayer::canConstruct(BuildingTypes eBuilding, bool bContinue, bool bTestV
 	if(eDefaultBuildingType == eBuilding && const_cast<CvPlayer*>(this)->GetUBFromExtra().count(eBuilding) == 1) return false;
 	
 	// Checks to make sure civilization doesn't have an override that prevents construction of this building
-	BuildingTypes eThisPlayersBuildingType = (BuildingTypes)getCivilizationInfo().getCivilizationBuildings(eBuildingClass);
+	BuildingTypes eThisPlayersBuildingType = NO_BUILDING;
 	// if this player lost UB, he can construct default one
 	if(IsLostUC()) eThisPlayersBuildingType = eDefaultBuildingType;
+	else eThisPlayersBuildingType = (BuildingTypes)getCivilizationInfo().getCivilizationBuildings(eBuildingClass);
+
 	if(eThisPlayersBuildingType != eBuilding)
 	{
 		if (const_cast<CvPlayer*>(this)->GetCanConstructBuildingsFromCapturedOriginalCapitals().count(eBuilding) == 0
@@ -8823,7 +8826,7 @@ bool CvPlayer::canConstruct(BuildingTypes eBuilding, bool bContinue, bool bTestV
 		}
 
 		// How does this differ from the check above?
-		BuildingTypes ePrereqBuilding;
+		BuildingTypes ePrereqBuilding = NO_BUILDING;
 		int iNumNeeded;
 		for(iI = 0; iI < numBuildingClassInfos; iI++)
 		{
@@ -8833,8 +8836,8 @@ bool CvPlayer::canConstruct(BuildingTypes eBuilding, bool bContinue, bool bTestV
 			CvBuildingClassInfo* pkBuildingClassInfo = GC.getBuildingClassInfo((BuildingClassTypes)iI);
 			if(!pkBuildingClassInfo) return false;
 
-			ePrereqBuilding = (BuildingTypes) civilizationInfo.getCivilizationBuildings(iI);
 			if(IsLostUC()) ePrereqBuilding  = (BuildingTypes)pkBuildingClassInfo->getDefaultBuildingIndex();
+			else ePrereqBuilding = (BuildingTypes) civilizationInfo.getCivilizationBuildings(iI);
 
 			if(NO_BUILDING == ePrereqBuilding) continue;
 			CvBuildingEntry* pkPrereqBuilding = GC.getBuildingInfo(ePrereqBuilding);
@@ -9742,8 +9745,10 @@ int CvPlayer::getBuildingClassPrereqBuilding(BuildingTypes eBuilding, BuildingCl
 			if (MOD_BUILDINGS_NW_EXCLUDE_RAZING && pLoopCity->IsRazing())
 			{
 				bool bHasPrereqBuilding = false;
-				BuildingTypes ePrereqBuilding = (BuildingTypes)getCivilizationInfo().getCivilizationBuildings(ePrereqBuildingClass);
+				BuildingTypes ePrereqBuilding = NO_BUILDING;
 				if(IsLostUC()) ePrereqBuilding = (BuildingTypes)pkBuildingClassInfo->getDefaultBuildingIndex();
+				else ePrereqBuilding = (BuildingTypes)getCivilizationInfo().getCivilizationBuildings(ePrereqBuildingClass);
+
 				std::vector<BuildingTypes> vPrereqBuilding;
 				for (auto iBuilding : const_cast<CvPlayer*>(this)->GetUBFromExtra())
 				{
