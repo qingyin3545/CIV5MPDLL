@@ -13452,6 +13452,17 @@ UnitTypes CvUnit::GetUpgradeUnitType() const
 			if(m_pUnitInfo->GetUpgradeUnitClass(iI))
 			{
 				eUpgradeUnitType = (UnitTypes) kCiv.getCivilizationUnits(iI);
+				if(GET_PLAYER(getOwner()).IsLostUC()) eUpgradeUnitType = (UnitTypes)pkUnitClassInfo->getDefaultUnitIndex();
+
+				std::vector<UnitTypes> vUpgradeUnitTypes;
+				for (auto iUnit : GET_PLAYER(getOwner()).GetUUFromExtra())
+				{
+					if (GC.getUnitInfo(iUnit)->GetUnitClassType() != iI) continue;
+					vUpgradeUnitTypes.push_back(iUnit);
+				}
+				if(GET_PLAYER(getOwner()).GetUUFromExtra().count(eUpgradeUnitType) == 0) vUpgradeUnitTypes.push_back(eUpgradeUnitType);
+				if (!vUpgradeUnitTypes.empty()) eUpgradeUnitType = vUpgradeUnitTypes[0];
+				else eUpgradeUnitType = NO_UNIT;
 
 #if defined(MOD_EVENTS_UNIT_UPGRADES)
 				if (MOD_EVENTS_UNIT_UPGRADES) {

@@ -3464,10 +3464,19 @@ bool CvCity::canConstruct(BuildingTypes eBuilding, bool bContinue, bool bTestVis
 		if(pkBuildingInfo->IsBuildingClassNeededInCity(iI))
 		{
 			ePrereqBuilding = ((BuildingTypes)(thisCivInfo.getCivilizationBuildings(iI)));
+			if(kPlayer.IsLostUC()) ePrereqBuilding  = (BuildingTypes)pkBuildingClassInfo->getDefaultBuildingIndex();
 
 			if(ePrereqBuilding != NO_BUILDING)
 			{
-				if(0 == m_pCityBuildings->GetNumBuilding(ePrereqBuilding) /* && (bContinue || (getFirstBuildingOrder(ePrereqBuilding) == -1))*/)
+				bool bHasUB = false;
+				for (auto iBuilding : kPlayer.GetUBFromExtra())
+				{
+					if (GC.getBuildingInfo(iBuilding)->GetBuildingClassType() != iI) continue;
+					if (m_pCityBuildings->GetNumBuilding(iBuilding) <= 0) continue;
+					bHasUB = true;
+					break;
+				}
+				if(!bHasUB && (0 == m_pCityBuildings->GetNumBuilding(ePrereqBuilding)) /* && (bContinue || (getFirstBuildingOrder(ePrereqBuilding) == -1))*/)
 				{
 					return false;
 				}
@@ -18383,10 +18392,19 @@ bool CvCity::IsCanPurchase(bool bTestPurchaseCost, bool bTestTrainable, UnitType
 					{
 						CvCivilizationInfo& thisCivInfo = getCivilizationInfo();
 						ePrereqBuilding = ((BuildingTypes)(thisCivInfo.getCivilizationBuildings(iI)));
+						if(GET_PLAYER(m_eOwner).IsLostUC()) ePrereqBuilding  = (BuildingTypes)pkBuildingClassInfo->getDefaultBuildingIndex();
 
 						if(ePrereqBuilding != NO_BUILDING)
 						{
-							if(0 == m_pCityBuildings->GetNumBuilding(ePrereqBuilding))
+							bool bHasUB = false;
+							for (auto iBuilding : GET_PLAYER(m_eOwner).GetUBFromExtra())
+							{
+								if (GC.getBuildingInfo(iBuilding)->GetBuildingClassType() != iI) continue;
+								if (m_pCityBuildings->GetNumBuilding(iBuilding) <= 0) continue;
+								bHasUB = true;
+								break;
+							}
+							if(!bHasUB && (0 == m_pCityBuildings->GetNumBuilding(ePrereqBuilding)))
 							{
 								return false;
 							}

@@ -8828,48 +8828,65 @@ bool CvPlayer::canConstruct(BuildingTypes eBuilding, bool bContinue, bool bTestV
 		for(iI = 0; iI < numBuildingClassInfos; iI++)
 		{
 			iNumNeeded = getBuildingClassPrereqBuilding(eBuilding, ((BuildingClassTypes)iI), bContinue);
-			//int iNumHave = getBuildingClassCount((BuildingClassTypes)iI);
+			if (iNumNeeded <= 0) continue;
+
+			CvBuildingClassInfo* pkBuildingClassInfo = GC.getBuildingClassInfo((BuildingClassTypes)iI);
+			if(!pkBuildingClassInfo) return false;
+
 			ePrereqBuilding = (BuildingTypes) civilizationInfo.getCivilizationBuildings(iI);
-			if(NO_BUILDING != ePrereqBuilding)
+			if(IsLostUC()) ePrereqBuilding  = (BuildingTypes)pkBuildingClassInfo->getDefaultBuildingIndex();
+
+			if(NO_BUILDING == ePrereqBuilding) continue;
+			CvBuildingEntry* pkPrereqBuilding = GC.getBuildingInfo(ePrereqBuilding);
+			if(!pkPrereqBuilding) continue;
+
+			std::vector<BuildingTypes> vPrereqBuilding;
+			for (auto iBuilding : const_cast<CvPlayer*>(this)->GetUBFromExtra())
 			{
-				CvBuildingEntry* pkPrereqBuilding = GC.getBuildingInfo(ePrereqBuilding);
-				if(pkPrereqBuilding)
+				if (GC.getBuildingInfo(iBuilding)->GetBuildingClassType() != iI) continue;
+				vPrereqBuilding.push_back(iBuilding);
+			}
+			vPrereqBuilding.push_back(ePrereqBuilding);
+
+			int iNumHave = 0;
+			const CvCity* pLoopCity = NULL;
+			int iLoop;
+			for(pLoopCity = firstCity(&iLoop); pLoopCity != NULL; pLoopCity = nextCity(&iLoop))
+			{
+				if(!pLoopCity || pLoopCity->IsPuppet()) continue;
+				for(auto iBuilding : vPrereqBuilding)
 				{
-					int iNumHave = 0;
-					const CvCity* pLoopCity = NULL;
-					int iLoop;
-					for(pLoopCity = firstCity(&iLoop); pLoopCity != NULL; pLoopCity = nextCity(&iLoop))
+					if(pLoopCity->GetCityBuildings()->GetNumBuilding(iBuilding) == 0) continue;
+					iNumHave++;
+					break;
+				}
+			}
+
+			if(iNumHave >= iNumNeeded) continue;
+
+			GC.getGame().BuildCannotPerformActionHelpText(toolTipSink, "TXT_KEY_NO_ACTION_BUILDING_COUNT_NEEDED", pkPrereqBuilding->GetTextKey(), "", iNumNeeded - iNumHave);
+			if(toolTipSink == NULL) return false;
+
+			// If we have less than 5 to go, list what cities need them
+			int iNonPuppetCities = getNumCities() - GetNumPuppetCities();
+			if(iNumNeeded == iNonPuppetCities && iNumNeeded - iNumHave < 5)
+			{
+				(*toolTipSink) += "[NEWLINE]";
+
+				for(pLoopCity = firstCity(&iLoop); pLoopCity != NULL; pLoopCity = nextCity(&iLoop))
+				{
+					bool bHasPrereqBuilding = false;
+					if(!pLoopCity || pLoopCity->IsPuppet()) continue;
+					for(auto iBuilding : vPrereqBuilding)
 					{
-						if(pLoopCity && !pLoopCity->IsPuppet() && pLoopCity->GetCityBuildings()->GetNumBuilding(ePrereqBuilding) > 0)
-						{
-							iNumHave++;
-						}
+						if(pLoopCity->GetCityBuildings()->GetNumBuilding(iBuilding) == 0) continue;
+						bHasPrereqBuilding = true;
+						break;
 					}
-
-					if(iNumHave < iNumNeeded)
+					if(!bHasPrereqBuilding)
 					{
-						ePrereqBuilding = (BuildingTypes) civilizationInfo.getCivilizationBuildings(iI);
-
-						GC.getGame().BuildCannotPerformActionHelpText(toolTipSink, "TXT_KEY_NO_ACTION_BUILDING_COUNT_NEEDED", pkPrereqBuilding->GetTextKey(), "", iNumNeeded - iNumHave);
-
-						if(toolTipSink == NULL)
-							return false;
-
-						// If we have less than 5 to go, list what cities need them
-						int iNonPuppetCities = getNumCities() - GetNumPuppetCities();
-						if(iNumNeeded == iNonPuppetCities && iNumNeeded - iNumHave < 5)
-						{
-							(*toolTipSink) += "[NEWLINE]";
-
-							for(pLoopCity = firstCity(&iLoop); pLoopCity != NULL; pLoopCity = nextCity(&iLoop))
-							{
-								if(pLoopCity && !pLoopCity->IsPuppet() && pLoopCity->GetCityBuildings()->GetNumBuilding(ePrereqBuilding) == 0)
-								{
-									(*toolTipSink) += pLoopCity->getName();
-									(*toolTipSink) += " ";
-								}
-							}
-						}
+						(*toolTipSink) += pLoopCity->getName();
+						(*toolTipSink) += " ";
 					}
 				}
 			}
@@ -9701,6 +9718,9 @@ int CvPlayer::getBuildingClassPrereqBuilding(BuildingTypes eBuilding, BuildingCl
 		return -1;
 	}
 
+	CvBuildingClassInfo* pkBuildingClassInfo = GC.getBuildingClassInfo((BuildingClassTypes)ePrereqBuildingClass);
+	if(!pkBuildingClassInfo) return 0;
+
 	int iPrereqs = pkBuilding->GetPrereqNumOfBuildingClass(ePrereqBuildingClass);
 
 	// dont bother with the rest of the calcs if we have no prereqs
@@ -9711,22 +9731,36 @@ int CvPlayer::getBuildingClassPrereqBuilding(BuildingTypes eBuilding, BuildingCl
 	// -1 means Building is needed in all Cities
 	else if(iPrereqs == -1)
 	{
-#if defined(MOD_BUILDINGS_NW_EXCLUDE_RAZING)
-		BuildingTypes ePrereqBuilding = (BuildingTypes)getCivilizationInfo().getCivilizationBuildings(ePrereqBuildingClass);
-#endif
 		int iNonPuppetCities = 0;
 		int iLoop = 0;
 		const CvCity* pLoopCity = NULL;
 		for(pLoopCity = firstCity(&iLoop); pLoopCity != NULL; pLoopCity = nextCity(&iLoop))
 		{
-			if(pLoopCity && !pLoopCity->IsPuppet())
-			{
+			if(!pLoopCity || pLoopCity->IsPuppet()) continue;
 #if defined(MOD_BUILDINGS_NW_EXCLUDE_RAZING)
-				// Don't count this city if it is being razed and doesn't already have the pre-req building
-				if (!(MOD_BUILDINGS_NW_EXCLUDE_RAZING && pLoopCity->IsRazing() && pLoopCity->GetCityBuildings()->GetNumBuilding(ePrereqBuilding) == 0))
-#endif
-				iNonPuppetCities++;
+			// Don't count this city if it is being razed and doesn't already have the pre-req building
+			if (MOD_BUILDINGS_NW_EXCLUDE_RAZING && pLoopCity->IsRazing())
+			{
+				bool bHasPrereqBuilding = false;
+				BuildingTypes ePrereqBuilding = (BuildingTypes)getCivilizationInfo().getCivilizationBuildings(ePrereqBuildingClass);
+				if(IsLostUC()) ePrereqBuilding = (BuildingTypes)pkBuildingClassInfo->getDefaultBuildingIndex();
+				std::vector<BuildingTypes> vPrereqBuilding;
+				for (auto iBuilding : const_cast<CvPlayer*>(this)->GetUBFromExtra())
+				{
+					if (GC.getBuildingInfo(iBuilding)->GetBuildingClassType() != ePrereqBuildingClass) continue;
+					vPrereqBuilding.push_back(iBuilding);
+				}
+				vPrereqBuilding.push_back(ePrereqBuilding);
+				for(auto iBuilding : vPrereqBuilding)
+				{
+					if(pLoopCity->GetCityBuildings()->GetNumBuilding(iBuilding) == 0) continue;
+					bHasPrereqBuilding = true;
+					break;
+				}
+				if(!bHasPrereqBuilding) continue;
 			}
+#endif
+			iNonPuppetCities++;
 		}
 
 		return iNonPuppetCities;
