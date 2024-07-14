@@ -8283,11 +8283,18 @@ bool CvPlayer::canTrain(UnitTypes eUnit, bool bContinue, bool bTestVisible, bool
 		return false;
 	}
 
+	// if this unit is default unit and was marked, forbid it
+	if(const_cast<CvPlayer*>(this)->GetUUFromExtra().count(eUnit) > 0 && (UnitTypes)pkUnitClassInfo->getDefaultUnitIndex() == eUnit)
+	{
+		return false;
+	}
+
 
 	// Should we check whether this Unit has been blocked out by the civ XML?
 	if(!bIgnoreUniqueUnitStatus)
 	{
 		UnitTypes eThisPlayersUnitType = (UnitTypes)getCivilizationInfo().getCivilizationUnits(eUnitClass);
+		// if this player lost uu, he can trait default one
 		if(IsLostUC()) eThisPlayersUnitType = (UnitTypes)pkUnitClassInfo->getDefaultUnitIndex();
 
 #if defined(MOD_TRAIN_ALL_CORE)
@@ -8612,9 +8619,14 @@ bool CvPlayer::canConstruct(BuildingTypes eBuilding, bool bContinue, bool bTestV
 	const BuildingClassTypes eBuildingClass = ((BuildingClassTypes)(pBuildingInfo.GetBuildingClassType()));
 	const CvBuildingClassInfo& kBuildingClass = pkBuildingInfo->GetBuildingClassInfo();
 
+	// if this building is default building and was marked, forbid it
+	BuildingTypes eDefaultBuildingType = (BuildingTypes)kBuildingClass.getDefaultBuildingIndex();
+	if(eDefaultBuildingType == eBuilding && const_cast<CvPlayer*>(this)->GetUBFromExtra().count(eBuilding) == 1) return false;
+	
 	// Checks to make sure civilization doesn't have an override that prevents construction of this building
 	BuildingTypes eThisPlayersBuildingType = (BuildingTypes)getCivilizationInfo().getCivilizationBuildings(eBuildingClass);
-	if(IsLostUC()) eThisPlayersBuildingType = (BuildingTypes)kBuildingClass.getDefaultBuildingIndex();
+	// if this player lost UB, he can construct default one
+	if(IsLostUC()) eThisPlayersBuildingType = eDefaultBuildingType;
 	if(eThisPlayersBuildingType != eBuilding)
 	{
 		if (const_cast<CvPlayer*>(this)->GetCanConstructBuildingsFromCapturedOriginalCapitals().count(eBuilding) == 0
