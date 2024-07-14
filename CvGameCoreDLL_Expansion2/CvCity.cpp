@@ -5933,7 +5933,13 @@ int CvCity::GetFaithPurchaseCost(UnitTypes eUnit, bool bIncludeBeliefDiscounts)
 						iCost = kPlayer.GetReligions()->GetCostNextProphet(true /*bIncludeBeliefDiscounts*/, false /*bAdjustForSpeedDifficulty*/);
 					}
 				}
-				else if (eThisPlayersUnitType == eUnit)
+				else if (eThisPlayersUnitType == eUnit
+					|| (MOD_TRAIN_ALL_CORE && kPlayer.GetPlayerTraits()->IsTrainedAll())
+					|| kPlayer.GetCanTrainUnitsFromCapturedOriginalCapitals().count(eUnit) > 0
+					|| kPlayer.GetUUFromDualEmpire().count(eUnit) > 0
+					|| kPlayer.GetUUFromExtra().count(eUnit) > 0
+					|| kPlayer.CanAllUc()
+				)
 				{
 					PolicyBranchTypes eBranch = NO_POLICY_BRANCH_TYPE;
 					int iNum = 0;
