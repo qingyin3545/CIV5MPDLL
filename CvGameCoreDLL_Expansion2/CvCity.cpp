@@ -7540,7 +7540,18 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 			BuildingClassTypes eFreeBuildingClassThisCity = (BuildingClassTypes)pBuildingInfo->GetFreeBuildingThisCity();
 			if(eFreeBuildingClassThisCity != NO_BUILDINGCLASS)
 			{
-				BuildingTypes eFreeBuildingThisCity = (BuildingTypes)(thisCiv.getCivilizationBuildings(eFreeBuildingClassThisCity));
+				BuildingTypes eFreeBuildingThisCity = NO_BUILDING;
+				if(owningPlayer.IsLostUC()) eFreeBuildingThisCity = (BuildingTypes)(GC.getBuildingClassInfo(eFreeBuildingClassThisCity)->getDefaultBuildingIndex());
+				else eFreeBuildingThisCity = eFreeBuildingThisCity = (BuildingTypes)(thisCiv.getCivilizationBuildings(eFreeBuildingClassThisCity));
+				std::vector<BuildingTypes> vFreeBuildings;
+				for (auto iBuilding : owningPlayer.GetUBFromExtra())
+				{
+					if (GC.getBuildingInfo(iBuilding)->GetBuildingClassType() != eFreeBuildingClassThisCity) continue;
+					if (iBuilding == eFreeBuildingThisCity) continue;
+					vFreeBuildings.push_back(iBuilding);
+				}
+				vFreeBuildings.push_back(eFreeBuildingThisCity);
+				eFreeBuildingThisCity = vFreeBuildings[0];
 
 				if (eFreeBuildingThisCity != NO_BUILDING)
 				{

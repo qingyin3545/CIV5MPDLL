@@ -13457,6 +13457,7 @@ UnitTypes CvUnit::GetUpgradeUnitType() const
 			for (auto iUnit : kPlayer.GetUUFromExtra())
 			{
 				if (GC.getUnitInfo(iUnit)->GetUnitClassType() != iI) continue;
+				if (iUnit == eUpgradeUnitType) continue;
 				vUpgradeUnitTypes.push_back(iUnit);
 			}
 			if(kPlayer.GetUUFromExtra().count(eUpgradeUnitType) == 0) vUpgradeUnitTypes.push_back(eUpgradeUnitType);

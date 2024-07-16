@@ -10012,9 +10012,22 @@ void CvPlayer::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst
 	}
 #endif
 
-	if(pBuildingInfo->GetFreeBuildingClass() != NO_BUILDINGCLASS)
+	BuildingClassTypes eFreeBuildingClass = (BuildingClassTypes)pBuildingInfo->GetFreeBuildingClass();
+	if(eFreeBuildingClass != NO_BUILDINGCLASS)
 	{
-		BuildingTypes eFreeBuilding = (BuildingTypes)getCivilizationInfo().getCivilizationBuildings(pBuildingInfo->GetFreeBuildingClass());
+		BuildingTypes eFreeBuilding = NO_BUILDING;
+		if(IsLostUC()) eFreeBuilding = (BuildingTypes)GC.getBuildingClassInfo(eFreeBuildingClass)->getDefaultBuildingIndex();
+		else eFreeBuilding = (BuildingTypes)getCivilizationInfo().getCivilizationBuildings(eFreeBuildingClass);
+		std::vector<BuildingTypes> vFreeBuildings;
+		for (auto iBuilding : GetUBFromExtra())
+		{
+			if (GC.getBuildingInfo(iBuilding)->GetBuildingClassType() != eFreeBuildingClass) continue;
+			if (iBuilding == eFreeBuilding) continue;
+			vFreeBuildings.push_back(iBuilding);
+		}
+		vFreeBuildings.push_back(eFreeBuilding);
+		eFreeBuilding = vFreeBuildings[0];
+		
 		changeFreeBuildingCount(eFreeBuilding, iChange);
 	}
 
