@@ -13461,7 +13461,8 @@ UnitTypes CvUnit::GetUpgradeUnitType() const
 				vUpgradeUnitTypes.push_back(iUnit);
 			}
 			if(kPlayer.GetUUFromExtra().count(eUpgradeUnitType) == 0) vUpgradeUnitTypes.push_back(eUpgradeUnitType);
-			if (!vUpgradeUnitTypes.empty()) eUpgradeUnitType = vUpgradeUnitTypes[0];
+			if (vUpgradeUnitTypes.size() > 1) eUpgradeUnitType = vUpgradeUnitTypes[GC.getGame().getJonRandNum(vUpgradeUnitTypes.size(), "get a Random upgrade unit index")];
+			else if(vUpgradeUnitTypes.size() == 1) eUpgradeUnitType = vUpgradeUnitTypes[0];
 			else eUpgradeUnitType = NO_UNIT;
 
 #if defined(MOD_EVENTS_UNIT_UPGRADES)

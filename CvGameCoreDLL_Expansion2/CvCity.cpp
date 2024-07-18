@@ -7541,17 +7541,23 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 			if(eFreeBuildingClassThisCity != NO_BUILDINGCLASS)
 			{
 				BuildingTypes eFreeBuildingThisCity = NO_BUILDING;
-				if(owningPlayer.IsLostUC()) eFreeBuildingThisCity = (BuildingTypes)(GC.getBuildingClassInfo(eFreeBuildingClassThisCity)->getDefaultBuildingIndex());
-				else eFreeBuildingThisCity = eFreeBuildingThisCity = (BuildingTypes)(thisCiv.getCivilizationBuildings(eFreeBuildingClassThisCity));
-				std::vector<BuildingTypes> vFreeBuildings;
-				for (auto iBuilding : owningPlayer.GetUBFromExtra())
+				BuildingTypes eDefaultBuilding = (BuildingTypes)GC.getBuildingClassInfo(eFreeBuildingClassThisCity)->getDefaultBuildingIndex();
+				if(owningPlayer.IsLostUC()) eFreeBuildingThisCity = eDefaultBuilding;
+				else eFreeBuildingThisCity = (BuildingTypes)(thisCiv.getCivilizationBuildings(eFreeBuildingClassThisCity));
+				
+				// if this player has a Unique Building, choose it, or try to find a Unique Building
+				if(eFreeBuildingThisCity == eDefaultBuilding)
 				{
-					if (GC.getBuildingInfo(iBuilding)->GetBuildingClassType() != eFreeBuildingClassThisCity) continue;
-					if (iBuilding == eFreeBuildingThisCity) continue;
-					vFreeBuildings.push_back(iBuilding);
+					std::vector<BuildingTypes> vFreeBuildings;
+					for (auto iBuilding : owningPlayer.GetUBFromExtra())
+					{
+						if (GC.getBuildingInfo(iBuilding)->GetBuildingClassType() != eFreeBuildingClassThisCity) continue;
+						if (iBuilding == eDefaultBuilding) continue;
+						vFreeBuildings.push_back(iBuilding);
+					}
+					vFreeBuildings.push_back(eDefaultBuilding);
+					eFreeBuildingThisCity = vFreeBuildings[0];
 				}
-				vFreeBuildings.push_back(eFreeBuildingThisCity);
-				eFreeBuildingThisCity = vFreeBuildings[0];
 
 				if (eFreeBuildingThisCity != NO_BUILDING)
 				{
