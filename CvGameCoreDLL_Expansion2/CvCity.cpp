@@ -280,7 +280,7 @@ CvCity::CvCity() :
 
 	, m_iNukeInterceptionChance(0)
 
-
+	
 	, m_iMaintenance("CvCity::m_iMaintenance", m_syncArchive)
 	, m_iHealRate("CvCity::m_iHealRate", m_syncArchive)
 	, m_iNoOccupiedUnhappinessCount("CvCity::m_iNoOccupiedUnhappinessCount", m_syncArchive)
