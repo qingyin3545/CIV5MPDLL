@@ -1023,6 +1023,12 @@ void CvGame::uninit()
 	m_iVotesNeededForDiploVictory = 0;
 	m_iMapScoreMod = 0;
 
+#if defined(MOD_NUCLEAR_WINTER_FOR_SP)
+	m_iNuclearWinterProcess = 0;
+	m_iNuclearWinterNaturalReduction = 1;
+	m_eNuclearWinterLevel = NO_NUCLEAR_WINTER;
+#endif
+
 	m_uiInitialTime = 0;
 
 	m_bScoreDirty = false;
@@ -1814,6 +1820,54 @@ void CvGame::DoCacheMapScoreMod()
 }
 
 
+//	--------------------------------------------------------------------------------
+#if defined(MOD_NUCLEAR_WINTER_FOR_SP)
+int CvGame::GetNuclearWinterProcess() const
+{
+	return m_iNuclearWinterProcess;
+}
+void CvGame::ChangeNuclearWinterProcess(int iChange)
+{
+	m_iNuclearWinterProcess += iChange;
+	if(m_iNuclearWinterProcess < 0) m_iNuclearWinterProcess = 0;
+}
+int CvGame::GetNuclearWinterNaturalReduction() const
+{
+	return m_iNuclearWinterNaturalReduction;
+}
+void CvGame::ChangeNuclearWinterNaturalReduction(int iChange)
+{
+	m_iNuclearWinterNaturalReduction += iChange;
+}
+NuclearWinterLevelTypes CvGame::GetNowNuclearWinterLevel()
+{
+	return m_eNuclearWinterLevel;
+}
+void CvGame::UpdateNuclearWinterLevel(bool bAllowReduce)
+{
+	if(GC.getGame().isOption(GAMEOPTION_SP_NUCLEARWINTER_OFF))
+	{
+		m_eNuclearWinterLevel = NO_NUCLEAR_WINTER;
+		return;
+	}
+	
+	if(GetNuclearWinterProcess() > 0) ChangeNuclearWinterProcess(-GetNuclearWinterNaturalReduction());
+	int NewLevel = NO_NUCLEAR_WINTER;
+	for (int index = 0; index < GC.getNumNuclearWinterLevel(); index++)
+	{
+		auto* level = GC.getNuclearWinterLevelInfo()[index];
+		if (level->GetTriggerThreshold() > GetNuclearWinterProcess())
+		{
+			break;
+		}
+		NewLevel = index;
+	}
+	if(NewLevel > m_eNuclearWinterLevel || bAllowReduce)
+	{
+		m_eNuclearWinterLevel = (NuclearWinterLevelTypes)NewLevel;
+	}
+}
+#endif
 //	--------------------------------------------------------------------------------
 void CvGame::updateCitySight(bool bIncrement)
 {
@@ -7755,6 +7809,10 @@ void CvGame::doTurn()
 	}
 #endif
 
+#if defined(MOD_NUCLEAR_WINTER_FOR_SP)
+	UpdateNuclearWinterLevel();
+#endif
+
 	// Victory stuff
 	testVictory();
 
@@ -9655,6 +9713,11 @@ void CvGame::Read(FDataStream& kStream)
 	kStream >> m_iVotesNeededForDiploVictory;
 	kStream >> m_iMapScoreMod;
 
+#if defined(MOD_NUCLEAR_WINTER_FOR_SP)
+	kStream >> m_iNuclearWinterProcess;
+	kStream >> (int&)m_eNuclearWinterLevel;
+#endif
+
 	// m_uiInitialTime not saved
 
 	kStream >> m_bScoreDirty;
@@ -9891,6 +9954,11 @@ void CvGame::Write(FDataStream& kStream) const
 	kStream << m_iNumVictoryVotesExpected;
 	kStream << m_iVotesNeededForDiploVictory;
 	kStream << m_iMapScoreMod;
+
+#if defined(MOD_NUCLEAR_WINTER_FOR_SP)
+	kStream << m_iNuclearWinterProcess;
+	kStream << (int)m_eNuclearWinterLevel;
+#endif
 
 	// m_uiInitialTime not saved
 
