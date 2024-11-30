@@ -739,7 +739,7 @@ void CvUnit::initWithNameOffset(int iID, UnitTypes eUnit, int iNameOffset, UnitA
 		kPlayer.ChangeUnhappinessFromUnits(GC.getUnitInfo(getUnitType())->GetUnhappiness());
 	}
 
-	kPlayer.changeExtraUnitCost(getUnitInfo().GetExtraMaintenanceCost());
+	kPlayer.changeExtraUnitCost(getUnitInfo().GetExtraMaintenanceCost() + GetPromotionMaintenanceCost());
 
 	// Add Resource Quantity to Used
 	for(int iResourceLoop = 0; iResourceLoop < GC.getNumResourceInfos(); iResourceLoop++)
@@ -20299,7 +20299,7 @@ void CvUnit::setXY(int iX, int iY, bool bGroup, bool bUpdate, bool bShow, bool b
 					pOldPlot->getPlotCity()->ChangeJONSCulturePerTurnFromPolicies(-(player.GetPlayerPolicies()->GetNumericModifier(POLICYMOD_CULTURE_FROM_GARRISON)));
 					if (player.IsGarrisonFreeMaintenance())
 					{
-						player.changeExtraUnitCost(getUnitInfo().GetExtraMaintenanceCost());
+						player.changeExtraUnitCost(getUnitInfo().GetExtraMaintenanceCost() + GetPromotionMaintenanceCost());
 					}
 				}
 			}
@@ -20378,7 +20378,7 @@ void CvUnit::setXY(int iX, int iY, bool bGroup, bool bUpdate, bool bShow, bool b
 				pNewPlot->getPlotCity()->ChangeJONSCulturePerTurnFromPolicies((player.GetPlayerPolicies()->GetNumericModifier(POLICYMOD_CULTURE_FROM_GARRISON)));
 				if (player.IsGarrisonFreeMaintenance())
 				{
-					player.changeExtraUnitCost(-getUnitInfo().GetExtraMaintenanceCost());
+					player.changeExtraUnitCost(-(getUnitInfo().GetExtraMaintenanceCost() + GetPromotionMaintenanceCost()));
 				}
 			}
 		}

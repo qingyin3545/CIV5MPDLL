@@ -4357,9 +4357,9 @@ void CvPlayer::disbandUnit(bool)
 							break;
 						}
 
-						if(pLoopUnit->getUnitInfo().GetExtraMaintenanceCost() > 0)
+						if((pLoopUnit->getUnitInfo().GetExtraMaintenanceCost() + pLoopUnit->GetPromotionMaintenanceCost())> 0)
 						{
-							iValue /= (pLoopUnit->getUnitInfo().GetExtraMaintenanceCost() + 1);
+							iValue /= (pLoopUnit->getUnitInfo().GetExtraMaintenanceCost() + pLoopUnit->GetPromotionMaintenanceCost() + 1);
 						}
 
 						if(iValue < iBestValue)
