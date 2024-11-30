@@ -27278,7 +27278,7 @@ void CvPlayer::processPolicies(PolicyTypes ePolicy, int iChange)
 					}
 					if(bGarrisonFreeMaintenance)
 					{
-						changeExtraUnitCost(-iUnit->getUnitInfo().GetExtraMaintenanceCost() * iChange);
+						changeExtraUnitCost(-iUnit->getUnitInfo().GetExtraMaintenanceCost());
 					}
 				}
 			}
