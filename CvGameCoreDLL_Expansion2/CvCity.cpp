@@ -910,7 +910,7 @@ void CvCity::init(int iID, PlayerTypes eOwner, int iX, int iY, bool bBumpUnits, 
 				ChangeJONSCulturePerTurnFromPolicies(GET_PLAYER(getOwner()).GetPlayerPolicies()->GetNumericModifier(POLICYMOD_CULTURE_FROM_GARRISON));
 				if(bGarrisonFreeMaintenance)
 				{
-					kPlayer.changeExtraUnitCost(iUnit->getUnitInfo().GetExtraMaintenanceCost() + iUnit->GetPromotionMaintenanceCost());
+					kPlayer.changeExtraUnitCost(iUnit->getUnitInfo().GetExtraMaintenanceCost());
 				}
 			}
 		}
@@ -2094,7 +2094,7 @@ void CvCity::kill()
 		{
 			if(bGarrisonFreeMaintenance && pLoopUnit->GetBaseCombatStrength(true/*bIgnoreEmbarked*/) > 0 && pLoopUnit->getDomainType() == DOMAIN_LAND)
 			{
-				GET_PLAYER(eOwner).changeExtraUnitCost(pLoopUnit->getUnitInfo().GetExtraMaintenanceCost() + pLoopUnit->GetPromotionMaintenanceCost());
+				GET_PLAYER(eOwner).changeExtraUnitCost(pLoopUnit->getUnitInfo().GetExtraMaintenanceCost());
 			}
 			if(pLoopUnit->IsImmobile())
 			{
