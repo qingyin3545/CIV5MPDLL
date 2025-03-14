@@ -137,6 +137,7 @@ protected:
 
 	bool m_bKeepMarshes;
 	bool m_bKeepJungle;
+	bool m_bKeepForest;
 };
 
 #endif //CIV5_BUILDER_TASKING_AI_H
