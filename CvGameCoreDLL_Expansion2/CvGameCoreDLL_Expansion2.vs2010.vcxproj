@@ -458,6 +458,8 @@
     <ClInclude Include="CvCityManager.h" />
     <ClInclude Include="CvCityScaleClasses.h" />
     <ClInclude Include="CvCorruption.h" />
+    <ClInclude Include="CvEnumMap.h" />
+    <ClInclude Include="CvEnumsUtil.h" />
     <ClInclude Include="CvNuclearWinter.h" />
     <ClInclude Include="CvCitySpecializationAI.h" />
     <ClInclude Include="CvCityStrategyAI.h" />

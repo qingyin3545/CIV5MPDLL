@@ -213,6 +213,16 @@ public:
 	int GetNumAdjacentDifferentTeam(TeamTypes eTeam, bool bIgnoreWater) const;
 	int GetNumAdjacentMountains() const;
 
+	int GetSeaBlockadeScore(PlayerTypes ePlayer) const;
+	int countPassableNeighbors(DomainTypes eDomain=NO_DOMAIN, CvPlot** aPassableNeighbors=NULL) const;
+	bool IsBorderLand(PlayerTypes eDefendingPlayer) const;
+	bool IsBorderLand(PlayerTypes eDefendingPlayer, vector<PlayerTypes>& vUnfriendlyMajors) const;
+	bool IsChokePoint() const;
+	bool IsWaterAreaSeparator() const;
+	bool IsCloseToCity(PlayerTypes ePlayer) const;
+	bool IsAdjacentOwnedByUnfriendly(PlayerTypes ePlayer, vector<PlayerTypes>& vUnfriendlyMajors) const;
+	inline DomainTypes getDomain() const { return isWater() ? DOMAIN_SEA : DOMAIN_LAND; }
+
 	void plotAction(PlotUnitFunc func, int iData1 = -1, int iData2 = -1, PlayerTypes eOwner = NO_PLAYER, TeamTypes eTeam = NO_TEAM);
 	int plotCount(ConstPlotUnitFunc funcA, int iData1A = -1, int iData2A = -1, PlayerTypes eOwner = NO_PLAYER, TeamTypes eTeam = NO_TEAM, ConstPlotUnitFunc funcB = NULL, int iData1B = -1, int iData2B = -1) const;
 	CvUnit* plotCheck(ConstPlotUnitFunc funcA, int iData1A = -1, int iData2A = -1, PlayerTypes eOwner = NO_PLAYER, TeamTypes eTeam = NO_TEAM, ConstPlotUnitFunc funcB = NULL, int iData1B = -1, int iData2B = -1);
@@ -1089,3 +1099,48 @@ void ClearPlotDeltas();
 }
 
 #endif
+
+struct SPlotWithScore
+{
+	SPlotWithScore() {}
+	SPlotWithScore(CvPlot* pPlot_, int score_) : pPlot(pPlot_), score(score_) {}
+    bool operator<(const SPlotWithScore& other) const //for sorting
+    {
+        return score < other.score;
+    }
+    bool operator<(const int ref) const
+    {
+        return score < ref;
+    }
+    bool operator==(const SPlotWithScore& other) const //for std::find
+    {
+        return pPlot == other.pPlot;
+    }
+
+	template<typename PlotWithScore, typename Visitor>
+	static void Serialize(PlotWithScore& plotWithScore, Visitor& visitor);
+
+	CvPlot* pPlot;
+	int score;
+};
+FDataStream& operator<<(FDataStream&, const SPlotWithScore&);
+FDataStream& operator>>(FDataStream&, SPlotWithScore&);
+
+struct SPlotWithTwoScoresL2
+{
+	SPlotWithTwoScoresL2() {}
+	SPlotWithTwoScoresL2(CvPlot* pPlot_, int score1_, int score2_) : pPlot(pPlot_), score1(score1_), score2(score2_) {}
+
+	bool operator<(const SPlotWithTwoScoresL2& other) const
+    {
+        return score1*score1+score2*score2 < other.score1*other.score1+other.score2*other.score2;
+    }
+
+	template<typename PlotWithTwoScoresL2, typename Visitor>
+	static void Serialize(PlotWithTwoScoresL2& plotWithTwoScoresL2, Visitor& visitor);
+
+	CvPlot* pPlot;
+	int score1,score2;
+};
+FDataStream& operator<<(FDataStream&, const SPlotWithTwoScoresL2&);
+FDataStream& operator>>(FDataStream&, SPlotWithTwoScoresL2&);

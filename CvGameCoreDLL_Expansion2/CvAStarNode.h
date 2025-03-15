@@ -19,27 +19,44 @@
 #define		CVASTARNODE_H
 #pragma		once
 
-#define ASNL_ADDOPEN		0
-#define ASNL_STARTOPEN		1
-#define ASNL_DELETEOPEN		2
-#define ASNL_ADDCLOSED		3
+#include <vector>
 
-#define ASNC_INITIALADD		0
-#define ASNC_OPENADD_UP		1
-#define ASNC_CLOSEDADD_UP	2
-#define ASNC_PARENTADD_UP	3
-#define ASNC_NEWADD			4
+typedef std::vector<int> PlotIndexContainer; //no good place to put this
 
-enum CvAStarListType
+enum CvAStarNodeAddOp
 {
-	NO_CVASTARLIST = -1,
-
-	CVASTARLIST_OPEN,
-	CVASTARLIST_CLOSED,
-
-	NUM_CVASTARLIST_TYPES
+	ASNC_INITIALADD,
+	ASNC_OPENADD_UP,
+	ASNC_CLOSEDADD_UP,
+	ASNC_PARENTADD_UP,
+	ASNC_NEWADD
 };
 
+class CvUnit;
+class CvPlot;
+
+enum PathType
+{
+	//------- unit pathing
+	PT_UNIT_MOVEMENT,			//path for a particular unit (stacking,ZoC,danger handled via flag)
+	//------- step path
+	PT_GENERIC_SAME_AREA,		//plots must have the same area ID (ie only water or only land)
+	PT_GENERIC_SAME_AREA_WIDE,	//path must be 3 tiles wide
+	PT_ARMY_LAND,				//step path land only
+	PT_ARMY_WATER,				//step path water only (and cities)
+	PT_ARMY_MIXED,				//step path land and water. allow water/land transition but not back!
+	PT_TRADE_LAND,				//land trade (path or reachable plots if dest -1)
+	PT_TRADE_WATER,				//water trade (path or reachable plots if dest -1)
+	PT_BUILD_ROUTE,				//prospective route, land only
+	PT_BUILD_ROUTE_MIXED,		//prospective route, allow harbors
+	PT_AREA_CONNECTION,			//assign area IDs to connected plots (hack)
+	PT_LANDMASS_CONNECTION,		//assign landmass IDs to connected plots (hack)
+	PT_CITY_INFLUENCE,			//which plot is next for a city to expand it's borders
+	PT_CITY_CONNECTION_LAND,	//is there a road or railroad between two points
+	PT_CITY_CONNECTION_WATER,	//is there a sea connection between two points
+	PT_CITY_CONNECTION_MIXED,	//is there a mixed land/sea connection between two points
+	PT_AIR_REBASE,				//for aircraft, only plots with cities and carriers are allowed
+};
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //
@@ -53,26 +70,33 @@ enum CvAStarListType
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 struct CvPathNodeCacheData
 {
-	bool bPlotVisibleToTeam:1;
-	bool bIsMountain:1;
-	bool bIsWater:1;
-#if defined(MOD_PATHFINDER_TERRAFIRMA)
-	bool bIsTerraFirma:1;
-#endif
-	bool bCanEnterTerrain:1;
 	bool bIsRevealedToTeam:1;
-	bool bContainsOtherFriendlyTeamCity:1;
-	bool bContainsEnemyCity:1;
-	bool bContainsVisibleEnemy:1;
-	bool bContainsVisibleEnemyDefender:1;
-	int	iNumFriendlyUnitsOfType;
-#if defined(MOD_GLOBAL_STACKING_RULES)
-	int	iUnitPlotLimit;
-#endif
+	bool bPlotVisibleToTeam:1;
+	bool bIsNonNativeDomain:1;
+	bool bCanEnterTerrainIntermediate:1;
+	bool bCanEnterTerrainPermanent:1;
+	bool bCanEnterTerritoryIntermediate:1;
+	bool bCanEnterTerritoryPermanent:1;
+	bool bIsNonEnemyCity:1;
+	bool bIsEnemyCity:1;
+	bool bIsVisibleEnemyUnit:1;
+	bool bIsVisibleEnemyCombatUnit:1;
+	bool bIsVisibleNeutralCombatUnit:1;
+	bool bUnitStackingLimitReached:1;
+	bool bIsValidRoute:1;
 
-#ifdef MOD_TRAITS_CAN_FOUND_MOUNTAIN_CITY
-	bool bIsCity:1;
-#endif
+	int iMoveFlags;
+
+	//for performance, precompute the effect of plot type, terrain and feature
+	short plotMovementCostMultiplier;
+	short plotMovementCostAdder;
+
+	//tell us when to update the cache ...
+	unsigned short iGenerationID;
+
+	//housekeeping
+	CvPathNodeCacheData() { clear(); }
+	void clear() { memset(this,0,sizeof(CvPathNodeCacheData)); }
 };
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -85,68 +109,177 @@ struct CvPathNodeCacheData
 class CvAStarNode
 {
 public:
-	CvAStarNode()
+	CvAStarNode();
+	void clear();
+
+	short m_iX, m_iY;							// Coordinate position - persistent
+
+	long m_iKnownCost;							// Goal (g)
+	long m_iHeuristicCost;						// Heuristic (h)
+	long m_iTotalCost;							// Fitness (f)
+
+	unsigned short m_iMoves;					// unit-specific, movement points left. if no unit is given, always zero
+	unsigned short m_iTurns;					// unit-specific, how many turns does it take to get here. if no unit given: equal to number of plots in path up to here
+	unsigned short m_iStartMovesForTurn;		// needed for move cost normalization on domain change
+
+	bool m_bIsOpen;								// Is this node on the open or closed list?
+	CvAStarNode* m_pParent;						// Parent in current path
+
+	CvAStarNode** m_apNeighbors; 				// For faster neighbor lookup (potential children) - always 6 - not affected by clear()
+	std::vector<CvAStarNode*> m_apChildren;		// Nodes we could reach from this node - maybe be more than 6 because of "extrachildren"
+
+	CvPathNodeCacheData m_kCostCacheData;		// some things we want to calculate only once
+};
+
+//-------------------------------------------------------------------------------------------------
+// All information which might be required for a given path
+//-------------------------------------------------------------------------------------------------
+struct SPathFinderUserData
+{
+	SPathFinderUserData()
+		: ePath(PT_GENERIC_SAME_AREA)
+		, eRoute(NO_ROUTE)
+		, eBuild(NO_BUILD)
+		, eRoutePurpose(NO_ROUTE_PURPOSE)
+		, bUseRivers(false)
+		, iFlags(0)
+		, ePlayer(NO_PLAYER)
+		, eEnemy(NO_PLAYER)
+		, iUnitID(0)
+		, iMaxTurns(INT_MAX)
+		, iMaxNormalizedDistance(INT_MAX)
+		, iMinMovesLeft(0)
+		, iStartMoves(60)
+	{}
+	SPathFinderUserData(const CvUnit* pUnit, int iFlags=0, int iMaxTurns=INT_MAX); // PT_AIR_REBASE (special case, set after construction)
+	SPathFinderUserData(PlayerTypes ePlayer, PathType ePathType); // PT_TRADE_WATER, PT_TRADE_LAND, PT_LANDMASS_CONNECTION, PT_CITY_CONNECTION_WATER
+	SPathFinderUserData(PlayerTypes ePlayer, PathType ePathType, int iMaxTurns); // PT_AREA_CONNECTION (iMaxTurns is simple vs complex check (0/1)), PT_CITY_INFLUENCE
+	SPathFinderUserData(PlayerTypes ePlayer, PathType ePathType, PlayerTypes eEnemy, int iMaxTurns); // PT_GENERIC_SAME_AREA, PT_GENERIC_SAME_AREA_WIDE, PT_ARMY_LAND, PT_ARMY_WATER, PT_ARMY_MIXED
+	SPathFinderUserData(PlayerTypes ePlayer, PathType ePathType, BuildTypes eBuildType, RouteTypes eRouteType, RoutePurpose eRoutePurpose, bool bUseRivers); // PT_BUILD_ROUTE, PT_BUILD_ROUTE_MIXED, PT_CITY_CONNECTION_LAND, PT_CITY_CONNECTION_MIXED
+
+	//do not compare max turns and max cost ...
+	bool operator==(const SPathFinderUserData& rhs) const 
+		{ return ePath==rhs.ePath && iFlags==rhs.iFlags && ePlayer==rhs.ePlayer && iUnitID==rhs.iUnitID && eRoute==rhs.eRoute; }
+	bool operator!=(const SPathFinderUserData& rhs) const { return !(*this==rhs); }
+
+	PathType			ePath;
+	RouteTypes			eRoute;
+	BuildTypes			eBuild;             //BuildType related to the RouteType
+	RoutePurpose		eRoutePurpose;
+	bool                bUseRivers;
+	int					iFlags;				//see CvUnit::MOVEFLAG*
+	PlayerTypes			ePlayer;			//optional
+	PlayerTypes			eEnemy;
+	int					iUnitID;			//optional
+	int					iMaxTurns;
+	int					iMaxNormalizedDistance;
+	int					iMinMovesLeft;
+	int					iStartMoves;
+	PlotIndexContainer	plotsToIgnoreForZOC;
+};
+
+//-------------------------------------------------------------------------------------------------
+// Simple structure to hold a pathfinding result
+//-------------------------------------------------------------------------------------------------
+struct SPathNode
+{
+	short x,y,turns,moves;
+
+	//constructor
+	SPathNode() : x(-1),y(-1),turns(0),moves(0) {}
+	SPathNode(CvAStarNode* p)
 	{
-		m_iX = -1;
-		m_iY = -1;
-		m_iTotalCost = 0;
-		m_iKnownCost = 0;
-		m_iHeuristicCost = 0;
-		m_iNumChildren = 0;
-		m_iData1 = 0;
-		m_iData2 = 0;
-
-		m_bOnStack = false;
-
-		m_eCvAStarListType = NO_CVASTARLIST;
-
-		m_pParent = NULL;
-		m_pNext = NULL;
-		m_pPrev = NULL;
-		m_pStack = NULL;
+		x = p ? p->m_iX : -1;
+		y = p ? p->m_iY : -1;
+		turns = p ? p->m_iTurns : 0;
+		moves = p ? p->m_iMoves : 0;
 	}
 
-	void clear()
+	bool operator==(const SPathNode& other) const
 	{
-		m_iTotalCost = 0;
-		m_iKnownCost = 0;
-		m_iHeuristicCost = 0;
-		m_iNumChildren = 0;
-		m_iData1 = 0;
-		m_iData2 = 0;
-
-		m_bOnStack = false;
-
-		m_eCvAStarListType = NO_CVASTARLIST;
-
-		m_pParent = NULL;
-		m_pNext = NULL;
-		m_pPrev = NULL;
-		m_pStack = NULL;
-
-		m_apChildren.clear();
+		return x==other.x && y==other.y && turns==other.turns && moves==other.moves;
 	}
+};
 
-	int m_iTotalCost;	  // Fitness (f)
-	int m_iKnownCost;	  // Goal (g)
-	int m_iHeuristicCost; // Heuristic (h)
-	int m_iData1;
-	int m_iData2;
+struct SPath
+{
+	std::vector<SPathNode> vPlots;
+	int iTotalCost;
+	int iNormalizedDistanceRaw; //fixed point float!
+	int iTotalTurns;
+	int iTurnSliceGenerated;
+	SPathFinderUserData sConfig;
 
-	CvAStarListType m_eCvAStarListType;
+	//constructor
+	SPath() : iTotalCost(-1),iNormalizedDistanceRaw(-1),iTotalTurns(-1),iTurnSliceGenerated(-1) {}
 
-	CvAStarNode* m_pParent;
-	CvAStarNode* m_pNext;					// For Open and Closed lists
-	CvAStarNode* m_pPrev;					// For Open and Closed lists
-	CvAStarNode* m_pStack;					// For Push/Pop Stack
+	//not quite a safe-bool, but good enough
+	inline bool operator!() const { return vPlots.empty(); }
 
-	FStaticVector<CvAStarNode*, 6, true, c_eCiv5GameplayDLL, 0> m_apChildren;
+	//convenience
+	inline int length() const { return vPlots.size(); }
+	CvPlot* get(int i) const;
 
-	short m_iX, m_iY;         // Coordinate position
-	short m_iNumChildren;
-	bool m_bOnStack;
+	//flip the order of the plots
+	void invert();
 
-	CvPathNodeCacheData m_kCostCacheData;
+	static int getNormalizedDistanceBase();
+
+	bool operator==(const SPath& other) const
+	{
+		return iTotalCost==other.iTotalCost && iNormalizedDistanceRaw==other.iNormalizedDistanceRaw && 
+				iTotalTurns==other.iTotalTurns && vPlots.size()==other.vPlots.size();
+	}
+};
+
+struct SMovePlot
+{
+	int iPlotIndex;
+	int iPathLength; //turns or steps, depending on pathfinder
+	int iMovesLeft;
+	int iNormalizedDistanceRaw; //fixed point float
+
+	SMovePlot(int iIndex) : iPlotIndex(iIndex), iPathLength(0), iMovesLeft(0), iNormalizedDistanceRaw(0) {}
+	SMovePlot(int iIndex, int iLength_, int iMovesLeft_, int iNormalizedDistance_) : 
+		iPlotIndex(iIndex), iPathLength(iLength_), iMovesLeft(iMovesLeft_), iNormalizedDistanceRaw(iNormalizedDistance_) {}
+
+	//this ignores the turns/moves so std::find with just a plot index should work
+	bool operator==(const SMovePlot& rhs) const { return iPlotIndex==rhs.iPlotIndex; }
+	bool operator<(const SMovePlot& rhs) const { return iPlotIndex<rhs.iPlotIndex; }
+
+	//for the step finder normally turns==steps, but sometimes we want effective path length from cost
+	int effectivePathLength(int iMovesPerTurn) const;
+};
+
+class ReachablePlots
+{
+public:
+	typedef std::vector<SMovePlot>::iterator iterator;
+	typedef std::vector<SMovePlot>::const_iterator const_iterator;
+	
+	ReachablePlots() {}
+	
+	iterator begin() { return storage.begin(); }
+	const_iterator begin() const { return storage.begin(); }
+	iterator end() { return storage.end(); }
+	const_iterator end() const { return storage.end(); }
+
+	size_t size() const { return storage.size(); }
+	bool empty() const { return storage.empty(); }
+	void clear() { storage.clear(); lookup.clear(); }
+
+	iterator find(int iPlotIndex);
+	const_iterator find(int iPlotIndex) const;
+	void insertWithIndex(const SMovePlot& plot);
+	void insertNoIndex(const SMovePlot& plot);
+	void createIndex();
+
+	bool operator==(const ReachablePlots& rhs) const { return storage == rhs.storage && lookup == rhs.lookup; }
+	bool operator!=(const ReachablePlots& rhs) const { return storage != rhs.storage || lookup != rhs.lookup; }
+
+protected:
+	vector<pair<int,size_t>> lookup;
+	std::vector<SMovePlot> storage;
 };
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -168,47 +301,46 @@ public:
 	{
 		m_iX = -1;
 		m_iY = -1;
-		m_iData1 = 0;
-		m_iData2 = 0;
-		m_iFlags = 0;
+		m_iMoves = 0;
+		m_iTurns = 0;
 	}
 
-	enum Flags
+	int m_iMoves;
+	int m_iTurns;
+	short m_iX, m_iY;
+
+	CvPathNode(const SPathNode& rhs)
 	{
-		// If set the plot that the path node points to was not visible to the team that generated the path at the time of creation.  
-		// For efficiency, all further nodes should be assumed to have been possibly invisible as well.
-		PLOT_INVISIBLE						= (1 << 0),
-		// A convenience flag, signifying that the next plot in the path was invisible at the time of generation.  It is at this plot you most likely need to regenerated the path
-		// if the unit is going to continue into the 'invisible' plots, this is because if you wait until you enter an invisible plot, you may need to stop because it reveals a blocking
-		// plot and the unit may be stop on a plot it is not allowed to stop on.
-		PLOT_ADJACENT_INVISIBLE				= (1 << 1)
-	};
-
-	int m_iData1;
-	int m_iData2;
-	int m_iFlags;
-	short m_iX, m_iY;         // Coordinate position
-
-	bool GetFlag(int eFlag) const { return (m_iFlags & eFlag) != 0; }
-	void SetFlag(int eFlag) { m_iFlags |= eFlag; }
-	void ClearFlag(int eFlag) { m_iFlags = (m_iFlags & ~eFlag); }
-
-	CvPathNode& operator =(const CvAStarNode& rhs)
-	{
-		m_iX = rhs.m_iX;
-		m_iY = rhs.m_iY;
-		m_iData1 = rhs.m_iData1;
-		m_iData2 = rhs.m_iData2;
-		m_iFlags = 0;
-		return *this;
+		m_iX = rhs.x;
+		m_iY = rhs.y;
+		m_iTurns = rhs.turns;
+		m_iMoves = rhs.moves;
 	}
 };
 
-class CvPathNodeArray : public FFastVector< CvPathNode, true, c_eMPoolTypeContainer >
+FDataStream & operator >> (FDataStream & kStream, CvPathNode & node);
+FDataStream & operator << (FDataStream & kStream, const CvPathNode & node);
+
+class CvPathNodeArray : public std::deque<CvPathNode>
 {
 public:
+	CvPlot* GetTurnDestinationPlot(int iTurn) const;
+	CvPlot* GetFinalPlot() const;
+	CvPlot* GetFirstPlot() const;
+	CvPlot* GetPlotByIndex(int iIndex) const;
 
-	const CvPathNode* GetTurnDest(int iTurn);
+	friend FDataStream& operator<<(FDataStream& kStream, const CvPathNodeArray& readFrom);
+	friend FDataStream& operator>>(FDataStream& kStream, CvPathNodeArray& writeTo);
+};
+
+struct PrNodeIsBetter
+{
+	//greater than is intended! the lowest cost should be first
+	bool operator()(const CvAStarNode* lhs, const CvAStarNode* rhs) const
+	{ 
+		//apparently there's a rule, when total cost is equal, prefer lower h (heuristic cost)
+		return lhs->m_iTotalCost > rhs->m_iTotalCost || (lhs->m_iTotalCost == rhs->m_iTotalCost && lhs->m_iHeuristicCost > rhs->m_iHeuristicCost); 
+	}
 };
 
 #endif	//CVASTARNODE_H

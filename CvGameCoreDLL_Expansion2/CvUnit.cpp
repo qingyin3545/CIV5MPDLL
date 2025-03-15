@@ -14112,12 +14112,7 @@ int CvUnit::reconRange() const
 
 //	---------------------------------------------------------------------------
 // Get the base movement points for the unit.
-// Parameters:
-//		eIntoDomain	- If NO_DOMAIN, this will use the units current domain.
-//					  This can give different results based on whether the unit is currently embarked or not.
-//					  Passing in DOMAIN_SEA will return the units baseMoves as if it were already embarked.
-//					  Passing in DOMAIN_LAND will return the units baseMoves as if it were on land, even if it is currently embarked.
-int CvUnit::baseMoves(DomainTypes eIntoDomain /* = NO_DOMAIN */) const
+int CvUnit::baseMoves(bool bPretendEmbarked) const
 {
 	VALIDATE_OBJECT
 	CvTeam& thisTeam = GET_TEAM(getTeam());
@@ -14125,27 +14120,21 @@ int CvUnit::baseMoves(DomainTypes eIntoDomain /* = NO_DOMAIN */) const
 	CvPlayerTraits* pTraits = thisPlayer.GetPlayerTraits();
 	DomainTypes eDomain = getDomainType();
 
-#if defined(MOD_PATHFINDER_DEEP_WATER_EMBARKATION)
-	bool bWantEmbarkedMovement = (eIntoDomain == DOMAIN_SEA && CanEverEmbark()) || (eIntoDomain == NO_DOMAIN && isEmbarked());
-	bWantEmbarkedMovement = bWantEmbarkedMovement || (eIntoDomain == DOMAIN_SEA && IsHoveringUnit() && IsEmbarkDeepWater());
-	if(bWantEmbarkedMovement)
-#else
-	if((eIntoDomain == DOMAIN_SEA && CanEverEmbark()) || (eIntoDomain == NO_DOMAIN && isEmbarked()))
-#endif
+	if(bPretendEmbarked)
 	{
 		CvPlayerPolicies* pPolicies = thisPlayer.GetPlayerPolicies();
 		return GC.getEMBARKED_UNIT_MOVEMENT() + getExtraNavalMoves() + thisTeam.getEmbarkedExtraMoves() + thisTeam.getExtraMoves(eDomain) + pTraits->GetExtraEmbarkMoves() + pPolicies->GetNumericModifier(POLICYMOD_EMBARKED_EXTRA_MOVES);
 	}
 
-	int m_iExtraNavalMoves = 0;
+	int iExtraNavalMoves = 0;
 	if(eDomain == DOMAIN_SEA)
 	{
-		m_iExtraNavalMoves += getExtraNavalMoves();
+		iExtraNavalMoves += getExtraNavalMoves();
 
 		// Work boats also get extra moves, and they don't have a combat class to receive a promotion from
 		if(m_iBaseCombat == 0)
 		{
-			m_iExtraNavalMoves += pTraits->GetExtraEmbarkMoves();
+			iExtraNavalMoves += pTraits->GetExtraEmbarkMoves();
 		}
 	}
 
@@ -14156,8 +14145,7 @@ int CvUnit::baseMoves(DomainTypes eIntoDomain /* = NO_DOMAIN */) const
 	}
 
 	int iExtraUnitCombatTypeMoves = pTraits->GetMovesChangeUnitCombat((UnitCombatTypes)(m_pUnitInfo->GetUnitCombatType()));
-
-	return (m_pUnitInfo->GetMoves() + getExtraMoves() + thisTeam.getExtraMoves(eDomain) + m_iExtraNavalMoves + iExtraGoldenAgeMoves + iExtraUnitCombatTypeMoves);
+	return (m_pUnitInfo->GetMoves() + getExtraMoves() + thisTeam.getExtraMoves(eDomain) + iExtraNavalMoves + iExtraGoldenAgeMoves + iExtraUnitCombatTypeMoves);
 }
 
 
@@ -27758,15 +27746,6 @@ bool CvUnit::canRangeStrike() const
 
 //	--------------------------------------------------------------------------------
 #if defined(MOD_AI_SMART_V3)
-//AMS: Special property to get unit range+ move possibility.
-int CvUnit::GetRangePlusMoveToshot() const
-{
-	VALIDATE_OBJECT
-	return ((getDomainType() == DOMAIN_AIR) ? GetRange() : (GetRange() + baseMoves() - (isMustSetUpToRangedAttack() ? 1 : 0)));
-}
-#endif
-
-#if defined(MOD_AI_SMART_V3)
 bool CvUnit::canEverRangeStrikeAt(int iX, int iY, const CvPlot* pSourcePlot) const
 #else
 bool CvUnit::canEverRangeStrikeAt(int iX, int iY) const
@@ -27980,75 +27959,6 @@ bool CvUnit::canRangeStrikeAt(int iX, int iY, bool bNeedWar, bool bNoncombatAllo
 }
 
 #if defined(MOD_AI_SMART_V3)
-//AMS: Optimized function to retrieve free plots for move and fire.
-void CvUnit::GetMovablePlotListOpt(vector<CvPlot*>& plotData, CvPlot* plotTarget, bool exitOnFound, bool bIgnoreFriendlyUnits)
-{
-	VALIDATE_OBJECT
-	CvAStarNode* pNode;
-	int xVariance = max(abs((getX() - plotTarget->getX()) / 2), 1);
-	int yVariance = max(abs((getY() - plotTarget->getY()) / 2), 1);
-	int xMin = min(getX(), plotTarget->getX()) - yVariance;
-	int xMax = max(getX(), plotTarget->getX()) + yVariance;
-	int yMin = min(getY(), plotTarget->getY()) - xVariance;
-	int yMax = max(getY(), plotTarget->getY()) + xVariance;
-
-	for(int iDX = xMin; iDX <= xMax; iDX++)
-	{
-		for(int iDY = yMin; iDY <= yMax; iDY++)
-		{
-			if (GC.getMap().isPlot(iDX, iDY))
-			{
-				CvPlot* currentPlot = GC.getMap().plotCheckInvalid(iDX, iDY);
-
-				if (currentPlot->isUnit())
-				{
-					if (!bIgnoreFriendlyUnits)
-					{
-						continue;
-					}
-					UnitHandle pFriendlyUnit = currentPlot->getBestDefender(GET_PLAYER(getOwner()).GetID());
-					if (!pFriendlyUnit)
-					{
-						continue;
-					}
-				}
-
-				// Check is valid plot
-				if ((currentPlot != NULL) && !currentPlot->isImpassable() && !currentPlot->isCity())
-				{
-					//Check plot is in unit range
-					if (GetRange() >= plotDistance(currentPlot->getX(), currentPlot->getY(), plotTarget->getX(), plotTarget->getY()))
-					{
-						// Updated this part based on AUI that checks the movement left for siegue.
-						if(canEverRangeStrikeAt(plotTarget->getX(), plotTarget->getY(), currentPlot))
-						{
-							pNode = NULL;
-							GC.GetTacticalAnalysisMapFinder().SetData(this);
-							if (GC.GetTacticalAnalysisMapFinder().GeneratePath(getX(), getY(), currentPlot->getX(), currentPlot->getY(), MOVE_UNITS_IGNORE_DANGER | MOVE_IGNORE_STACKING, false))
-							{
-								pNode = GC.GetTacticalAnalysisMapFinder().GetLastNode();
-							}
-							if (pNode)
-							{
-								if (pNode->m_iData2 == 1 && pNode->m_iData1 > (isMustSetUpToRangedAttack() ? 1 : 0))
-								{
-									plotData.push_back(currentPlot);
-
-									if (exitOnFound)
-									{
-										return;
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-}
-#endif
-
 //	--------------------------------------------------------------------------------
 /// Can this Unit air sweep to eliminate interceptors?
 bool CvUnit::IsAirSweepCapable() const
@@ -30030,193 +29940,185 @@ bool CvUnit::IsEnemyInMovementRange(bool bOnlyFortified, bool bOnlyCities)
 	return bCanFindPath;
 }
 
-// PATH-FINDING ROUTINES
+//	--------------------------------------------------------------------------------
+// get all tiles a unit can reach in one turn - this ignores friendly stacking. need to check the result by hand!
+//	--------------------------------------------------------------------------------
+ReachablePlots CvUnit::GetAllPlotsInReachThisTurn(bool bCheckTerritory, bool bCheckZOC, bool bAllowEmbark, int iMinMovesLeft) const
+{
+	int iFlags = CvUnit::MOVEFLAG_IGNORE_STACKING_SELF | CvUnit::MOVEFLAG_IGNORE_DANGER;
+
+	if (!bCheckTerritory)
+		iFlags |= CvUnit::MOVEFLAG_IGNORE_RIGHT_OF_PASSAGE;
+	if (!bCheckZOC)
+		iFlags |= CvUnit::MOVEFLAG_IGNORE_ZOC;
+	if (!bAllowEmbark)
+		iFlags |= CvUnit::MOVEFLAG_NO_EMBARK;
+
+	return TacticalAIHelpers::GetAllPlotsInReachThisTurn(this, plot(), iFlags, iMinMovesLeft);
+}
 
 //	--------------------------------------------------------------------------------
-/// Use pathfinder to create a path
-bool CvUnit::GeneratePath(const CvPlot* pToPlot, int iFlags, bool bReuse, int* piPathTurns) const
+vector<int> CvUnit::GetPlotsWithEnemyInMovementRange(bool bOnlyFortified, bool bOnlyCities, int iMaxPathLength)
 {
-	VALIDATE_OBJECT
-	// slewis - a bit of baffling logic
-	// we want to catch if the unit is doing a partial move while it is evaluating a mission, because that hoses things
-	CvAssertMsg(!(IsDoingPartialMove() && m_iFlags & UNITFLAG_EVALUATING_MISSION), "Repathing during a partial move will cause serious issues!");
+	vector<int> result;
 
-	CvAssertMsg(pToPlot != NULL, "Passed in a NULL destination to GeneratePath");
+	VALIDATE_OBJECT();
+	ReachablePlots plots = GetAllPlotsInReachThisTurn(true, true, false);
+	for (ReachablePlots::const_iterator it=plots.begin(); it!=plots.end(); ++it)
+	{
+		if (it->iPathLength > iMaxPathLength)
+			continue;
+
+		CvPlot* pPlot = GC.getMap().plotByIndexUnchecked(it->iPlotIndex);
+		if(pPlot->isVisible(getTeam()) && (pPlot->isVisibleEnemyUnit(this) || pPlot->isEnemyCity(*this)))
+		{
+			if (canMoveInto(*pPlot, CvUnit::MOVEFLAG_ATTACK))
+			{
+				if(bOnlyFortified)
+				{
+					CvUnit* pEnemyUnit = pPlot->getVisibleEnemyDefender(getOwner());
+					if (pEnemyUnit && pEnemyUnit->IsFortified())
+						result.push_back(it->iPlotIndex);
+				}
+				else if(bOnlyCities)
+				{
+					if(pPlot->isEnemyCity(*this))
+						result.push_back(it->iPlotIndex);
+				}
+				else
+					result.push_back(it->iPlotIndex);
+			}
+		}
+	}
+
+	return result;
+}
+
+// PATH-FINDING ROUTINES
+bool CvUnit::IsCachedPathValid() const
+{
+	return m_uiLastPathCacheOrigin != -1;
+}
+
+bool CvUnit::HaveCachedPathTo(const CvPlot* pToPlot, int iFlags) const
+{
+	return (
+		m_uiLastPathCacheOrigin == plot()->GetPlotIndex() &&
+		m_uiLastPathCacheDestination == pToPlot->GetPlotIndex() && 
+		m_uiLastPathFlags == (iFlags & PATHFINDER_FLAG_MASK) &&
+		m_uiLastPathTurnSlice == GC.getGame().getTurnSlice()
+		);
+}
+
+//	--------------------------------------------------------------------------------
+/// Use pathfinder to create a path (protected, allows caching)
+bool CvUnit::GeneratePath(const CvPlot* pToPlot, int iFlags, int iMaxTurns, int* piPathTurns)
+{
 	if(pToPlot == NULL)
 		return false;
 
-	bool bSuccess;
-
-	CvTwoLayerPathFinder& kPathFinder = GC.getPathFinder();
-
-	bSuccess = kPathFinder.GenerateUnitPath(this, getX(), getY(), pToPlot->getX(), pToPlot->getY(), iFlags, bReuse);
-
-	// Regardless of whether or not we made it there, keep track of the plot we tried to path to.  This helps in preventing us from trying to re-path to the same unreachable location.
-	m_uiLastPathCacheDest = pToPlot->GetPlotIndex();
-
-	CvAStar::CopyPath(kPathFinder.GetLastNode(), m_kLastPath);
-
-	if(m_kLastPath.size() != 0)
+	//can we re-use the old path?
+	if (HaveCachedPathTo(pToPlot, iFlags))
 	{
-		CvMap& kMap = GC.getMap();
-		TeamTypes eTeam = getTeam();
-
-		// Get the state of the plots in the path, they determine how much of the path is re-usable.
-		// KWG: Have the path finder do this for us?
-		for (uint uiIndex = m_kLastPath.size(); uiIndex--; )
-		{
-			CvPathNode& kNode = m_kLastPath[uiIndex];
-			CvPlot* pkPlot = kMap.plotCheckInvalid(kNode.m_iX, kNode.m_iY);
-			if (pkPlot)
-			{
-				if (!pkPlot->isVisible(eTeam))
-				{
-					kNode.SetFlag(CvPathNode::PLOT_INVISIBLE);
-					if (uiIndex < (m_kLastPath.size() - 2))
-						m_kLastPath[uiIndex + 1].SetFlag(CvPathNode::PLOT_ADJACENT_INVISIBLE);
-
-					// Also determine the destination visibility.  This will be checked in UnitPathTo to see if the destination's visibility has changed and do a re-evaluate again if it has.
-					// This will help a unit to stop early in its pathing if the destination is blocked.
-					CvPlot* pkPathDest = kMap.plot(m_kLastPath[0].m_iX, m_kLastPath[0].m_iY);
-					if (pkPathDest != NULL && !pkPathDest->isVisible(eTeam))
-						m_kLastPath[0].SetFlag(CvPathNode::PLOT_INVISIBLE);
-
-					break;	// Anything after is 'in the dark' and should be re-evaluated if trying to move a unit into it.
-				}
-			}
-		}
-	}
-
-	if(piPathTurns != NULL)
-	{
-		*piPathTurns = INT_MAX;
-
-		if(bSuccess)
-		{
-			if(m_kLastPath.size() != 0)
-			{
-				*piPathTurns = m_kLastPath.front().m_iData2;
-			}
-		}
-	}
-
-	return bSuccess;
-}
-
-//	--------------------------------------------------------------------------------
-/// Reset internal pathing data
-void CvUnit::ResetPath()
-{
-	VALIDATE_OBJECT
-	GC.getPathFinder().ForceReset();
-}
-
-//	--------------------------------------------------------------------------------
-/// What is the first plot along this path?
-CvPlot* CvUnit::GetPathFirstPlot() const
-{
-	VALIDATE_OBJECT
-
-	uint uiPathSize = m_kLastPath.size();
-	if(uiPathSize > 0)
-	{
-		if(uiPathSize == 1)
-		{
-			const CvPathNode& kNode = m_kLastPath.front();
-			return GC.getMap().plotCheckInvalid(kNode.m_iX, kNode.m_iY);
-		}
+		if (piPathTurns == NULL)
+			return true;
 		else
 		{
-			// The 'first' plot we want is the next to last one.  The last one is always where the unit is currently.
-			// Should we even bother caching that one?
-			const CvPathNode& kNode = m_kLastPath[ uiPathSize - 2];
-			return GC.getMap().plotCheckInvalid(kNode.m_iX, kNode.m_iY);
-		}
-	}
-
-	CvAssert(false);
-
-	return NULL;
-}
-
-//	--------------------------------------------------------------------------------
-/// Where does this path end (returns CvPlot*)?
-CvPlot* CvUnit::GetPathLastPlot() const
-{
-	VALIDATE_OBJECT
-	if(m_kLastPath.size() > 0)
-	{
-		const CvPathNode& kNode = m_kLastPath.front();
-		return GC.getMap().plotCheckInvalid(kNode.m_iX, kNode.m_iY);
-	}
-
-	return NULL;
-}
-
-//	--------------------------------------------------------------------------------
-/// Returns the last path generated by the unit
-const CvPathNodeArray& CvUnit::GetPathNodeArray() const
-{
-	VALIDATE_OBJECT
-	return m_kLastPath;
-}
-
-//	--------------------------------------------------------------------------------
-/// Clear the pathing cache.  Please use with caution.
-void CvUnit::ClearPathCache()
-{
-	m_kLastPath.setsize(0);
-	m_uiLastPathCacheDest = (uint)-1;
-}
-
-
-//	--------------------------------------------------------------------------------
-/// Where do we end this next move?
-CvPlot* CvUnit::GetPathEndTurnPlot() const
-{
-	VALIDATE_OBJECT
-
-	if(m_kLastPath.size())
-	{
-		const CvPathNode* pNode = &m_kLastPath[0];
-
-		if(m_kLastPath.size() == 1 || (pNode->m_iData2 == 1))
-		{
-			return GC.getMap().plotCheckInvalid(pNode->m_iX, pNode->m_iY);
-		}
-
-		for(uint uiIndex = 1; uiIndex < m_kLastPath.size(); ++uiIndex)
-		{
-			pNode = &m_kLastPath[uiIndex];
-			if(pNode->m_iData2 == 1)
+			if (m_kLastPath.empty())
+				//we're already there (at least approximately)!
+				*piPathTurns = 0;
+			else
 			{
-				return GC.getMap().plotCheckInvalid(pNode->m_iX, pNode->m_iY);
+				*piPathTurns = m_kLastPath.back().m_iTurns;
+				if ((iFlags & CvUnit::MOVEFLAG_TURN_END_IS_NEXT_TURN) && m_kLastPath.back().m_iMoves == 0)
+					(*piPathTurns)++;
 			}
+
+			return true;
 		}
-	}
-
-	CvAssert(false);
-
-	return NULL;
-}
-
-//	--------------------------------------------------------------------------------
-int CvUnit::SearchRange(int iRange) const
-{
-	VALIDATE_OBJECT
-	if(iRange == 0)
-	{
-		return 0;
-	}
-
-	if(flatMovementCost() || (getDomainType() == DOMAIN_SEA))
-	{
-		return (iRange * baseMoves());
 	}
 	else
 	{
-		return ((iRange + 1) * (baseMoves() + 1));
+		int iTurns = ComputePath(pToPlot, iFlags, iMaxTurns, true);
+		if (piPathTurns)
+			*piPathTurns = iTurns;
+		return iTurns!=INT_MAX;
 	}
+}
+
+//	--------------------------------------------------------------------------------
+/// Clear the pathing cache
+void CvUnit::ClearPathCache()
+{
+	m_kLastPath.clear();
+	m_uiLastPathCacheOrigin = -1;
+	m_uiLastPathCacheDestination = -1;
+	m_uiLastPathFlags = 0xFFFFFFFF;
+	m_uiLastPathTurnSlice = -1;
+}
+
+//	--------------------------------------------------------------------------------
+/// Where do we end this next move?
+CvPlot* CvUnit::GetPathEndFirstTurnPlot() const
+{
+	if (IsCachedPathValid())
+		return m_kLastPath.GetTurnDestinationPlot(0);
+
+	return NULL;
+}
+
+CvPlot* CvUnit::GetPathFirstPlot() const
+{
+	if (IsCachedPathValid())
+		return m_kLastPath.GetFirstPlot();
+
+	return NULL;
+}
+
+CvPlot* CvUnit::GetPathLastPlot() const
+{
+	if (!IsCachedPathValid())
+		return NULL;
+
+	if (m_kLastPath.empty()) //with approximate pathfinding this is a valid case
+		return plot();
+	else
+		return m_kLastPath.GetFinalPlot();
+}
+
+int CvUnit::GetMovementPointsAtCachedTarget() const
+{
+	if (!IsCachedPathValid() || m_kLastPath.empty())
+		return -1;
+
+	return m_kLastPath.back().m_iMoves;
+}
+
+CvPlot * CvUnit::GetLastValidDestinationPlotInCachedPath() const
+{
+	if (!IsCachedPathValid() || m_kLastPath.empty())
+		return NULL;
+
+	for (size_t i = m_kLastPath.size() - 1; i > 0; i--)
+	{
+		CvPlot* pPlot = m_kLastPath.GetPlotByIndex(i);
+		if (pPlot && canMoveInto(*pPlot, CvUnit::MOVEFLAG_DESTINATION))
+			return pPlot;
+	}
+
+	return NULL;
+}
+
+const CvPathNodeArray& CvUnit::GetLastPath() const
+{
+	return m_kLastPath;
+}
+
+bool CvUnit::CachedPathIsSafeForCivilian() const
+{
+	//check if the unit can be captured this turn
+	CvPlot* pCheck = GetPathEndFirstTurnPlot();
+	return !pCheck || GET_PLAYER(m_eOwner).GetPlotDanger(*pCheck,false) < GetCurrHitPoints();
 }
 
 //	--------------------------------------------------------------------------------
@@ -30405,8 +30307,8 @@ int CvUnit::GetWithdrawChance(const CvUnit& attacker, const bool bCheckChances) 
 	{
 		int iWithdrawChance = getExtraWithdrawal();
 		// Does attacker have a greater speed than defender? Reduce withdrawal chance for each point the attacker is faster
-		int iDefenderMovementRange = baseMoves(getDomainType());
-		int iAttackerMovementRange = attacker.baseMoves(attacker.getDomainType());
+		int iDefenderMovementRange = baseMoves(isEmbarked());
+		int iAttackerMovementRange = attacker.baseMoves(attacker.isEmbarked());
 		if (iAttackerMovementRange > iDefenderMovementRange)
 			iWithdrawChance += (/*-20*/ GD_INT_GET(WITHDRAW_MOD_ENEMY_MOVES) * (iAttackerMovementRange - iDefenderMovementRange));
 
@@ -32013,6 +31915,104 @@ bool CvUnit::IsWithinDistanceOfTerrain(TerrainTypes iTerrainType, int iDistance)
 	return plot()->IsWithinDistanceOfTerrain(iTerrainType, iDistance);
 }
 #endif
+
+//	--------------------------------------------------------------------------------
+/// Can a unit reach this destination in "X" turns of movement? (pass in 0 if need to make it in 1 turn with movement left)
+bool CvUnit::CanSafelyReachInXTurns(const CvPlot* pTarget, int iTurns)
+{
+	if (!pTarget)
+		return false;
+
+	//stop pathfinding if we need to end the turn on a dangerous plot
+	return (TurnsToReachTarget(pTarget, CvUnit::MOVEFLAG_AI_ABORT_IN_DANGER, iTurns) <= iTurns);
+}
+
+//	--------------------------------------------------------------------------------
+/// How many turns will it take a unit to get to a target plot (returns MAX_INT if can't reach at all; returns 0 if makes it in 1 turn and has movement left)
+int CvUnit::TurnsToReachTarget(const CvPlot* pTarget, bool bIgnoreUnits, bool bIgnoreStacking, int iTargetTurns)
+{
+	int iFlags = CvUnit::MOVEFLAG_TURN_END_IS_NEXT_TURN;
+
+	if(bIgnoreUnits)
+	{
+		iFlags |= CvUnit::MOVEFLAG_IGNORE_STACKING_SELF;
+		iFlags |= CvUnit::MOVEFLAG_IGNORE_ZOC;
+		iFlags |= CvUnit::MOVEFLAG_IGNORE_DANGER;
+	}
+
+	if(bIgnoreStacking) //ignore our own units
+		iFlags |= CvUnit::MOVEFLAG_IGNORE_STACKING_SELF;
+
+	return TurnsToReachTarget(pTarget,iFlags,iTargetTurns);
+}
+
+int CvUnit::TurnsToReachTarget(const CvPlot* pTarget, int iFlags, int iTargetTurns)
+{
+	if(!pTarget)
+		return INT_MAX;
+
+	//make sure that iTargetTurns is valid
+	iTargetTurns = max(1,iTargetTurns);
+
+	//performance optimization
+	if (iTargetTurns!=INT_MAX)
+	{
+		//see how far we could move in optimal circumstances
+		int	iDistance = plotDistance(getX(), getY(), pTarget->getX(), pTarget->getY());
+
+		//sometimes we don't need to go all the way
+		if (iFlags & CvUnit::MOVEFLAG_APPROX_TARGET_RING2)
+			iDistance -= 2;
+		else if (iFlags & CvUnit::MOVEFLAG_APPROX_TARGET_RING1)
+			iDistance -= 1;
+
+		//default range
+		int iMoves = baseMoves(isEmbarked()) + getExtraMoves();
+		int iRange = iMoves * iTargetTurns;
+
+		//catch stupid cases
+		if (iRange<=0)
+			return pTarget==plot() ? INT_MAX : 0;
+
+		//but routes increase it
+		if (getDomainType()==DOMAIN_LAND && !flatMovementCost() )
+		{
+			CvTeam& kTeam = GET_TEAM(getTeam());
+			RouteTypes eBestRouteType = kTeam.GetBestPossibleRoute();
+			if (eBestRouteType != NO_ROUTE)
+			{
+				CvRouteInfo* pRouteInfo = GC.getRouteInfo(eBestRouteType);
+				if (pRouteInfo)
+				{
+					int iMoveCost = pRouteInfo->getMovementCost() + kTeam.getRouteChange(eBestRouteType);
+
+					if (iMoveCost > 0)
+					{
+						//times 100 to reduce rounding errors
+						int iMultiplier = 100 * GD_INT_GET(MOVE_DENOMINATOR) / iMoveCost;
+
+						if (plot()->getRouteType() != NO_ROUTE)
+							//standing directly on a route
+							iRange = (iMoves * iTargetTurns * iMultiplier) / 100;
+						else
+							//need to move at least one plot in the first turn at full cost to get to the route
+							//speed optimization for railroad and low turn count
+							iRange = (100 + (iMoves - 1) * iMultiplier + iMoves * (iTargetTurns - 1) * iMultiplier) / 100;
+					}
+				}
+			}
+		}
+
+		if (iDistance>iRange)
+			return INT_MAX;
+	}
+
+	if(pTarget == plot())
+		return 0;
+
+	//don't cache the result here
+	return ComputePath(pTarget, iFlags, iTargetTurns, false);
+}
 
 //	--------------------------------------------------------------------------------
 DestructionNotification<UnitHandle>& CvUnit::getDestructionNotification()

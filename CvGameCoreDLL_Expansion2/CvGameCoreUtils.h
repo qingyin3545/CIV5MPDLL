@@ -156,6 +156,21 @@ inline int plotDistance(int iX1, int iY1, int iX2, int iY2)
 		return (std::max(iDX, iDY));
 	}
 }
+inline int plotDistance(const CvPlot& plotA, const CvPlot& plotB)
+{
+	return plotDistance(plotA.getX(),plotA.getY(),plotB.getX(),plotB.getY());
+}
+
+inline int plotDistance(int iIndexA, int iIndexB)
+{
+	CvMap& kMap = GC.getMap();
+	CvPlot* pA = kMap.plotByIndex(iIndexA);
+	CvPlot* pB = kMap.plotByIndex(iIndexB);
+	if (pA && pB)
+		return plotDistance(pA->getX(),pA->getY(),pB->getX(),pB->getY());
+	else
+		return INT_MAX;
+}
 //
 //// 3 | 3 | 3 | 3 | 3 | 3 | 3
 //// -------------------------
@@ -562,4 +577,12 @@ inline CvString GetLocalizedText(const char* szString, const T1& arg1, const T2&
 
 #define NET_MESSAGE_DEBUG_OSTR_ALWAYS(x)	{ std::ostringstream str; str << x; gDLL->netMessageDebugLog(str.str()); }
 
+template<class T>
+struct OptionWithScore
+{
+	T option;
+	int score;
+	OptionWithScore(const T& t, int s) : option(t), score(s) {}
+	bool operator<(const OptionWithScore& rhs) const { return score > rhs.score; } //sort descending!
+};
 #endif

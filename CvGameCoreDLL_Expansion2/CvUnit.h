@@ -34,6 +34,7 @@ class CvUnitEntry;
 class CvUnitReligion;
 class CvPathNode;
 
+typedef std::vector<int> UnitIdContainer; //use a vector as most of the time this will be empty
 typedef MissionData MissionQueueNode;
 
 typedef FFastSmallFixedList<MissionQueueNode, 12, true, c_eCiv5GameplayDLL> MissionQueue;
@@ -124,6 +125,8 @@ public:
 	    MOVEFLAG_PRETEND_UNEMBARKED			  = 0x040, // to check movement as if the unit was unembarked
 	    MOVEFLAG_PRETEND_CORRECT_EMBARK_STATE = 0x080, // check to see if the unit can move into the tile in an embarked or unembarked state
 		MOVEFLAG_STAY_ON_LAND                 = 0x100, // don't embark, even if you can
+		MOVEFLAG_APPROX_TARGET_RING1			= 0x8000, //don't need to reach the target exactly, a ring1 tile is good enough
+		MOVEFLAG_APPROX_TARGET_RING2			= 0x10000, //don't need to reach the target exactly, a ring2 tile is good enough
 	};
 
 	DestructionNotification<UnitHandle>& getDestructionNotification();
@@ -507,7 +510,7 @@ public:
 #endif
 	bool canChangeVisibility() const;
 
-	int baseMoves(DomainTypes eIntoDomain = NO_DOMAIN) const;
+	int baseMoves(bool bPretendEmbarked) const;
 	int maxMoves() const;
 	int movesLeft() const;
 	bool canMove() const;
@@ -1585,10 +1588,6 @@ public:
 
 	bool canRangeStrike() const;
 #if defined(MOD_AI_SMART_V3)
-	int GetRangePlusMoveToshot() const;
-	void GetMovablePlotListOpt(vector<CvPlot*>& plotData, CvPlot* plotTarget, bool exitOnFound, bool bIgnoreFriendlyUnits = false);
-#endif
-#if defined(MOD_AI_SMART_V3)
 	bool canEverRangeStrikeAt(int iX, int iY, const CvPlot* pSourcePlot = NULL) const;
 #else
 	bool canEverRangeStrikeAt(int iX, int iY) const;
@@ -1706,13 +1705,19 @@ public:
 	bool IsCanDefend(const CvPlot* pPlot = NULL) const;
 	bool IsEnemyInMovementRange(bool bOnlyFortified = false, bool bOnlyCities = false);
 
+	ReachablePlots GetAllPlotsInReachThisTurn(bool bCheckTerritory=true, bool bCheckZOC=true, bool bAllowEmbark=true, int iMinMovesLeft=0) const;
+	vector<int> GetPlotsWithEnemyInMovementRange(bool bOnlyFortified = false, bool bOnlyCities = false, int iMaxPathLength=INT_MAX);
 	// Path-finding routines
-	bool GeneratePath(const CvPlot* pToPlot, int iFlags = 0, bool bReuse = false, int* piPathTurns = NULL) const;
-	void ResetPath();
+	bool GeneratePath(const CvPlot* pToPlot, int iFlags = 0, int iMaxTurns = INT_MAX, int* piPathTurns = NULL);
+
+	// you must call GeneratePath with caching before using these methods!
 	CvPlot* GetPathFirstPlot() const;
 	CvPlot* GetPathLastPlot() const;
-	const CvPathNodeArray& GetPathNodeArray() const;
-	CvPlot* GetPathEndTurnPlot() const;
+	CvPlot* GetPathEndFirstTurnPlot() const;
+	int GetMovementPointsAtCachedTarget() const;
+	CvPlot* GetLastValidDestinationPlotInCachedPath() const;
+	const CvPathNodeArray& GetLastPath() const;
+	bool CachedPathIsSafeForCivilian() const;
 
 	bool isBusyMoving() const;
 	void setBusyMoving(bool bState);
@@ -2007,7 +2012,6 @@ public:
 	void ChangeNumGoodyHutsPopped(int iValue);
 
 	// Ported in from old CvUnitAI class
-	int SearchRange(int iRange) const;
 #if defined(MOD_AI_SECONDARY_WORKERS)
 	bool PlotValid(CvPlot* pPlot, byte bMoveFlags = 0) const;
 #else
@@ -2059,6 +2063,11 @@ public:
 	bool IsAdjacentToTerrain(TerrainTypes iTerrainType) const;
 	bool IsWithinDistanceOfTerrain(TerrainTypes iTerrainType, int iDistance) const;
 #endif
+
+	int TurnsToReachTarget(const CvPlot* pTarget,int iFlags, int iTargetTurns);
+	int TurnsToReachTarget(const CvPlot* pTarget, bool bIgnoreUnits = false, bool bIgnoreStacking = false, int iTargetTurns = MAX_INT);
+	bool CanSafelyReachInXTurns(const CvPlot* pTarget, int iTurns);
+	void ClearPathCache();
 
 #ifdef MOD_GLOBAL_WAR_CASUALTIES
 	int GetWarCasualtiesModifier() const;
@@ -2136,9 +2145,6 @@ protected:
 
 	bool getCaptureDefinition(CvUnitCaptureDefinition* pkCaptureDef, PlayerTypes eCapturingPlayer = NO_PLAYER, CvUnit* pCapturingUnit = nullptr);
 	static CvUnit* createCaptureUnit(const CvUnitCaptureDefinition& kCaptureDef);
-
-	void	ClearPathCache();
-	bool	UpdatePathCache(CvPlot* pDestPlot, int iFlags);
 
 	void QueueMoveForVisualization(CvPlot* pkPlot);
 	void PublishQueuedVisualizationMoves();

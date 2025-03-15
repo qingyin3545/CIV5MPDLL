@@ -10,8 +10,6 @@
 #ifndef CIV5_BUILDER_TASKING_AI_H
 #define CIV5_BUILDER_TASKING_AI_H
 
-#define SAFE_ESTIMATE_NUM_EXTRA_PLOTS 64
-
 class CvPlayer;
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //  CLASS:      CvBuilderTaskingAI
@@ -21,36 +19,69 @@ class CvPlayer;
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 struct BuilderDirective
 {
-	typedef enum BuilderDirectiveType
+	enum BuilderDirectiveType
 	{
-	    BUILD_IMPROVEMENT_ON_RESOURCE, // enabling a special resource
-	    BUILD_IMPROVEMENT,			   // improving a tile
-	    BUILD_ROUTE,				   // build a route on a tile
-	    REPAIR,						   // repairing a pillaged route or improvement
-	    CHOP,						   // remove a feature to improve production
-	    REMOVE_ROAD,				   // remove a road from a plot
-	    NUM_DIRECTIVES
+		BUILD_IMPROVEMENT_ON_RESOURCE, // enabling a special resource
+		BUILD_IMPROVEMENT,			   // improving a tile
+		BUILD_ROUTE,				   // build a route on a tile
+		REPAIR,						   // repairing a pillaged route or improvement
+		REMOVE_FEATURE,				   // remove a feature to improve production
+		REMOVE_ROAD,				   // remove a road from a plot
+		KEEP_IMPROVEMENT,			   // will not actually be executed but needed for planning
+		NUM_DIRECTIVES
 	};
 
-	BuilderDirective() :
-		m_eDirective(NUM_DIRECTIVES)
-		, m_eBuild(NO_BUILD)
-		, m_eResource(NO_RESOURCE)
-		, m_sX(-1)
-		, m_sY(-1)
-		, m_sMoveTurnsAway(-1)
+	BuilderDirective() : m_eDirectiveType(NUM_DIRECTIVES), m_eBuild(NO_BUILD), m_eResource(NO_RESOURCE), m_bIsGreatPerson(false), m_sX(-1), m_sY(-1), m_iScore(-1), m_iPotentialBonusScore(-1), m_iScorePenalty(-1) {}
+	BuilderDirective(BuilderDirectiveType eDirective, BuildTypes eBuild, ResourceTypes eResource, bool bIsGreatPerson, short sX, short sY, int iScore, int iPotentialScore)
 	{
+		m_eDirectiveType = eDirective;
+		m_eBuild = eBuild;
+		m_eResource = eResource;
+		m_bIsGreatPerson = bIsGreatPerson;
+		m_sX = sX;
+		m_sY = sY;
+		m_iScore = iScore;
+		m_iPotentialBonusScore = iPotentialScore;
+		m_iScorePenalty = 0;
 	}
 
-	BuilderDirectiveType m_eDirective;
+	BuilderDirectiveType m_eDirectiveType;
 
 	BuildTypes m_eBuild;
 	ResourceTypes m_eResource;
+	bool m_bIsGreatPerson;
 	short m_sX;
 	short m_sY;
-	//int m_iGoldCost;
-	short m_sMoveTurnsAway;
+	int m_iScore;
+	int m_iScorePenalty;
+	int m_iPotentialBonusScore;
+
+	bool operator==(const BuilderDirective& rhs) const
+	{
+		return m_eBuild == rhs.m_eBuild && m_sX == rhs.m_sX && m_sY == rhs.m_sY;
+	};
+	bool operator<(const BuilderDirective& rhs) const
+	{
+		if (m_eDirectiveType != rhs.m_eDirectiveType) return m_eDirectiveType < rhs.m_eDirectiveType;
+		if (m_eBuild != rhs.m_eBuild) return m_eBuild < rhs.m_eBuild;
+		if (m_eResource != rhs.m_eResource) return m_eResource < rhs.m_eResource;
+		if (m_sX != rhs.m_sX) return m_sX < rhs.m_sX;
+		if (m_sY != rhs.m_sY) return m_sY < rhs.m_sY;
+		return m_bIsGreatPerson < rhs.m_bIsGreatPerson;
+	}
+
+	int GetScore() const
+	{
+		return m_iScore - m_iScorePenalty;
+	}
+
+	int GetPotentialScore() const
+	{
+		return m_iScore + m_iPotentialBonusScore;
+	}
 };
+FDataStream& operator<<(FDataStream&, const BuilderDirective&);
+FDataStream& operator>>(FDataStream&, BuilderDirective&);
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //  CLASS:      CvBuilderTaskingAI
@@ -68,76 +99,138 @@ public:
 	void Uninit(void);
 
 	//// Serialization routines
+	template<typename BuilderTaskingAI, typename Visitor>
+	static void Serialize(BuilderTaskingAI& builderTaskingAI, Visitor& visitor);
 	void Read(FDataStream& kStream);
-	void Write(FDataStream& kStream);
+	void Write(FDataStream& kStream) const;
 
 	void Update(void);
 	void UpdateRoutePlots(void);
+	void UpdateImprovementPlots(void);
 
-	bool EvaluateBuilder(CvUnit* pUnit, BuilderDirective* paDirectives, UINT uaDirectives, std::list<CvPlot*>& lPlayerPlots, bool bKeepOnlyBest = false, bool bOnlyEvaluateWorkersPlot = false, bool bLimit = false);
+	bool CanUnitPerformDirective(CvUnit* pUnit, BuilderDirective eDirective, bool bTestEra = false);
+	int GetTurnsToBuild(const CvUnit* pUnit, BuildTypes eBuild, const CvPlot* pPlot) const;
+	vector<BuilderDirective> GetDirectives();
+	bool ExecuteWorkerMove(CvUnit* pUnit, BuilderDirective aDirective);
 
-	void AddImprovingResourcesDirectives(CvUnit* pUnit, CvPlot* pPlot, int iMoveTurnsAway);
-	void AddImprovingPlotsDirectives(CvUnit* pUnit, CvPlot* pPlot, int iMoveTurnsAway);
-	void AddRouteDirectives(CvUnit* pUnit, CvPlot* pPlot, int iMoveTurnsAway);
-	void AddRepairDirectives(CvUnit* pUnit, CvPlot* pPlot, int iMoveTurnsAway);
-	void AddChopDirectives(CvUnit* pUnit, CvPlot* pPlot, int iMoveTurnsAway);
-	void AddRemoveUselessRoadDirectives(CvUnit* pUnit, CvPlot* pPlot, int iMoveTurnsAway);
-	void AddScrubFalloutDirectives(CvUnit* pUnit, CvPlot* pPlot, int iMoveTurnsAway);
+	void AddImprovingPlotsDirective(vector<OptionWithScore<BuilderDirective>> &aDirectives, CvPlot* pPlot, CvCity* pWorkingCity, const vector<BuildTypes> aBuildsToConsider);
+	void AddRouteOrRepairDirective(vector<OptionWithScore<BuilderDirective>>& aDirectives, CvPlot* pPlot, RouteTypes eRoute, int iValue, RoutePurpose ePurpose);
+	void AddRouteDirective(vector<OptionWithScore<BuilderDirective>>& aDirectives, CvPlot* pPlot, RouteTypes eRoute, int iValue);
+	void AddRemoveRouteDirective(vector<OptionWithScore<BuilderDirective>> &aDirectives, CvPlot* pPlot, int iNetGoldTimes100);
+	void AddChopDirectives(vector<OptionWithScore<BuilderDirective>> &aDirectives, CvPlot* pPlot, CvCity* pWorkingCity);
+	void AddRepairImprovementDirective(vector<OptionWithScore<BuilderDirective>>& aDirectives, CvPlot* pPlot, CvCity* pWorkingCity);
+	void AddRepairRouteDirective(vector<OptionWithScore<BuilderDirective>>& aDirectives, CvPlot* pPlot, RouteTypes eRoute, int iValue);
+	void AddScrubFalloutDirectives(vector<OptionWithScore<BuilderDirective>> &aDirectives, CvPlot* pPlot, CvCity* pWorkingCity);
 
-	bool ShouldBuilderConsiderPlot(CvUnit* pUnit, CvPlot* pPlot);  // determines all the logistics if the builder should get to the plot
-	int FindTurnsAway(CvUnit* pUnit, CvPlot* pPlot, bool bLimit = false);  // returns -1 if no path can be found, otherwise it returns the # of turns to get there
+	bool ShouldAnyBuilderConsiderPlot(const CvPlot* pPlot) const;  // general checks for whether the plot should be considered
+	bool ShouldBuilderConsiderPlot(CvUnit* pUnit, CvPlot* pPlot);  // specific checks for this particular worker
 
-	int GetBuildCostWeight(int iWeight, CvPlot* pPlot, BuildTypes eBuild);
-	int GetBuildTimeWeight(CvUnit* pUnit, CvPlot* pPlot, BuildTypes eBuild, bool bIgnoreFeatureTime = false, int iAdditionalTime = 0);
-	int GetResourceWeight(ResourceTypes eResource, ImprovementTypes eImprovement, int iQuantity);
-	bool IsImprovementBeneficial(CvPlot* pPlot, const CvBuildInfo& kBuild, YieldTypes eYield, bool bIsBreakEvenOK = false);
+	int GetResourceWeight(ResourceTypes eResource, int iQuantity);
 
-	CvCity* GetWorkingCity(CvPlot* pPlot);
-	bool DoesBuildHelpRush(CvUnit* pUnit, CvPlot* pPlot, BuildTypes eBuild);
+	bool DoesBuildHelpRush(CvPlot* pPlot, BuildTypes eBuild);
+	pair<RouteTypes, int> GetBestRouteTypeAndValue(const CvPlot* pPlot) const;
+	bool IsRoutePlanned(CvPlot* pPlot, RouteTypes eRoute, RoutePurpose ePurpose) const;
+	bool WantCanalAtPlot(const CvPlot* pPlot) const; //build it and keep it
+	bool WillNeverBuildVillageOnPlot(CvPlot* pPlot, RouteTypes eRoute, bool bIgnoreUnowned) const;
+	ImprovementTypes SavePlotForUniqueImprovement(const CvPlot* pPlot) const;
 
-	int ScorePlot(ImprovementTypes eImprovement, ImprovementTypes eExistingImprovement);
+	pair<int, int> ScorePlotBuild(CvPlot* pPlot, ImprovementTypes eImprovement, BuildTypes eBuild, const SBuilderState& sState = SBuilderState::DefaultInstance());
+	int GetTotalRouteBuildTime(const CvUnit* pUnit, const CvPlot* pPlot) const;
 
-	BuildTypes GetBuildTypeFromImprovement(ImprovementTypes eImprovement);
-	//static YieldTypes GetDeficientYield (CvCity* pCity, bool bIgnoreHappiness = false); // this is different from the CityStrategy one because it checks unhappiness before declaring a food emergency
 	BuildTypes GetRepairBuild(void);
 	FeatureTypes GetFalloutFeature(void);
 	BuildTypes GetFalloutRemove(void);
+	BuildTypes GetRemoveRoute(void);
+	BuildTypes GetBuildRoute(RouteTypes eRoute) const;
 
-	static void LogInfo(CvString str, CvPlayer* pPlayer, bool bWriteToOutput = false);
-	static void LogYieldInfo(CvString strNewLogStr, CvPlayer* pPlayer); //Log yield related info to BuilderTaskingYieldLog.csv.
+	BuilderDirective GetAssignedDirective(CvUnit* pUnit);
+	void SetAssignedDirective(CvUnit* pUnit, BuilderDirective eDirective);
 
-	static CvWeightedVector<BuilderDirective, 100, true> m_aDirectives;
-	static FStaticVector<int, SAFE_ESTIMATE_NUM_EXTRA_PLOTS, true, c_eCiv5GameplayDLL, 0> m_aiNonTerritoryPlots; // plots that we need to evaluate that are outside of our territory
+	static void LogInfo(const CvString& str, CvPlayer* pPlayer, bool bWriteToOutput = false);
+	static void LogYieldInfo(const CvString& strNewLogStr, CvPlayer* pPlayer); //Log yield related info to BuilderTaskingYieldLog.csv.
+
+	bool IsMainRoutePlot(const CvPlot* pPlot) const;
+	bool IsShortcutRoutePlot(const CvPlot* pPlot) const;
+	bool IsStrategicRoutePlot(const CvPlot* pPlot) const;
+
+	int GetResourceSpawnWorkableChance(CvPlot* pPlot, int& iTileClaimChance);
+
+	void UpdateCityWorstPlots(const CvCity* pCity, const SBuilderState& sState);
 
 	//---------------------------------------PROTECTED MEMBER VARIABLES---------------------------------
 protected:
 
-	void LogFlavors(FlavorTypes eFlavor);
-	void LogDirectives(CvUnit* pUnit);
-	void LogDirective(BuilderDirective directive, CvUnit* pUnit, int iWeight, bool bChosen = false);
+	typedef pair<int, int> PlotPair;
+	typedef pair<PlotPair, pair<RouteTypes, bool>> PlannedRoute;
 
-	void ConnectCitiesToCapital(CvCity* pPlayerCapital, CvCity* pTargetCity, RouteTypes eRoute);
-	void ConnectCitiesForScenario(CvCity* pFirstCity, CvCity* pSecondCity, RouteTypes eRoute);
+	void LogDirectives(vector<OptionWithScore<BuilderDirective>> directives);
+	void LogDirective(BuilderDirective directive, int iWeight, bool bChosen = false);
 
-	void UpdateCurrentPlotYields(CvPlot* pPlot);
-	void UpdateProjectedPlotYields(CvPlot* pPlot, BuildTypes eBuild);
+	void ConnectCitiesToCapital(CvCity* pPlayerCapital, CvCity* pTargetCity, BuildTypes eBuild, RouteTypes eRoute);
+	void ConnectCitiesForShortcuts(CvCity* pCity1, CvCity* pCity2, BuildTypes eBuild, RouteTypes eRoute);
+	void ConnectCitiesForScenario(CvCity* pCity1, CvCity* pCity2, BuildTypes eBuild, RouteTypes eRoute);
+	void ConnectPointsForStrategy(CvCity* pOriginCity, CvPlot* pTargetPlot, BuildTypes eBuild, RouteTypes eRoute);
+
+	void ShortcutConnectionHelper(CvCity* pCity1, CvCity* pCity2, BuildTypes eBuild, RouteTypes eRoute, int iPlotDistance, bool bUseRivers);
+
+	vector<OptionWithScore<BuilderDirective>> GetRouteDirectives();
+	vector<OptionWithScore<BuilderDirective>> GetImprovementDirectives();
+
+	void UpdateCurrentPlotYields(const CvPlot* pPlot);
+	void UpdateProjectedPlotYields(const CvPlot* pPlot, BuildTypes eBuild, RouteTypes eForceCityConnection);
+
+	void UpdateAllCityWorstPlots();
+	int GetWorstWorkedPlotValue(const CvCity* pCity);
+	int GetPlotYieldValueSimplified(const CvPlot* pPlot, BuildTypes eBuild);
+
+	bool IsPlannedRouteForPurpose(const CvPlot* pPlot, RoutePurpose ePurpose) const;
+	void AddRoutePlots(CvPlot* pStartPlot, CvPlot* pTargetPlot, RouteTypes eRoute, int iValue, const SPath& path, RoutePurpose ePurpose, bool bUseRivers);
+	int GetMoveCostWithRoute(const CvPlot* pFromPlot, const CvPlot* pToPlot, RouteTypes eFromPlotRoute, RouteTypes eToPlotRoute);
+	void GetPathValues(const SPath& path, RouteTypes eRoute, int& iVillageBonusesIfCityConnected, int& iMovementBonus, int& iNumRoadsNeededToBuild);
+
+	int GetRouteBuildTime(PlannedRoute plannedRoute, const CvUnit* pUnit = (CvUnit*)NULL) const;
+	int GetRouteMissingTiles(PlannedRoute plannedRoute) const;
+
+	void SetupExtraXAdjacentPlots();
+	void SetupExtraXAdjacentPlotsForBuild(BuildTypes eBuild, ImprovementTypes eImprovement, int iAdjacencyRequirement);
+
+	void UpdateCanalPlots();
+
+	PlotPair GetPlotPair(int iPlotId1, int iPlotId2);
 
 	CvPlayer* m_pPlayer;
-	BuildTypes m_eRepairBuild;
-	CvPlotsVector m_aiPlots;
 	bool m_bLogging;
-	int m_iNumCities;
 
-	CvPlot* m_pTargetPlot;
+	typedef pair<RouteTypes,int> RoutePlot;
+	map<PlannedRoute, int> m_plannedRouteAdditiveValues;
+	map<PlannedRoute, int> m_plannedRouteNonAdditiveValues;
+	map<PlannedRoute, vector<int>> m_plannedRoutePlots;
+	map<PlannedRoute, RoutePurpose> m_plannedRoutePurposes;
+	set<pair<RoutePlot, RoutePurpose>> m_anyRoutePlanned;
+	map<int, RoutePlot> m_bestRouteTypeAndValue; //serialized
+	map<int, RoutePurpose> m_plotRoutePurposes; //serialized
+	map<int, PlannedRoute> m_bestRouteForPlot;
+	set<int> m_canalWantedPlots; //serialized
+	vector<BuilderDirective> m_directives;
+	map<int, BuilderDirective> m_assignedDirectives;
+	map<const CvCity*, int> m_worstCityPlotValues;
+
 	int m_aiCurrentPlotYields[NUM_YIELD_TYPES];
 	int m_aiProjectedPlotYields[NUM_YIELD_TYPES];
 
+	//caching
+	BuildTypes m_eRepairBuild;
 	FeatureTypes m_eFalloutFeature;
 	BuildTypes m_eFalloutRemove;
+	BuildTypes m_eRemoveRouteBuild;
 
-	bool m_bKeepMarshes;
-	bool m_bKeepJungle;
-	bool m_bKeepForest;
+	//some player dependent flags for unique improvements
+	vector<ImprovementTypes> m_uniqueImprovements; // serialized
+
+	std::tr1::unordered_map<ImprovementTypes, std::tr1::unordered_set<const CvPlot*>> m_extraPlotsForXAdjacentImprovements;
 };
+
+FDataStream& operator>>(FDataStream&, CvBuilderTaskingAI&);
+FDataStream& operator<<(FDataStream&, const CvBuilderTaskingAI&);
 
 #endif //CIV5_BUILDER_TASKING_AI_H

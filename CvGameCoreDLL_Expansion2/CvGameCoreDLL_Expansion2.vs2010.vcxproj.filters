@@ -1399,6 +1399,12 @@
     <ClInclude Include="CvMeta.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CvEnumMap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CvEnumsUtil.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CvGameCoreDLL.rc" />

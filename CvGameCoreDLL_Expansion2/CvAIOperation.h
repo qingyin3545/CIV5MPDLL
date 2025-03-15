@@ -1,4 +1,4 @@
-/*	-------------------------------------------------------------------------------------------------------
+﻿/*	-------------------------------------------------------------------------------------------------------
 	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
@@ -14,39 +14,46 @@
 
 #include "CvGlobals.h"
 #include "CvGame.h"
+#include "CvGameCoreUtils.h"
 
 class CvArmyAI;
+struct CvAttackTarget;
+
+FDataStream& operator<<(FDataStream&, const ArmyType&);
+FDataStream& operator>>(FDataStream&, ArmyType&);
 
 // it is important to add a new entry whenever a new (subclassed) operation is added to the list
 enum AIOperationTypes
 {
-    INVALID_AI_OPERATION = -1,
-    AI_OPERATION_CITY_CLOSE_DEFENSE,
-    AI_OPERATION_RAPID_RESPONSE,
-    AI_OPERATION_BASIC_CITY_ATTACK,
-    AI_OPERATION_DESTROY_BARBARIAN_CAMP,
-    AI_OPERATION_FOUND_CITY,
+	AI_OPERATION_TYPE_UNKNOWN = -1,
+
+	AI_OPERATION_FOUND_CITY,
     AI_OPERATION_PILLAGE_ENEMY,
-    AI_OPERATION_SNEAK_CITY_ATTACK,
-    AI_OPERATION_SMALL_CITY_ATTACK,
+
+	AI_OPERATION_CITY_ATTACK_LAND,
+	AI_OPERATION_CITY_ATTACK_NAVAL,
+	AI_OPERATION_CITY_ATTACK_COMBINED,
+
+	AI_OPERATION_CITY_DEFENSE,
+    AI_OPERATION_RAPID_RESPONSE,
+	AI_OPERATION_NAVAL_SUPERIORITY,
+
+	AI_OPERATION_NUKE_ATTACK,
+	AI_OPERATION_CARRIER_GROUP,
+
+	AI_OPERATION_MUSICIAN_CONCERT_TOUR,
     AI_OPERATION_MERCHANT_DELEGATION,
-    AI_OPERATION_NAVAL_BOMBARDMENT,
-    AI_OPERATION_NAVAL_SUPERIORITY,
-    AI_OPERATION_COLONIZE,
-    AI_OPERATION_QUICK_COLONIZE,
-    AI_OPERATION_NAVAL_ATTACK,
-    AI_OPERATION_NAVAL_SNEAK_ATTACK,
-    AI_OPERATION_CITY_STATE_ATTACK,
-    AI_OPERATION_CITY_STATE_NAVAL_ATTACK,
-    AI_OPERATION_NUKE_ATTACK,
-	AI_OPERATION_PURE_NAVAL_CITY_ATTACK,
-	AI_OPERATION_CONCERT_TOUR,
-    NUM_AI_OPERATIONS,
+	AI_OPERATION_DIPLOMAT_DELEGATION,
+
+	NUM_AI_OPERATIONS,
 };
+
+FDataStream& operator<<(FDataStream&, const AIOperationTypes&);
+FDataStream& operator>>(FDataStream&, AIOperationTypes&);
 
 enum AIOperationState
 {
-    INVALID_AI_OPERATION_STATE = -1,
+    AI_OPERATION_STATE_INVALID = -1,
     AI_OPERATION_STATE_ABORTED,
     AI_OPERATION_STATE_RECRUITING_UNITS,
     AI_OPERATION_STATE_GATHERING_FORCES,
@@ -55,47 +62,44 @@ enum AIOperationState
     AI_OPERATION_STATE_SUCCESSFUL_FINISH,
 };
 
-enum AIOperationMovementType
-{
-    INVALID_AI_OPERATION_MOVE_TYPE = -1,
-    AI_OPERATION_MOVETYPE_SINGLE_HEX,
-    AI_OPERATION_MOVETYPE_ENEMY_TERRITORY,
-    AI_OPERATION_MOVETYPE_NAVAL_ESCORT,
-    AI_OPERATION_MOVETYPE_FREEFORM_NAVAL,
-    AI_OPERATION_MOVETYPE_REBASE,
-    AI_OPERATION_MOVETYPE_STATIC,
-};
+FDataStream& operator<<(FDataStream&, const AIOperationState&);
+FDataStream& operator>>(FDataStream&, AIOperationState&);
 
 enum AIOperationAbortReason
 {
     NO_ABORT_REASON = -1,
     AI_ABORT_SUCCESS,
+	//these are the bad outcomes
     AI_ABORT_NO_TARGET,
-    AI_ABORT_REPEAT_TARGET,
     AI_ABORT_LOST_TARGET,
-    AI_ABORT_TARGET_ALREADY_CAPTURED,
+	AI_ABORT_LOST_PATH,
     AI_ABORT_NO_ROOM_DEPLOY,
-    AI_ABORT_HALF_STRENGTH,
     AI_ABORT_NO_MUSTER,
+	AI_ABORT_NO_UNITS,
+	//these are normal outcomes	
+	AI_ABORT_CANCELLED,
+    AI_ABORT_TARGET_ALREADY_CAPTURED,
+    AI_ABORT_HALF_STRENGTH,
     AI_ABORT_LOST_CIVILIAN,
-    AI_ABORT_ESCORT_DIED,
-    AI_ABORT_NO_NUKES,
+    AI_ABORT_TARGET_NOT_VALID,
+    AI_ABORT_TOO_DANGEROUS,
     AI_ABORT_KILLED,
 	AI_ABORT_WAR_STATE_CHANGE,
 	AI_ABORT_DIPLO_OPINION_CHANGE,
-	AI_ABORT_LOST_PATH,
+	AI_ABORT_TIMED_OUT,
 };
 
-FDataStream& operator<<(FDataStream&, const AIOperationState&);
-FDataStream& operator>>(FDataStream&, AIOperationState&);
+FDataStream& operator<<(FDataStream&, const AIOperationAbortReason&);
+FDataStream& operator>>(FDataStream&, AIOperationAbortReason&);
+const char* AbortReasonString(AIOperationAbortReason eReason);
 
 struct OperationSlot
 {
-	OperationSlot()
+	OperationSlot(int opId=-1, int armyId=-1, int slotId=-1)
 	{
-		m_iOperationID = -1;
-		m_iArmyID = FFreeList::INVALID_INDEX;
-		m_iSlotID = -1;
+		m_iOperationID = opId;
+		m_iArmyID = armyId;
+		m_iSlotID = slotId;
 	}
 
 	bool operator==(const OperationSlot& other) const
@@ -105,13 +109,13 @@ struct OperationSlot
 
 	bool IsValid() const
 	{
-		return (m_iArmyID != FFreeList::INVALID_INDEX && m_iSlotID != -1 && m_iOperationID != -1);
+		return (m_iArmyID != -1 && m_iSlotID != -1 && m_iOperationID != -1);
 	}
 
 	void Invalidate()
 	{
 		m_iOperationID = -1;
-		m_iArmyID = FFreeList::INVALID_INDEX;
+		m_iArmyID = -1;
 		m_iSlotID = -1;
 	}
 
@@ -135,149 +139,114 @@ FDataStream& operator>>(FDataStream&, OperationSlot&);
 class CvAIOperation
 {
 public:
-	CvAIOperation();
+	CvAIOperation(int iID, PlayerTypes eOwner, PlayerTypes eEnemy, AIOperationTypes eType, ArmyType eMoveType);
 	virtual ~CvAIOperation();
 
-	// simple factory method to create new subclassed operations - use it instead of the constructor, please (I'm not going to force the issue as this is a very simple facotry)
-	static CvAIOperation* CreateOperation(AIOperationTypes eAIOperationType, PlayerTypes ePlayer);
+	//pure virtual methods for subclassing
+	virtual void Init(CvCity* pTarget = NULL, CvCity* pMuster = NULL) = 0;
+	virtual bool CheckTransitionToNextStage() = 0;
+	virtual AIOperationAbortReason VerifyOrAdjustTarget(CvArmyAI* pArmy) = 0;
+	virtual int GetDeployRange() const = 0;
 
-	virtual void Init(int iID, PlayerTypes eOwner, PlayerTypes eEnemy, int iDefaultArea = -1, CvCity* pTarget = NULL, CvCity* pMuster = NULL);
-	virtual void Uninit();
-	virtual void Reset();
+	//todo: replace init with this
+	//virtual void Init(const SPath& path) = 0; 
+	virtual bool PreconditionsAreMet(CvPlot* pMusterPlot, CvPlot* pTargetPlot, int iMaxMissingUnits);
 
-	AIOperationState GetOperationState() {return m_eCurrentState;};
+	//accessors
+	AIOperationState GetOperationState() { return m_eCurrentState; }
+	int GetLastTurnMoved() const { return m_iLastTurnMoved; }
+	void SetLastTurnMoved(int iValue) { m_iLastTurnMoved = iValue; }
+	int GetTurnStarted() const { return m_iTurnStarted; }
+	void SetTurnStarted(int iValue) { m_iTurnStarted = iValue; }
+	int GetID() const { return m_iID; }
+	inline PlayerTypes GetOwner() const { return m_eOwner; }
+	PlayerTypes GetEnemy() const { return m_eEnemy; }
 
-	virtual int GetOperationType() const
-	{
-		return INVALID_AI_OPERATION;
-	}
-	virtual bool CanTacticalAIInterruptOperation() const
-	{
-		return false;
-	}
-	virtual bool NeedToCheckPathToTarget() const
-	{
-		return true;
-	}
-	virtual int GetMaximumRecruitTurns() const;
-	virtual MultiunitFormationTypes GetFormation() const
-	{
-		return NO_MUFORMATION;
-	}
-	virtual AIOperationMovementType GetMoveType() const
-	{
-		return m_eMoveType;
-	}
+	AIOperationTypes GetOperationType() const { return m_eType; }
+	ArmyType GetArmyType() const { return m_eArmyType; }
+	bool IsCivilianOperation() const { return m_eArmyType == ARMY_TYPE_ESCORT_LAND; }
+	bool IsNavalOperation() const { return m_eArmyType == ARMY_TYPE_NAVAL || m_eArmyType == ARMY_TYPE_COMBINED; }
+	const char* GetOperationName() const;
+	CvArmyAI* GetArmy(size_t iIndex) const;
 
-	int GetLastTurnMoved() const
-	{
-		return m_iLastTurnMoved;
-	};
-	void SetLastTurnMoved(int iValue)
-	{
-		m_iLastTurnMoved = iValue;
-	};
-
-	int GetID() const;
-	void SetID(int iID);
-
-	inline PlayerTypes GetOwner() const
-	{
-		return m_eOwner;
-	}
-
-	void SetOwner(PlayerTypes ePlayer);
-
-	PlayerTypes GetEnemy() const;
-	void SetEnemy(PlayerTypes eEnemy);
-
-	int GetDefaultArea() const;
-	void SetDefaultArea(int iDefaultArea);
-	virtual bool IsAllNavalOperation() const
-	{
-		return false;
-	};
-	virtual bool IsMixedLandNavalOperation() const
-	{
-		return false;
-	};
+	bool HasTargetPlot() const { return (m_iTargetX != INVALID_PLOT_COORD && m_iTargetY != INVALID_PLOT_COORD); }
+	bool HasMusterPlot() const { return (m_iMusterX != INVALID_PLOT_COORD && m_iMusterY != INVALID_PLOT_COORD); }
 
 	CvPlot* GetTargetPlot() const;
 	void SetTargetPlot(CvPlot* pTarget);
 	CvPlot* GetMusterPlot() const;
-	void SetMusterPlot(CvPlot* pTarget);
-	CvPlot* GetStartCityPlot() const;
-	void SetStartCityPlot(CvPlot* pTarget);
+	void SetMusterPlot(CvPlot* pMuster);
+
+	size_t GetNumUnitsNeededToBeBuilt() { return m_viListOfUnitsWeStillNeedToBuild.size(); }
+	size_t GetNumUnitsCommittedToBeBuilt() { return m_viListOfUnitsCitiesHaveCommittedToBuild.size(); }
+
+	// virtual methods with a sane default
+	virtual int GetMaximumRecruitTurns() const;
+	virtual void OnSuccess() const {}
+	virtual void Reset();
+	virtual bool IsOffensive() const;
+	virtual bool IsNeverEnding() const { return false; }
+
 	virtual int GetGatherTolerance(CvArmyAI* pArmy, CvPlot* pPlot) const;
-
-	virtual CvCity* GetOperationStartCity() const;
-
-	int GetFirstArmyID();
-
-	virtual bool CheckOnTarget();
-	virtual bool ArmyInPosition(CvArmyAI* pArmy);
-	virtual bool ArmyMoved(CvArmyAI* pArmy)
-	{
-		return false;
-	};
-	virtual int  PercentFromMusterPointToTarget();
 	virtual bool ShouldAbort();
 	virtual void SetToAbort(AIOperationAbortReason eReason);
-	virtual void Kill(AIOperationAbortReason eReason );
-	virtual void DoTurn();
-	virtual bool DoDelayedDeath();
+	virtual void Kill();
+	virtual bool DoTurn();
+	virtual bool Move();
 
-	virtual void BuildListOfUnitsWeStillNeedToBuild();
-	unsigned int GetNumUnitsNeededToBeBuilt()
-	{
-		return m_viListOfUnitsWeStillNeedToBuild.size();
-	}
-	virtual OperationSlot PeekAtNextUnitToBuild(int iAreaID);
-	virtual OperationSlot CommitToBuildNextUnit(int iAreaID, int iTurns, CvCity* pCity);
-	virtual bool UncommitToBuild(OperationSlot thisOperationSlot);
-	virtual bool FinishedBuilding(OperationSlot thisOperationSlot);
-	virtual bool GrabUnitsFromTheReserves(CvPlot* pMusterPlot, CvPlot* pTargetPlot);
-	bool DeleteArmyAI(int iID);
+	virtual int  PercentFromMusterPointToTarget() const;
+
+	virtual OperationSlot PeekAtNextUnitToBuild();
+	virtual bool CommitToBuildNextUnit(OperationSlot thisOperationSlot);
+	virtual bool UncommitToBuildUnit(OperationSlot thisOperationSlot);
+	virtual bool FinishedBuildingUnit(OperationSlot thisOperationSlot);
+	virtual bool DeleteArmyAI(int iID);
+	virtual bool BuyFinalUnit();
+
+	virtual bool RecruitUnit(CvUnit* pUnit);
+	virtual int GrabUnitsFromTheReserves(CvPlot* pMusterPlot, CvPlot* pTargetPlot, CvArmyAI* pArmy = NULL);
 	virtual void UnitWasRemoved(int iArmyID, int iSlotID);
-	virtual CvPlot* ComputeCenterOfMassForTurn(CvArmyAI* pArmy, CvPlot **ppClosestCurrentCOMonPath) const;
+	virtual CvPlot* ComputeTargetPlotForThisTurn(CvArmyAI* pArmy) const;
 
-	bool HasOneMoreSlotToFill() const;
-	bool BuyFinalUnit();
-
+	template<typename AIOperation, typename Visitor>
+	static void Serialize(AIOperation& aiOperation, Visitor& visitor);
 	virtual void Read(FDataStream& kStream);
 	virtual void Write(FDataStream& kStream) const;
 
-	void LogOperationStart();
-	void LogOperationStatus();
-	void LogOperationSpecialMessage(const CvString& strMsg);
-	void LogOperationEnd();
+	void LogOperationStart() const;
+	void LogOperationStatus(bool bPreTurn) const;
+	void LogOperationSpecialMessage(const CvString& strMsg) const;
+	void LogOperationEnd() const;
+
+	virtual const char* GetInfoString();
 
 protected:
-	CvString GetLogFileName(CvString& playerName) const;
-	virtual CvString GetOperationName() const
-	{
-		return CvString("INVALID_AI_OPERATION");
-	}
+	static CvString GetLogFileName(CvString& playerName);
 
-	virtual CvPlot* SelectInitialMusterPoint(CvArmyAI* pThisArmy);
-	virtual bool FindBestFitReserveUnit(OperationSlot thisOperationSlot, CvPlot* pMusterPlot, CvPlot* pTargetPlot, bool* bRequired);
+	CvPlot* GetPlotXInStepPath(CvPlot* pCurrentPosition, CvPlot* pTarget, int iStep, bool bForward) const;
+	int GetStepDistanceBetweenPlots(CvPlot* pCurrentPosition, CvPlot* pTarget) const;
+
+	virtual CvArmyAI* AddArmy(MultiunitFormationTypes eFormation);
+	virtual bool SetUpArmy(CvArmyAI* pArmyAI, CvPlot* pMusterPlot, CvPlot* pTargetPlot, CvPlot* pDeployPlot = NULL);
+	virtual bool FindBestFitReserveUnit(OperationSlot thisOperationSlot, vector<OptionWithScore<int>>& choices);
 
 	std::vector<int> m_viArmyIDs;
-	std::vector<OperationSlot> m_viListOfUnitsWeStillNeedToBuild;
+	std::deque<OperationSlot> m_viListOfUnitsWeStillNeedToBuild;
 	std::vector<OperationSlot> m_viListOfUnitsCitiesHaveCommittedToBuild;
+
+	//constants
 	int m_iID;
+	AIOperationTypes m_eType;
+	//we only support one army ...
+	ArmyType m_eArmyType;
+
 	AIOperationState m_eCurrentState;
 	AIOperationAbortReason m_eAbortReason;
-	int m_iDefaultArea;
 	int m_iLastTurnMoved;
+	int m_iTurnStarted;
+
 	PlayerTypes m_eOwner;
 	PlayerTypes m_eEnemy;
-	bool m_bShouldReplaceLossesWithReinforcements;
-	AIOperationMovementType m_eMoveType;
-
-	// Coordinates of start city
-	int m_iStartCityX;
-	int m_iStartCityY;
 
 	// Coordinates of muster plot
 	int m_iMusterX;
@@ -286,762 +255,336 @@ protected:
 	// Coordinates of target plot
 	int m_iTargetX;
 	int m_iTargetY;
+
+	// Calculate only once, ideally
+	int m_iDistanceMusterToTarget;
+
+	// Abort if we're stalling
+	deque<int> m_progressToTarget;
+
+	// for debugging
+	CvString m_strInfoString;
 };
 
-FDataStream& operator<<(FDataStream&, const AIOperationMovementType&);
-FDataStream& operator>>(FDataStream&, AIOperationMovementType&);
+FDataStream& operator>>(FDataStream&, CvAIOperation&);
+FDataStream& operator<<(FDataStream&, const CvAIOperation&);
 
+// simple factory method to create new subclassed operations
+CvAIOperation* CreateAIOperation(AIOperationTypes eAIOperationType, int iID, PlayerTypes eOwner, PlayerTypes eEnemy);
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//  CLASS:      CvAIEnemyTerritoryOperation
-//!  \brief		Base class for operations that involve large collection of forces
+//  CLASS:      CvAIOperationMilitary
+//!  \brief		Base class for a military operations
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-#define SAFE_ESTIMATE_MAX_PATH_LEN 200
-
-class CvAIEnemyTerritoryOperation : public CvAIOperation
+class CvAIOperationMilitary : public CvAIOperation
 {
 public:
-	CvAIEnemyTerritoryOperation();
-	virtual ~CvAIEnemyTerritoryOperation();
+	CvAIOperationMilitary(int iID, PlayerTypes eOwner, PlayerTypes eEnemy, AIOperationTypes eType, ArmyType eMoveType) : 
+		CvAIOperation(iID,eOwner,eEnemy,eType,eMoveType) {}
+	virtual ~CvAIOperationMilitary() {}
 
-	virtual void Init(int iID, PlayerTypes eOwner, PlayerTypes eEnemy, int iDefaultArea = -1, CvCity* pTarget = NULL, CvCity* pMuster = NULL);
-
-	virtual int GetDeployRange() const;
+	virtual void Init(CvCity* pTarget = NULL, CvCity* pMuster = NULL);
+	virtual int GetDeployRange() const { return 3; }
 	virtual int GetMaximumRecruitTurns() const;
+	virtual AIOperationAbortReason VerifyOrAdjustTarget(CvArmyAI* pArmy);
+
+	virtual bool CheckTransitionToNextStage();
+	virtual void OnSuccess() const;
 
 protected:
-	virtual CvPlot* FindBestTarget() = 0;
-	virtual CvPlot* SelectInitialMusterPoint(CvArmyAI* pThisArmy);
+	//default version does nothing
+	virtual CvPlot* FindBestTarget(CvPlot** ppMuster) const;
 };
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//  CLASS:      CvAIOperationBasicCityAttack
+//  CLASS:      CvAIOperationCityAttackLand
 //!  \brief		Attack a city with a small force
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-class CvAIOperationBasicCityAttack : public CvAIEnemyTerritoryOperation
+class CvAIOperationCityAttackLand : public CvAIOperationMilitary
 {
 public:
 
-	CvAIOperationBasicCityAttack();
-	virtual ~CvAIOperationBasicCityAttack();
-
-	virtual void Init(int iID, PlayerTypes eOwner, PlayerTypes eEnemy, int iDefaultArea = -1, CvCity* pTarget = NULL, CvCity* pMuster = NULL);
-
-	virtual void Read(FDataStream& kStream);
-	virtual void Write(FDataStream& kStream) const;
-
-	virtual int GetOperationType() const
-	{
-		return AI_OPERATION_BASIC_CITY_ATTACK;
-	}
-	virtual CvString GetOperationName() const
-	{
-		return CvString("AI_OPERATION_BASIC_CITY_ATTACK");
-	}
-	virtual bool NeedToCheckPathToTarget() const
-	{
-		return false;
-	}
-	virtual MultiunitFormationTypes GetFormation() const;
-
-	virtual bool ShouldAbort();
-	virtual bool ArmyInPosition(CvArmyAI* pArmy);
-
-protected:
-	virtual CvPlot* FindBestTarget();
+	CvAIOperationCityAttackLand(int iID, PlayerTypes eOwner, PlayerTypes eEnemy) : 
+		CvAIOperationMilitary(iID,eOwner,eEnemy,AI_OPERATION_CITY_ATTACK_LAND,ARMY_TYPE_LAND) {}
+	virtual ~CvAIOperationCityAttackLand() {}
 };
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//  CLASS:      CvAIOperationSneakCityAttack
-//!  \brief		Same as Basic City attack except allowed when not at war
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-class CvAIOperationSneakCityAttack : public CvAIOperationBasicCityAttack
-{
-public:
-	CvAIOperationSneakCityAttack();
-
-	virtual int GetOperationType() const
-	{
-		return AI_OPERATION_SNEAK_CITY_ATTACK;
-	}
-	virtual CvString GetOperationName() const
-	{
-		return CvString("AI_OPERATION_SNEAK_CITY_ATTACK");
-	}
-	virtual MultiunitFormationTypes GetFormation() const;
-};
-
-class CvAIOperationQuickSneakCityAttack : public CvAIOperationSneakCityAttack
-{
-public:
-	CvAIOperationQuickSneakCityAttack();
-	virtual MultiunitFormationTypes GetFormation() const
-	{
-		return MUFORMATION_EARLY_RUSH;
-	}
-};
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//  CLASS:      CvAIOperationSmallCityAttack
-//!  \brief		Same as Basic City attack except allowed when not at war
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-class CvAIOperationSmallCityAttack : public CvAIOperationBasicCityAttack
-{
-public:
-	CvAIOperationSmallCityAttack();
-
-	virtual int GetOperationType() const
-	{
-		return AI_OPERATION_SMALL_CITY_ATTACK;
-	}
-	virtual CvString GetOperationName() const
-	{
-		return CvString("AI_OPERATION_SMALL_CITY_ATTACK");
-	}
-	virtual MultiunitFormationTypes GetFormation() const
-	{
-		return (GC.getGame().getHandicapInfo().GetID() > 4) ? MUFORMATION_BASIC_CITY_ATTACK_FORCE : MUFORMATION_SMALL_CITY_ATTACK_FORCE;
-	}
-};
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//  CLASS:      CvAIOperationCityStateAttack
-//!  \brief		Same as Basic City attack except a smaller formation
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-class CvAIOperationCityStateAttack : public CvAIOperationBasicCityAttack
-{
-public:
-	CvAIOperationCityStateAttack();
-
-	virtual int GetOperationType() const
-	{
-		return AI_OPERATION_CITY_STATE_ATTACK;
-	}
-	virtual CvString GetOperationName() const
-	{
-		return CvString("AI_OPERATION_CITY_STATE_ATTACK");
-	}
-	virtual MultiunitFormationTypes GetFormation() const;
-};
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//  CLASS:      CvAIOperationDestroyBarbarianCamp
-//!  \brief		Send out a squad of units to take out a barbarian camp
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-class CvAIOperationDestroyBarbarianCamp : public CvAIEnemyTerritoryOperation
-{
-public:
-
-	CvAIOperationDestroyBarbarianCamp();
-	virtual ~CvAIOperationDestroyBarbarianCamp();
-
-	virtual void Read(FDataStream& kStream);
-	virtual void Write(FDataStream& kStream) const;
-
-	virtual int GetOperationType() const
-	{
-		return AI_OPERATION_DESTROY_BARBARIAN_CAMP;
-	}
-	virtual CvString GetOperationName() const
-	{
-		return CvString("AI_OPERATION_DESTROY_BARBARIAN_CAMP");
-	}
-	virtual MultiunitFormationTypes GetFormation() const
-	{
-		return MUFORMATION_ANTI_BARBARIAN_TEAM;
-	}
-	virtual int GetDeployRange() const;
-
-	virtual bool ShouldAbort();
-	virtual bool ArmyInPosition(CvArmyAI* pArmy);
-
-protected:
-	virtual CvPlot* FindBestTarget();
-	bool m_bCivilianRescue;
-	int m_iUnitToRescue;
-};
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//  CLASS:      CvAIOperationPillageEnemy
-//!  \brief		Create a fast strike team to harass the enemy
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-class CvAIOperationPillageEnemy : public CvAIEnemyTerritoryOperation
-{
-public:
-
-	CvAIOperationPillageEnemy();
-	virtual ~CvAIOperationPillageEnemy();
-
-	virtual void Read(FDataStream& kStream);
-	virtual void Write(FDataStream& kStream) const;
-
-	virtual int GetOperationType() const
-	{
-		return AI_OPERATION_PILLAGE_ENEMY;
-	}
-	virtual CvString GetOperationName() const
-	{
-		return CvString("AI_OPERATION_PILLAGE_ENEMY");
-	}
-	virtual bool NeedToCheckPathToTarget() const
-	{
-		return false;
-	}
-	virtual MultiunitFormationTypes GetFormation() const
-	{
-		return MUFORMATION_FAST_PILLAGERS;
-	}
-	virtual int GetDeployRange() const;
-
-	virtual bool ArmyInPosition(CvArmyAI* pArmy);
-	virtual bool ArmyMoved(CvArmyAI* pArmy);
-
-protected:
-	virtual CvPlot* FindBestTarget();
-};
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//  CLASS:      CvAIEscortedOperation
-//!  \brief		Base class for operations that are one military unit and one civilian
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-class CvAIEscortedOperation : public CvAIOperation
-{
-public:
-
-	CvAIEscortedOperation();
-	virtual ~CvAIEscortedOperation();
-
-	virtual void Init(int iID, PlayerTypes eOwner, PlayerTypes eEnemy, int iDefaultArea = -1, CvCity* pTarget = NULL, CvCity* pMuster = NULL);
-	virtual void Read(FDataStream& kStream);
-	virtual void Write(FDataStream& kStream) const;
-
-	virtual void UnitWasRemoved(int iArmyID, int iSlotID);
-	virtual CvUnit* FindBestCivilian();
-	virtual CvPlot* FindBestTarget(CvUnit* pUnit, bool bOnlySafePaths) = 0;
-
-	bool RetargetCivilian(CvUnit* pCivilian, CvArmyAI* pArmy);
-
-protected:
-	bool m_bEscorted;
-	UnitAITypes m_eCivilianType;
-	int m_iTargetArea;
-};
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//  CLASS:      CvAIOperationFoundCity
-//!  \brief		Find a place to utilize a new settler
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-class CvAIOperationFoundCity : public CvAIEscortedOperation
-{
-public:
-
-	CvAIOperationFoundCity();
-	virtual ~CvAIOperationFoundCity();
-
-	virtual void Init(int iID, PlayerTypes eOwner, PlayerTypes eEnemy, int iDefaultArea = -1, CvCity* pTarget = NULL, CvCity* pMuster = NULL);
-
-	virtual int GetOperationType() const
-	{
-		return AI_OPERATION_FOUND_CITY;
-	}
-	virtual CvString GetOperationName() const
-	{
-		return CvString("AI_OPERATION_FOUND_CITY");
-	}
-	virtual MultiunitFormationTypes GetFormation() const
-	{
-		return MUFORMATION_SETTLER_ESCORT;
-	}
-	virtual bool ArmyInPosition(CvArmyAI* pArmy);
-	virtual bool ShouldAbort();
-
-private:
-	virtual CvPlot* FindBestTarget(CvUnit* pUnit, bool bOnlySafePaths);
-};
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//  CLASS:      CvAIOperationQuickColonize
-//!  \brief		Send a settler alone to a nearby island
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-class CvAIOperationQuickColonize : public CvAIOperationFoundCity
-{
-public:
-
-	CvAIOperationQuickColonize();
-	virtual ~CvAIOperationQuickColonize();
-	virtual void Init(int iID, PlayerTypes eOwner, PlayerTypes eEnemy, int iDefaultArea = -1, CvCity* pTarget = NULL, CvCity* pMuster = NULL);
-
-	virtual int GetOperationType() const
-	{
-		return AI_OPERATION_QUICK_COLONIZE;
-	}
-	virtual CvString GetOperationName() const
-	{
-		return CvString("AI_OPERATION_QUICK_COLONIZE");
-	}
-	virtual MultiunitFormationTypes GetFormation() const
-	{
-		return MUFORMATION_QUICK_COLONY_SETTLER;
-	}
-	virtual CvUnit* FindBestCivilian();
-
-private:
-	CvPlot* FindBestTarget(CvUnit* pUnit, bool bOnlySafePaths);
-};
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//  CLASS:      CvAIOperationMerchantDelegation
-//!  \brief		Send a merchant to a city state
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-class CvAIOperationMerchantDelegation : public CvAIEscortedOperation
-{
-public:
-
-	CvAIOperationMerchantDelegation();
-	virtual ~CvAIOperationMerchantDelegation();
-
-	virtual int GetOperationType() const
-	{
-		return AI_OPERATION_MERCHANT_DELEGATION;
-	}
-	virtual CvString GetOperationName() const
-	{
-		return CvString("AI_OPERATION_MERCHANT_DELEGATION");
-	}
-	virtual MultiunitFormationTypes GetFormation() const
-	{
-		return MUFORMATION_MERCHANT_ESCORT;
-	}
-	virtual bool ArmyInPosition(CvArmyAI* pArmy);
-
-private:
-	CvPlot* FindBestTarget(CvUnit* pUnit, bool bOnlySafePaths);
-};
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//  CLASS:      CvAIOperationConcertTour
-//!  \brief		Send a merchant to a city state
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-class CvAIOperationConcertTour : public CvAIEscortedOperation
-{
-public:
-
-	CvAIOperationConcertTour();
-	virtual ~CvAIOperationConcertTour();
-
-	virtual int GetOperationType() const
-	{
-		return AI_OPERATION_CONCERT_TOUR;
-	}
-	virtual CvString GetOperationName() const
-	{
-		return CvString("AI_OPERATION_CONCERT_TOUR");
-	}
-	virtual MultiunitFormationTypes GetFormation() const
-	{
-		return MUFORMATION_CONCERT_TOUR;
-	}
-	virtual bool ArmyInPosition(CvArmyAI* pArmy);
-
-private:
-	CvPlot* FindBestTarget(CvUnit* pUnit, bool bOnlySafePaths);
-};
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//  CLASS:      CvAINavalOperation
-//!  \brief		Send out a squadron of naval units to bomb enemy forces on the coast
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-class CvAINavalOperation : public CvAIEnemyTerritoryOperation
-{
-public:
-
-	CvAINavalOperation();
-	virtual ~CvAINavalOperation();
-
-	virtual void Init(int iID, PlayerTypes eOwner, PlayerTypes eEnemy, int iDefaultArea = -1, CvCity* pTarget = NULL, CvCity* pMuster = NULL) = 0;
-	virtual void Read(FDataStream& kStream);
-	virtual void Write(FDataStream& kStream) const;
-
-	virtual MultiunitFormationTypes GetFormation() const
-	{
-		return MUFORMATION_NAVAL_SQUADRON;
-	}
-	virtual int GetDeployRange() const;
-	virtual CvCity* GetOperationStartCity() const;
-	virtual bool IsAllNavalOperation() const
-	{
-		return true;
-	};
-
-	virtual bool ArmyInPosition(CvArmyAI* pArmy) = 0;
-	virtual int GetMaximumRecruitTurns() const {return MAX_INT;};   // Let naval units come from afar
-
-protected:
-	virtual CvPlot* SelectInitialMusterPoint(CvArmyAI* pThisArmy);
-	virtual CvUnit* FindInitialUnit();
-	virtual CvPlot* FindBestTarget() = 0;
-};
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//  CLASS:      CvAIOperationNavalBombardment
-//!  \brief		Send out a squadron of naval units to bomb enemy forces on the coast
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-class CvAIOperationNavalBombardment : public CvAINavalOperation
-{
-public:
-
-	CvAIOperationNavalBombardment();
-	virtual ~CvAIOperationNavalBombardment();
-
-	virtual void Init(int iID, PlayerTypes eOwner, PlayerTypes eEnemy, int iDefaultArea = -1, CvCity* pTarget = NULL, CvCity* pMuster = NULL);
-	virtual void Read(FDataStream& kStream);
-	virtual void Write(FDataStream& kStream) const;
-
-	virtual MultiunitFormationTypes GetFormation() const
-	{
-		return MUFORMATION_NAVAL_BOMBARDMENT;
-	}
-	virtual int GetOperationType() const
-	{
-		return AI_OPERATION_NAVAL_BOMBARDMENT;
-	}
-	virtual CvString GetOperationName() const
-	{
-		return CvString("AI_OPERATION_NAVAL_BOMBARDMENT");
-	}
-
-	virtual bool ArmyInPosition(CvArmyAI* pArmy);
-
-protected:
-	virtual CvPlot* FindBestTarget();
-};
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//  CLASS:      CvAIOperationNavalSuperiority
-//!  \brief		Send out a squadron of naval units to rule the seas
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-class CvAIOperationNavalSuperiority : public CvAINavalOperation
-{
-public:
-
-	CvAIOperationNavalSuperiority();
-	virtual ~CvAIOperationNavalSuperiority();
-
-	virtual void Init(int iID, PlayerTypes eOwner, PlayerTypes eEnemy, int iDefaultArea = -1, CvCity* pTarget = NULL, CvCity* pMuster = NULL);
-	virtual void Read(FDataStream& kStream);
-	virtual void Write(FDataStream& kStream) const;
-
-	virtual int GetOperationType() const
-	{
-		return AI_OPERATION_NAVAL_SUPERIORITY;
-	}
-	virtual CvString GetOperationName() const
-	{
-		return CvString("AI_OPERATION_NAVAL_SUPERIORITY");
-	}
-	virtual bool CanTacticalAIInterruptOperation() const
-	{
-		return true;
-	}
-
-	virtual bool ArmyInPosition(CvArmyAI* pArmy);
-
-protected:
-	virtual CvPlot* FindBestTarget();
-};
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//  CLASS:      CvAIOperationPureNavalCityAttack
+//  CLASS:      CvAIOperationCityAttackNaval
 //!  \brief		Try to take out an enemy city from the sea
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-class CvAIOperationPureNavalCityAttack : public CvAINavalOperation
+class CvAIOperationCityAttackNaval : public CvAIOperationMilitary
 {
 public:
 
-	CvAIOperationPureNavalCityAttack();
-	virtual ~CvAIOperationPureNavalCityAttack();
+	CvAIOperationCityAttackNaval(int iID, PlayerTypes eOwner, PlayerTypes eEnemy) : 
+		CvAIOperationMilitary(iID,eOwner,eEnemy,AI_OPERATION_CITY_ATTACK_NAVAL,ARMY_TYPE_NAVAL) {}
+	virtual ~CvAIOperationCityAttackNaval() {}
+	virtual void Init(CvCity* pTarget = NULL, CvCity* pMuster = NULL);
+};
 
-	virtual void Init(int iID, PlayerTypes eOwner, PlayerTypes eEnemy, int iDefaultArea = -1, CvCity* pTarget = NULL, CvCity* pMuster = NULL);
-	virtual void Read(FDataStream& kStream);
-	virtual void Write(FDataStream& kStream) const;
-	virtual MultiunitFormationTypes GetFormation() const
-	{
-		return MUFORMATION_PURE_NAVAL_CITY_ATTACK;
-	}
-	virtual int GetOperationType() const
-	{
-		return AI_OPERATION_PURE_NAVAL_CITY_ATTACK;
-	}
-	virtual CvString GetOperationName() const
-	{
-		return CvString("AI_OPERATION_PURE_NAVAL_CITY_ATTACK");
-	}
-	virtual bool CanTacticalAIInterruptOperation() const
-	{
-		return true;
-	}
-	virtual int GetDeployRange() const;
 
-	virtual bool ShouldAbort();
-	virtual bool ArmyInPosition(CvArmyAI* pArmy);
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//  CLASS:      CvAIOperationCityAttackCombined
+//!  \brief		Attack a city from the sea - includes land units
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+class CvAIOperationCityAttackCombined : public CvAIOperationMilitary
+{
+public:
 
-protected:
-	virtual CvPlot* FindBestTarget();
+	CvAIOperationCityAttackCombined(int iID, PlayerTypes eOwner, PlayerTypes eEnemy) : 
+		CvAIOperationMilitary(iID,eOwner,eEnemy,AI_OPERATION_CITY_ATTACK_COMBINED,ARMY_TYPE_COMBINED) {}
+	virtual ~CvAIOperationCityAttackCombined() {}
+	virtual void Init(CvCity* pTarget = NULL, CvCity* pMuster = NULL);
 };
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//  CLASS:      CvAIOperationCityCloseDefense
-//!  \brief		Defend a specific city
+//  CLASS:      CvAIOperationCarrierGroup
+//!  \brief		Protect an aircraft carrier. The aircraft themselves are not included in the operation!
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-class CvAIOperationCityCloseDefense : public CvAIOperation
+class CvAIOperationCarrierGroup : public CvAIOperationMilitary
 {
 public:
 
-	CvAIOperationCityCloseDefense();
-	virtual ~CvAIOperationCityCloseDefense();
-
-	virtual void Init(int iID, PlayerTypes eOwner, PlayerTypes eEnemy, int iDefaultArea = -1, CvCity* pTarget = NULL, CvCity* pMuster = NULL);
-	virtual void Read(FDataStream& kStream);
-	virtual void Write(FDataStream& kStream) const;
-
-	virtual int GetOperationType() const
-	{
-		return AI_OPERATION_CITY_CLOSE_DEFENSE;
-	}
-	virtual CvString GetOperationName() const
-	{
-		return CvString("AI_OPERATION_CITY_CLOSE_DEFENSE");
-	}
-	virtual MultiunitFormationTypes GetFormation() const
-	{
-		return MUFORMATION_CLOSE_CITY_DEFENSE;
-	}
-
-private:
-	CvPlot* FindBestTarget();
-};
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//  CLASS:      CvAIOperationRapidResponse
-//!  \brief		Mobile force that can defend where threatened
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-class CvAIOperationRapidResponse : public CvAIOperation
-{
-public:
-
-	CvAIOperationRapidResponse();
-	virtual ~CvAIOperationRapidResponse();
-
-	virtual void Init(int iID, PlayerTypes eOwner, PlayerTypes eEnemy, int iDefaultArea = -1, CvCity* pTarget = NULL, CvCity* pMuster = NULL);
-	virtual void Read(FDataStream& kStream);
-	virtual void Write(FDataStream& kStream) const;
-
-	virtual int GetOperationType() const
-	{
-		return AI_OPERATION_RAPID_RESPONSE;
-	}
-	virtual CvString GetOperationName() const
-	{
-		return CvString("AI_OPERATION_RAPID_RESPONSE");
-	}
-	virtual MultiunitFormationTypes GetFormation() const
-	{
-		return MUFORMATION_RAPID_RESPONSE_FORCE;
-	}
-
-	virtual bool ArmyInPosition(CvArmyAI* pArmy);
-	virtual bool ArmyMoved(CvArmyAI* pArmy);
-
-private:
-	bool RetargetDefensiveArmy(CvArmyAI* pArmy);
-	CvPlot* FindBestTarget();
-};
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//  CLASS:      CvAINavalEscortedOperation
-//!  \brief		Base class for operations that require a naval escort for land units
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-class CvAINavalEscortedOperation : public CvAIOperation
-{
-public:
-
-	CvAINavalEscortedOperation();
-	virtual ~CvAINavalEscortedOperation();
-
-	virtual void Init(int iID, PlayerTypes eOwner, PlayerTypes eEnemy, int iDefaultArea = -1, CvCity* pTarget = NULL, CvCity* pMuster = NULL);
-	virtual void Read(FDataStream& kStream);
-	virtual void Write(FDataStream& kStream) const;
-
-	virtual int GetOperationType() const
-	{
-		return AI_OPERATION_COLONIZE;
-	}
-	virtual CvString GetOperationName() const
-	{
-		return CvString("AI_OPERATION_COLONIZE");
-	}
-	virtual MultiunitFormationTypes GetFormation() const
-	{
-		return MUFORMATION_COLONIZATION_PARTY;
-	}
-	virtual CvCity* GetOperationStartCity() const;
-	virtual bool IsMixedLandNavalOperation() const
-	{
-		return true;
-	};
-	virtual bool IsCivilianRequired() const
-	{
-		return true;
-	};
-
-	virtual bool ArmyInPosition(CvArmyAI* pArmy);
-	virtual CvUnit* FindBestCivilian();
+	CvAIOperationCarrierGroup(int iID, PlayerTypes eOwner, PlayerTypes eEnemy) : 
+		CvAIOperationMilitary(iID,eOwner,eEnemy,AI_OPERATION_CARRIER_GROUP,ARMY_TYPE_NAVAL) {}
+	virtual ~CvAIOperationCarrierGroup() {}
+	virtual void Init(CvCity* pTarget = NULL, CvCity* pMuster = NULL);
+	virtual AIOperationAbortReason VerifyOrAdjustTarget(CvArmyAI* pArmy);
+	virtual bool IsNeverEnding() const { return true; }
 	virtual void UnitWasRemoved(int iArmyID, int iSlotID);
-	bool RetargetCivilian(CvUnit* pCivilian, CvArmyAI* pArmy);
-
 protected:
-	CvPlot* FindBestTarget(CvUnit* pUnit);
-
-	UnitAITypes m_eCivilianType;
-	int m_iInitialAreaID;
-};
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//  CLASS:      CvAIOperationNavalAttack
-//!  \brief		Attack a city from the sea
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-class CvAIOperationNavalAttack : public CvAINavalEscortedOperation
-{
-public:
-
-	CvAIOperationNavalAttack();
-	virtual ~CvAIOperationNavalAttack();
-
-	virtual void Init(int iID, PlayerTypes eOwner, PlayerTypes eEnemy, int iDefaultArea = -1, CvCity* pTarget = NULL, CvCity* pMuster = NULL);
-	virtual void Read(FDataStream& kStream);
-	virtual void Write(FDataStream& kStream) const;
-
-	virtual int GetOperationType() const
-	{
-		return AI_OPERATION_NAVAL_ATTACK;
-	}
-	virtual CvString GetOperationName() const
-	{
-		return CvString("AI_OPERATION_NAVAL_ATTACK");
-	}
-	virtual MultiunitFormationTypes GetFormation() const
-	{
-		return MUFORMATION_NAVAL_INVASION;
-	}
-	virtual CvCity* GetOperationStartCity() const;
-	virtual bool IsCivilianRequired() const
-	{
-		return false;
-	};
-
-	virtual bool ArmyInPosition(CvArmyAI* pArmy);
-	virtual void UnitWasRemoved(int iArmyID, int iSlotID);
-
-protected:
-	virtual CvPlot* FindBestTarget();
-};
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//  CLASS:      CvAIOperationNavalSneakAttack
-//!  \brief		Same as basic naval attack except allowed when not at war
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-class CvAIOperationNavalSneakAttack : public CvAIOperationNavalAttack
-{
-public:
-	CvAIOperationNavalSneakAttack();
-
-	virtual int GetOperationType() const
-	{
-		return AI_OPERATION_NAVAL_SNEAK_ATTACK;
-	}
-	virtual CvString GetOperationName() const
-	{
-		return CvString("AI_OPERATION_NAVAL_SNEAK_ATTACK");
-	}
-	virtual MultiunitFormationTypes GetFormation() const
-	{
-		return MUFORMATION_NAVAL_INVASION;
-	}
-};
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//  CLASS:      CvAIOperationNavalCityStateAttack
-//!  \brief		Same as basic naval attack except allowed when not at war
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-class CvAIOperationNavalCityStateAttack : public CvAIOperationNavalAttack
-{
-public:
-	CvAIOperationNavalCityStateAttack();
-
-	virtual int GetOperationType() const
-	{
-		return AI_OPERATION_CITY_STATE_NAVAL_ATTACK;
-	}
-	virtual CvString GetOperationName() const
-	{
-		return CvString("AI_OPERATION_CITY_STATE_NAVAL_ATTACK");
-	}
-	virtual MultiunitFormationTypes GetFormation() const
-	{
-		return MUFORMATION_CITY_STATE_INVASION;
-	}
+	set<int> GetPossibleDeploymentZones() const;
 };
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //  CLASS:      CvAIOperationNukeAttack
 //!  \brief		When you care enough to send the very best
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-class CvAIOperationNukeAttack : public CvAIOperation
+class CvAIOperationNukeAttack : public CvAIOperationMilitary
 {
 public:
 
-	CvAIOperationNukeAttack();
-	virtual ~CvAIOperationNukeAttack();
-	virtual void Init(int iID, PlayerTypes eOwner, PlayerTypes eEnemy, int iDefaultArea = -1, CvCity* pTarget = NULL, CvCity* pMuster = NULL);
+	CvAIOperationNukeAttack(int iID, PlayerTypes eOwner, PlayerTypes eEnemy) : 
+		CvAIOperationMilitary(iID,eOwner,eEnemy,AI_OPERATION_NUKE_ATTACK, ARMY_TYPE_AIR) {}
+	virtual ~CvAIOperationNukeAttack() {}
+	virtual void Init(CvCity* pTarget = NULL, CvCity* pMuster = NULL);
+	virtual bool PreconditionsAreMet(CvPlot* pMusterPlot, CvPlot* pTargetPlot, int iMaxMissingUnits);
+
+	virtual AIOperationAbortReason VerifyOrAdjustTarget(CvArmyAI* pArmy);
+	virtual bool FindBestFitReserveUnit(OperationSlot thisOperationSlot, vector<OptionWithScore<int>>& choices);
+	virtual bool CheckTransitionToNextStage();
+
+protected:
+	virtual CvPlot* FindBestTarget(CvPlot** ppMuster) const;
+};
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//  CLASS:      CvAIOperationPillageEnemy
+//!  \brief		Create a fast strike team to harass the enemy
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+class CvAIOperationPillageEnemy : public CvAIOperationMilitary
+{
+public:
+
+	CvAIOperationPillageEnemy(int iID, PlayerTypes eOwner, PlayerTypes eEnemy) : 
+		CvAIOperationMilitary(iID,eOwner,eEnemy,AI_OPERATION_PILLAGE_ENEMY,ARMY_TYPE_LAND) {}
+	virtual ~CvAIOperationPillageEnemy() {}
+
+	virtual bool PreconditionsAreMet(CvPlot* pMusterPlot, CvPlot* pTargetPlot, int iMaxMissingUnits);
+
+	virtual AIOperationTypes GetOperationType() const
+	{
+		return AI_OPERATION_PILLAGE_ENEMY;
+	}
+	virtual const char* GetOperationName() const
+	{
+		return "AI_OPERATION_PILLAGE_ENEMY";
+	}
+
+	virtual AIOperationAbortReason VerifyOrAdjustTarget(CvArmyAI* pArmy);
+
+protected:
+	virtual CvPlot* FindBestTarget(CvPlot** ppMuster) const;
+};
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//  CLASS:      CvAIOperationNavalSuperiority
+//!  \brief		Send out a squadron of naval units to rule the seas
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+class CvAIOperationNavalSuperiority : public CvAIOperationMilitary
+{
+public:
+
+	CvAIOperationNavalSuperiority(int iID, PlayerTypes eOwner, PlayerTypes eEnemy) : 
+		CvAIOperationMilitary(iID,eOwner,eEnemy,AI_OPERATION_NAVAL_SUPERIORITY, ARMY_TYPE_NAVAL) {}
+	virtual ~CvAIOperationNavalSuperiority() {}
+
+	virtual void Init(CvCity* pTarget = NULL, CvCity* pMuster = NULL);
+
+	virtual AIOperationAbortReason VerifyOrAdjustTarget(CvArmyAI* pArmy);
+
+protected:
+	virtual CvPlot* FindBestTarget(CvPlot** ppMuster) const;
+};
+
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//  CLASS:      CvAIOperationDefendCity
+//!  \brief		Defend a specific city
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+class CvAIOperationDefendCity : public CvAIOperationMilitary
+{
+public:
+
+	CvAIOperationDefendCity(int iID, PlayerTypes eOwner, PlayerTypes eEnemy) : 
+		CvAIOperationMilitary(iID,eOwner,eEnemy,AI_OPERATION_CITY_DEFENSE,ARMY_TYPE_LAND) {}
+	virtual ~CvAIOperationDefendCity() {}
+
+	virtual AIOperationAbortReason VerifyOrAdjustTarget(CvArmyAI* pArmy);
+};
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//  CLASS:      CvAIOperationDefenseRapidResponse
+//!  \brief		Mobile force that can defend where threatened
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+class CvAIOperationDefenseRapidResponse : public CvAIOperationMilitary
+{
+public:
+
+	CvAIOperationDefenseRapidResponse(int iID, PlayerTypes eOwner, PlayerTypes eEnemy) : 
+		CvAIOperationMilitary(iID,eOwner,eEnemy,AI_OPERATION_RAPID_RESPONSE,ARMY_TYPE_LAND) {}
+	virtual ~CvAIOperationDefenseRapidResponse() {}
+
+	virtual AIOperationAbortReason VerifyOrAdjustTarget(CvArmyAI* pArmy);
+
+private:
+	virtual CvPlot* FindBestTarget(CvPlot** ppMuster) const;
+};
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//  CLASS:      CvAIOperationCivilian
+//!  \brief		Base class for operations that are one military unit and one civilian
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+class CvAIOperationCivilian : public CvAIOperation
+{
+public:
+
+	CvAIOperationCivilian(int iID, PlayerTypes eOwner, PlayerTypes eEnemy, AIOperationTypes eType, UnitAITypes eCivilianType) : 
+		CvAIOperation(iID, eOwner, eEnemy, eType, ARMY_TYPE_ESCORT_LAND), m_eCivilianType(eCivilianType) {}
+	virtual ~CvAIOperationCivilian() {}
+
+	virtual void Init(CvCity* pTarget = NULL, CvCity* pMuster = NULL);
+
+	virtual int GetDeployRange() const { return 1; }
+	virtual bool CheckTransitionToNextStage();
+
+	virtual void UnitWasRemoved(int iArmyID, int iSlotID);
+	virtual CvPlot* FindBestTargetForUnit(CvUnit* pUnit) = 0;
+
+	virtual AIOperationAbortReason VerifyOrAdjustTarget(CvArmyAI* pArmy);
+	virtual bool IsEscorted() const;
+	virtual bool IsOffensive() const { return false; }
+
+	virtual UnitAITypes GetCivilianType() const
+	{
+		return m_eCivilianType;
+	}
+
+	//we have arrived. subclass needs to decide what happens
+	virtual bool PerformMission(CvUnit* pUnit) = 0;
 
 	virtual void Read(FDataStream& kStream);
 	virtual void Write(FDataStream& kStream) const;
 
-	virtual int GetOperationType() const
-	{
-		return AI_OPERATION_NUKE_ATTACK;
-	}
-	virtual CvString GetOperationName() const
-	{
-		return CvString("AI_OPERATION_NUKE_ATTACK");
-	}
-	virtual bool NeedToCheckPathToTarget() const
-	{
-		return false;
-	}
-	virtual MultiunitFormationTypes GetFormation() const
-	{
-		return MUFORMATION_NUKE_ATTACK;
-	}
-	virtual int GetDeployRange() const
-	{
-		return 10;
-	}
-	virtual bool FindBestFitReserveUnit(OperationSlot thisOperationSlot, CvPlot* pMusterPlot, CvPlot* pTargetPlot, bool* bRequired);
+protected:
+	virtual CvUnit* FindBestCivilian();
+	virtual bool RetargetCivilian(CvUnit* pCivilian, CvArmyAI* pArmy);
 
-	virtual CvCity* GetOperationStartCity() const;
-	virtual bool ArmyInPosition(CvArmyAI* pArmy);
+	UnitAITypes m_eCivilianType;
+};
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//  CLASS:      CvAIOperationCivilianFoundCity
+//!  \brief		Find a place to utilize a new settler
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+class CvAIOperationCivilianFoundCity : public CvAIOperationCivilian
+{
+public:
+
+	CvAIOperationCivilianFoundCity(int iID, PlayerTypes eOwner, PlayerTypes eEnemy) : 
+		CvAIOperationCivilian(iID,eOwner,eEnemy,AI_OPERATION_FOUND_CITY, UNITAI_SETTLE) {}
+	virtual ~CvAIOperationCivilianFoundCity() {}
+
+	virtual bool PerformMission(CvUnit* pSettler);
+	virtual AIOperationAbortReason VerifyOrAdjustTarget(CvArmyAI* pArmy);
 
 protected:
-	virtual CvPlot* FindBestTarget();
+	virtual CvUnit* FindBestCivilian();
+	virtual CvPlot* FindBestTargetForUnit(CvUnit* pUnit);
+};
 
-	int m_iBestUnitID;
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//  CLASS:      CvAIOperationCivilianConcertTour
+//!  \brief		Send a Great Musician to a city state
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+class CvAIOperationCivilianConcertTour : public CvAIOperationCivilian
+{
+public:
+
+	CvAIOperationCivilianConcertTour(int iID, PlayerTypes eOwner, PlayerTypes eEnemy) : 
+		CvAIOperationCivilian(iID,eOwner,eEnemy,AI_OPERATION_MUSICIAN_CONCERT_TOUR, UNITAI_MUSICIAN) {}
+	virtual ~CvAIOperationCivilianConcertTour() {}
+	virtual bool PerformMission(CvUnit* pMusician);
+	virtual AIOperationAbortReason VerifyOrAdjustTarget(CvArmyAI* pArmy);
+private:
+	virtual CvPlot* FindBestTargetForUnit(CvUnit* pUnit);
+};
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//  CLASS:      CvAIOperationCivilianMerchantDelegation
+//!  \brief		Send a Great Merchant to a city state
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+class CvAIOperationCivilianMerchantDelegation : public CvAIOperationCivilian
+{
+public:
+
+	CvAIOperationCivilianMerchantDelegation(int iID, PlayerTypes eOwner, PlayerTypes eEnemy) : 
+		CvAIOperationCivilian(iID,eOwner,eEnemy,AI_OPERATION_MERCHANT_DELEGATION, UNITAI_MERCHANT) {}
+	virtual ~CvAIOperationCivilianMerchantDelegation() {}
+	virtual bool PerformMission(CvUnit* pMerchant);
+	virtual AIOperationAbortReason VerifyOrAdjustTarget(CvArmyAI* pArmy);
+private:
+	virtual CvPlot* FindBestTargetForUnit(CvUnit* pUnit);
+};
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//  CLASS:      CvAIOperationCivilianDiplomatDelegation
+//!  \brief		Send a diplomat to a city state
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+class CvAIOperationCivilianDiplomatDelegation : public CvAIOperationCivilian
+{
+public:
+
+	CvAIOperationCivilianDiplomatDelegation(int iID, PlayerTypes eOwner, PlayerTypes eEnemy) : 
+		CvAIOperationCivilian(iID,eOwner,eEnemy,AI_OPERATION_DIPLOMAT_DELEGATION, UNITAI_DIPLOMAT) {}
+	virtual ~CvAIOperationCivilianDiplomatDelegation() {}
+	virtual bool PerformMission(CvUnit* pDiplomat);
+	virtual AIOperationAbortReason VerifyOrAdjustTarget(CvArmyAI* pArmy);
+private:
+	virtual CvPlot* FindBestTargetForUnit(CvUnit* pUnit);
 };
 
 
 namespace OperationalAIHelpers
 {
-int GetGatherRangeForXUnits(int iTotalUnits);
+	MultiunitFormationTypes GetArmyFormationForOpType(AIOperationTypes eType);
+	CvPlot* FindClosestBarbarianCamp(PlayerTypes ePlayer, CvPlot** ppMuster);
+	CvPlot* FindEnemiesNearHomelandPlot(PlayerTypes ePlayer, PlayerTypes eEnemy, DomainTypes eDomain, CvPlot* pRefPlot, int iMaxDistance);
+	bool IsSlotRequired(PlayerTypes ePlayer, const OperationSlot& thisOperationSlot);
+	int IsUnitSuitableForRecruitment(CvUnit* pLoopUnit, const ReachablePlots& turnsFromMuster, CvPlot* pTarget,	bool bMustEmbark, bool bMustBeDeepWaterNaval, const vector<pair<size_t,CvFormationSlotEntry>>& availableSlots);
+	CvCity* GetClosestFriendlyCoastalCity(PlayerTypes ePlayer, const CvPlot* pRefPlot, int iMinWaterSize);
+	pair<CvCity*, CvCity*> GetClosestCoastalCityPair(PlayerTypes ePlayerA, PlayerTypes ePlayerB);
 }
 
 #endif

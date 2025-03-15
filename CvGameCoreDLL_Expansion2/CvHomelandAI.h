@@ -1,4 +1,4 @@
-/*	-------------------------------------------------------------------------------------------------------
+﻿/*	-------------------------------------------------------------------------------------------------------
 	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
@@ -9,39 +9,23 @@
 
 #ifndef CIV5_HOMELAND_AI_H
 #define CIV5_HOMELAND_AI_H
+#include "CvGameCoreUtils.h"
 
-#define UPGRADE_THIS_TURN_PRIORITY_BOOST 1000
-#define UPGRADE_IN_TERRITORY_PRIORITY_BOOST 500
+#define UPGRADE_THIS_TURN_PRIORITY_BOOST 5000
+#define UPGRADE_IN_TERRITORY_PRIORITY_BOOST 2000
+
+struct BuilderDirective;
 
 enum AIHomelandTargetType
 {
     AI_HOMELAND_TARGET_NONE,
     AI_HOMELAND_TARGET_CITY,
     AI_HOMELAND_TARGET_SENTRY_POINT,
+	AI_HOMELAND_TARGET_SENTRY_POINT_NAVAL,
     AI_HOMELAND_TARGET_FORT,
     AI_HOMELAND_TARGET_NAVAL_RESOURCE,
-    AI_HOMELAND_TARGET_HOME_ROAD,
-    AI_HOMELAND_TARGET_ANCIENT_RUIN,
+	AI_HOMELAND_TARGET_WORKER,
 	AI_HOMELAND_TARGET_ANTIQUITY_SITE,
-};
-
-// Object stored in the list of move priorities (m_MovePriorityList)
-class CvHomelandMove
-{
-public:
-	CvHomelandMove()
-	{
-		m_eMoveType = AI_HOMELAND_MOVE_NONE;
-		m_iPriority = 0;
-	}
-
-	bool operator<(const CvHomelandMove& move) const
-	{
-		return (m_iPriority > move.m_iPriority);
-	}
-
-	AIHomelandMove m_eMoveType;
-	int m_iPriority;
 };
 
 // Object stored in the list of current move units (m_CurrentMoveUnits)
@@ -83,7 +67,7 @@ public:
 
 	// Stores extra integer data
 	//   For potential upgradeable units stores the unit type since that's a convenient way to sort them
-	int GetAuxIntData()
+	int GetAuxIntData() const
 	{
 		return m_iAuxData;
 	}
@@ -96,9 +80,35 @@ private:
 	int m_iID;
 	int m_iAuxData;
 	int m_iMovesToTarget;
+
 	CvPlot* m_pTarget;
 };
 
+#if defined(MOD_BALANCE_CORE_MILITARY)
+#endif
+//a simple wrapper around std::vector so we can log/break on certain units being added (in a central place)
+class CHomelandUnitArray
+{
+public:
+	CHomelandUnitArray() : m_currentHomelandMove(AI_HOMELAND_MOVE_UNASSIGNED) {}
+
+	std::vector<CvHomelandUnit>::iterator begin() { return m_vec.begin(); }
+	std::vector<CvHomelandUnit>::iterator end() { return m_vec.end(); }
+	std::vector<CvHomelandUnit>::size_type size() const { return m_vec.size(); }
+	bool empty() { return m_vec.empty(); }
+	std::vector<CvHomelandUnit>::reference operator[](std::vector<CvHomelandUnit>::size_type _Pos) { return m_vec[_Pos]; }
+	std::vector<CvHomelandUnit>::iterator erase(std::vector<CvHomelandUnit>::const_iterator _Where) { return m_vec.erase(_Where); }
+	void push_back(const CvHomelandUnit& unit);
+	void clear() { m_vec.clear(); }
+	void setCurrentHomelandMove(AIHomelandMove move) { m_currentHomelandMove=move; }
+	AIHomelandMove getCurrentHomelandMove() const { return m_currentHomelandMove; }
+
+	typedef std::vector<CvHomelandUnit>::iterator iterator; 
+
+private:
+	std::vector<CvHomelandUnit> m_vec;
+	AIHomelandMove m_currentHomelandMove;
+};
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //  CLASS:      CvHomelandTarget
@@ -114,9 +124,8 @@ public:
 
 	CvHomelandTarget()
 		: m_eTargetType(AI_HOMELAND_TARGET_CITY)
-		, m_iTargetX(-1)
-		, m_iTargetY(-1)
-		, m_pAuxData(NULL)
+		, m_iTargetX(INVALID_PLOT_COORD)
+		, m_iTargetY(INVALID_PLOT_COORD)
 		, m_iAuxData(0)
 	{
 	};
@@ -133,7 +142,7 @@ public:
 	{
 		m_eTargetType = eTargetType;
 	}
-	inline int GetTargetX()
+	inline int GetTargetX() const
 	{
 		return m_iTargetX;
 	}
@@ -141,7 +150,7 @@ public:
 	{
 		m_iTargetX = iValue;
 	}
-	inline int GetTargetY()
+	inline int GetTargetY() const
 	{
 		return m_iTargetY;
 	}
@@ -150,22 +159,11 @@ public:
 		m_iTargetY = iValue;
 	}
 
-	// AuxData is used for a pointer to the actual target object (CvUnit, CvCity, etc.)
-	//    (for naval improvements this is set to target plot).
-	inline void* GetAuxData()
-	{
-		return m_pAuxData;
-	}
-	inline void SetAuxData(void* pAuxData)
-	{
-		m_pAuxData = pAuxData;
-	}
-
 	// Used to SORT homeland targets in priority order
 	//    Set to the BuildType for improvement targets
 	//    Set to the weight for sentry points
 	//    Set to the danger for cities to be garrisoned
-	inline int GetAuxIntData()
+	inline int GetAuxIntData() const
 	{
 		return m_iAuxData;
 	}
@@ -178,7 +176,6 @@ private:
 	AIHomelandTargetType m_eTargetType;
 	int m_iTargetX;
 	int m_iTargetY;
-	void* m_pAuxData;
 	int m_iAuxData;
 };
 
@@ -200,49 +197,70 @@ public:
 	void Reset();
 
 	// Serialization routines
+	template<typename HomelandAI, typename Visitor>
+	static void Serialize(HomelandAI& homelandAI, Visitor& visitor);
 	void Read(FDataStream& kStream);
-	void Write(FDataStream& kStream);
+	void Write(FDataStream& kStream) const;
 
 	// Public turn update routines
 	void RecruitUnits();
 	void FindAutomatedUnits();
-	void DoTurn();
-	void Update();
+	void Update(bool bUpdateImprovements);
+	void Invalidate();
+	bool NeedsUpdate();
 
 	// Public exploration routines
-	bool IsAnyValidExploreMoves(const CvUnit* pUnit) const;
-	bool ExecuteSpecialExploreMove(CvUnit* pUnit, CvPlot* pPlot);
+	CvPlot* GetBestExploreTarget(const CvUnit* pUnit, int nMinCandidatesToCheck, int iMaxTurns) const;
+	bool ExecuteSpecialExploreMove(CvUnit* pUnit, CvPlot* pTargetPlot);
+	bool FindTestArchaeologistPlotPrimer(CvUnit* pUnit);
 
 	// Public logging
-	void LogHomelandMessage(CvString& strMsg);
-	void LogPatrolMessage(CvString& strMsg, CvUnit* pPatrolUnit);
+	void LogHomelandMessage(const CvString& strMsg);
+
+	bool MoveCivilianToGarrison(CvUnit* pUnit);
+	bool MoveCivilianToSafety(CvUnit* pUnit);
+
+	set<int> GetWorkedPlots();
 
 private:
-
-	typedef FStaticVector< CvHomelandUnit, 64, true, c_eCiv5GameplayDLL > MoveUnitsArray;
-
 	// Internal turn update routines - commandeered unit processing
-	void EstablishHomelandPriorities();
 	void FindHomelandTargets();
 	void AssignHomelandMoves();
 
 	// Routines to manage identifying and implementing homeland moves
 	void PlotExplorerMoves();
-	void PlotExplorerSeaMoves();
 	void PlotFirstTurnSettlerMoves();
-	void PlotGarrisonMoves(bool bCityStateOnly = false);
 	void PlotHealMoves();
 	void PlotMovesToSafety();
-	void PlotMobileReserveMoves();
-#if defined(MOD_AI_SECONDARY_SETTLERS)
+
 	void PlotOpportunisticSettlementMoves();
-#endif
+
+//------------------------------------- move to tactical AI
+#if defined(MOD_BALANCE_CORE)
+	void PlotGarrisonMoves();
 	void PlotSentryMoves();
-	void PlotWorkerMoves(bool bSecondary = false);
-	void PlotWorkerSeaMoves();
+	void PlotSentryNavalMoves();
 	void PlotPatrolMoves();
 	void PlotUpgradeMoves();
-	void PlotAncientRuinMoves();
+	void PlotAircraftRebase();
+
+	void ExecuteUnitGift();
+	bool SendUnitGift(DomainTypes eDomain);
+
+	void ExecuteAircraftMoves();
+	void ExecutePatrolMoves();
+
+	// Internal low-level utility routines
+	void EliminateAdjacentSentryPoints();
+	void EliminateAdjacentNavalSentryPoints();
+
+	std::vector<CvHomelandTarget> m_TargetedSentryPoints;
+	std::vector<CvHomelandTarget> m_TargetedNavalSentryPoints;
+#endif
+//-------------------------------------
+
+	void PlanImprovements();
+	void PlotWorkerMoves();
 	void PlotWriterMoves();
 	void PlotArtistMoves();
 	void PlotMusicianMoves();
@@ -250,72 +268,67 @@ private:
 	void PlotEngineerMoves();
 	void PlotGeneralMoves();
 	void PlotMerchantMoves();
+	void PlotDiplomatMoves();
+	void PlotMessengerMoves();
 	void PlotProphetMoves();
 	void PlotAdmiralMoves();
 	void PlotMissionaryMoves();
 	void PlotInquisitorMoves();
-	void PlotSSPartAdds();
 	void PlotSSPartMoves();
 	void PlotTreasureMoves();
-	void PlotAircraftMoves();
 	void PlotTradeUnitMoves();
 	void PlotArchaeologistMoves();
-	void PlotAirliftMoves();
 	void ReviewUnassignedUnits();
 
 	// Routines to execute homeland moves
 	void ExecuteFirstTurnSettlerMoves();
-	void ExecuteExplorerMoves();
-	void ExecuteWorkerMoves(bool bSecondary = false);
-	bool ExecuteWorkerSeaMoves(CvHomelandTarget target, CvPlot* pTarget);
-	void ExecuteMovesToSafestPlot();
+	bool ExecuteExplorerMoves(CvUnit* pUnit);
+
+	void ExecuteWorkerMoves();
+	void ExecuteMovesToSafestPlot(CvUnit* pUnit);
+	bool ExecuteMoveUnitAwayFromBorder(CvUnit* pUnit);
+	bool ExecuteMoveToTarget(CvUnit* pUnit, CvPlot* pTarget, int iFlags, bool bEndTurn = false);
+
 	void ExecuteHeals();
-	void ExecutePatrolMoves();
-	void ExecuteMoveToTarget(CvPlot* pTarget);
 	void ExecuteWriterMoves();
 	void ExecuteArtistMoves();
 	void ExecuteMusicianMoves();
 	void ExecuteScientistMoves();
 	void ExecuteEngineerMoves();
 	void ExecuteGeneralMoves();
+	void ExecuteDiplomatMoves();
+	void ExecuteMessengerMoves();
 	void ExecuteMerchantMoves();
 	void ExecuteProphetMoves();
 	void ExecuteAdmiralMoves();
 	void ExecuteMissionaryMoves();
 	void ExecuteInquisitorMoves();
-	void ExecuteSSPartAdds();
 	void ExecuteSSPartMoves();
 	void ExecuteTreasureMoves();
-#if defined(MOD_AI_SMART_V3)
-	void ExecuteAircraftInterceptions();
-#endif
-	void ExecuteAircraftMoves();
 	void ExecuteTradeUnitMoves();
 	void ExecuteArchaeologistMoves();
 
-	// Internal low-level utility routines
-	void EliminateAdjacentSentryPoints();
-	void EliminateAdjacentHomelandRoads();
-	bool FindWorkersInSameArea(CvPlot* pTarget, BuildTypes eBuild);
-	bool FindUnitsForThisMove(AIHomelandMove eMove, bool bFirstTime);
-	CvPlot* FindPatrolTarget(CvUnit* pUnit);
-	bool GetBestUnitToReachTarget(CvPlot* pTarget, int iMaxTurns);
-#if defined(MOD_AI_SECONDARY_WORKERS)
-	bool MoveCivilianToSafety(CvUnit* pUnit, bool bIgnoreUnits = false, bool bSecondary = false);
-#else
-	bool MoveCivilianToSafety(CvUnit* pUnit, bool bIgnoreUnits = false);
-#endif
-	bool MoveToEmptySpaceNearTarget(CvUnit* pUnit, CvPlot* pTarget, bool bLand=true);
-	CvCity* ChooseBestFreeWonderCity(BuildingTypes eWonder, UnitHandle pEngineer);
+	bool FindUnitsForThisMove(AIHomelandMove eMove);
+	CvUnit* GetBestUnitToReachTarget(CvPlot* pTarget, int iMaxTurns);
+	bool MoveToTargetButDontEndTurn(CvUnit* pUnit, CvPlot* pTargetPlot, int iFlags);
+
 	CvPlot* FindArchaeologistTarget(CvUnit *pUnit);
+	vector<OptionWithScore<pair<CvUnit*, BuilderDirective>>> GetWeightedDirectives(
+		const vector<BuilderDirective> aDirectives, 
+		const set<BuilderDirective> ignoredDirectives, 
+		const list<int> allWorkers, 
+		const set<int> ignoredWorkers, 
+		const std::map<CvUnit*, ReachablePlots>& allWorkersReachablePlots);
+	int GetBuilderNumTurnsAway(
+		CvUnit* pUnit, 
+		BuilderDirective eDirective, 
+		const std::map<CvUnit*, ReachablePlots>& allWorkersReachablePlots);
+
 	void UnitProcessed(int iID);
-	bool ExecuteWorkerMove(CvUnit* pUnit, bool bSecondary = false);
 	bool ExecuteCultureBlast(CvUnit* pUnit);
 	bool ExecuteGoldenAgeMove(CvUnit* pUnit);
 	bool IsValidExplorerEndTurnPlot(const CvUnit* pUnit, CvPlot* pPlot) const;
-	bool GetClosestUnitByTurnsToTarget(MoveUnitsArray &kMoveUnits, CvPlot* pTarget, int iMaxTurns, CvUnit** ppClosestUnit, int* piClosestTurns);
-	void ClearCurrentMoveUnits();
-	void ClearCurrentMoveHighPriorityUnits();
+	void ClearCurrentMoveUnits(AIHomelandMove eNextMove);
 
 	// Logging functions
 	CvString GetLogFileName(CvString& playerName) const;
@@ -323,40 +336,60 @@ private:
 	// Class data
 	CvPlayer* m_pPlayer;
 	std::list<int> m_CurrentTurnUnits;
-	std::list<CvPlot*> m_lPlayerPlots;
+	set<int> m_workedPlots;
+	list<int> m_greatPeopleForImprovements;
+	std::map<UnitAITypes,std::vector<std::pair<int,int>>> m_automatedTargetPlots; //for human units
+	bool m_bNeedsUpdate;
 
-	MoveUnitsArray m_CurrentMoveUnits;
-	MoveUnitsArray m_CurrentMoveHighPriorityUnits;
-
-	FStaticVector< CvHomelandMove, 35, true, c_eCiv5GameplayDLL > m_MovePriorityList;
-	int m_MovePriorityTurn;
-
-	CvUnit* m_CurrentBestMoveUnit;
-	int m_iCurrentBestMoveUnitTurns;
-
-	CvUnit* m_CurrentBestMoveHighPriorityUnit;
-	int m_iCurrentBestMoveHighPriorityUnitTurns;
+	CHomelandUnitArray m_CurrentMoveUnits;
 
 	// Lists of targets for the turn
 	std::vector<CvHomelandTarget> m_TargetedCities;
-	std::vector<CvHomelandTarget> m_TargetedSentryPoints;
-	std::vector<CvHomelandTarget> m_TargetedForts;
-	std::vector<CvHomelandTarget> m_TargetedNavalResources;
-	std::vector<CvHomelandTarget> m_TargetedHomelandRoads;
-	std::vector<CvHomelandTarget> m_TargetedAncientRuins;
 	std::vector<CvHomelandTarget> m_TargetedAntiquitySites;
+};
 
-	// Targeting ranges (pulled in from GlobalAIDefines.XML)
-	int m_iRandomRange;
-	int m_iDefensiveMoveTurns;
-	int m_iUpgradeMoveTurns;
-	double m_fFlavorDampening;
+FDataStream& operator>>(FDataStream&, CvHomelandAI&);
+FDataStream& operator<<(FDataStream&, const CvHomelandAI&);
+
+#if defined(MOD_BALANCE_CORE_MILITARY)
+#endif
+extern const char* homelandMoveNames[];
+extern const char* directiveNames[];
+
+
+struct SPatrolTarget {
+	CvPlot* pTarget;
+	CvPlot* pWorstEnemy; //may be null
+	int iThreatLevel;
+
+	SPatrolTarget();
+	SPatrolTarget(CvPlot* target, CvPlot* neighbor, int iThreat);
+	bool operator<(const SPatrolTarget& rhs) const;
+	bool operator==(const SPatrolTarget& rhs) const;
+};
+
+struct SBuilderState {
+	map<ResourceTypes, int> mExtraResources;
+	map<int, FeatureTypes> mChangedPlotFeatures;
+	map<int, pair<BuildTypes, ImprovementTypes>> mChangedPlotImprovements;
+
+	SBuilderState(){};
+	static const SBuilderState& DefaultInstance() {
+		static SBuilderState defaultInstance;
+		return defaultInstance;
+	}
 };
 
 namespace HomelandAIHelpers
 {
-bool CvHomelandUnitAuxIntSort(CvHomelandUnit obj1, CvHomelandUnit obj2);
-bool CvHomelandUnitAuxIntReverseSort(CvHomelandUnit obj1, CvHomelandUnit obj2);
+bool CvHomelandUnitAuxIntSort(const CvHomelandUnit& obj1, const CvHomelandUnit& obj2);
+bool CvHomelandUnitAuxIntReverseSort(const CvHomelandUnit& obj1, const CvHomelandUnit& obj2);
+
+int ScoreAirBase(CvPlot* pBasePlot, PlayerTypes ePlayer, bool bDesperate, int iRange);
+bool IsGoodUnitMix(CvPlot* pBasePlot, CvUnit* pUnit);
+vector<SPatrolTarget> GetPatrolTargets(PlayerTypes ePlayer, bool bWater, int nMaxTargets = 5);
+
+CvPlot* GetPlotForEmbassy(CvUnit* pUnit, CvCity* pCity);
 }
 
 #endif //CIV5_HOMELAND_AI_H

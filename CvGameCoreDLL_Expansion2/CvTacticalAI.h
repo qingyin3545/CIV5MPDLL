@@ -1,4 +1,4 @@
-/*	-------------------------------------------------------------------------------------------------------
+﻿/*	-------------------------------------------------------------------------------------------------------
 	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
@@ -10,110 +10,14 @@
 #ifndef CIV5_TACTICAL_AI_H
 #define CIV5_TACTICAL_AI_H
 
+#include "CvAStar.h"
+#include "CvUnit.h"
+
 class FDataStream;
 
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//  CLASS:      CvTacticalMoveXMLEntry
-//!  \brief		A single entry in the tactical move XML file
-//
-//!  Key Attributes:
-//!  - Populated from XML\AI\CIV5TacticalMoves.xml
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-class CvTacticalMoveXMLEntry: public CvBaseInfo
-{
-public:
-	CvTacticalMoveXMLEntry();
-	virtual ~CvTacticalMoveXMLEntry();
-
-	virtual bool CacheResults(Database::Results& kResults, CvDatabaseUtility& kUtility);
-
-	// Accessor Functions
-	int GetPriority() const
-	{
-		return m_iPriority;
-	};
-	void SetPriority(int iPriority)
-	{
-		m_iPriority = iPriority;
-	};
-	int GetOffenseFlavorWeight() const
-	{
-		return m_iOffenseWeight;
-	};
-	void SetOffenseFlavorWeight(int iWeight)
-	{
-		m_iOffenseWeight = iWeight;
-	};
-	int GetDefenseFlavorWeight() const
-	{
-		return m_iDefenseWeight;
-	};
-	void SetDefenseFlavorWeight(int iWeight)
-	{
-		m_iDefenseWeight = iWeight;
-	};
-	int CanRecruitForOperations() const
-	{
-		return m_bOperationsCanRecruit;
-	};
-	void SetRecruitForOperations(bool bAvailable)
-	{
-		m_bOperationsCanRecruit = bAvailable;
-	};
-	int IsDominanceZoneMove() const
-	{
-		return m_bDominanceZoneMove;
-	};
-	void SetDominanceZoneMove(bool bByPosture)
-	{
-		m_bDominanceZoneMove = bByPosture;
-	};
-
-private:
-	TacticalAIMoveTypes m_eMoveType;
-	int m_iPriority;
-	int m_iOffenseWeight;
-	int m_iDefenseWeight;
-	bool m_bOperationsCanRecruit;
-	bool m_bDominanceZoneMove;
-};
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//  CLASS:      CvTacticalMoveXMLEntries
-//!  \brief		Game-wide information about tactical move priorities
-//
-//! Key Attributes:
-//! - Populated from XML\AI\Civ5TacticalMoves.xml
-//! - Contains an array of CvTacticalMoveXMLEntry from the above XML file
-//! - One instance for the entire game
-//! - Accessed heavily by CvTacticalAI class
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-class CvTacticalMoveXMLEntries
-{
-public:
-	CvTacticalMoveXMLEntries(void);
-	~CvTacticalMoveXMLEntries(void);
-
-	// Accessor functions
-	std::vector<CvTacticalMoveXMLEntry*>& GetTacticalMoveEntries();
-	int GetNumTacticalMoves();
-	CvTacticalMoveXMLEntry* GetEntry(int index);
-
-	void DeleteArray();
-
-private:
-	std::vector<CvTacticalMoveXMLEntry*> m_paTacticalMoveEntries;
-};
-
-enum AITacticalMission
-{
-    AI_TACTICAL_MISSION_NONE = -1,
-    AI_TACTICAL_MISSION_ATTACK_STATIONARY_TARGET,
-    AI_TACTICAL_MISSION_PILLAGE_ENEMY_IMPROVEMENTS,
-    // Phasing this out so other types deleted (as unused)
-};
-FDataStream& operator<<(FDataStream&, const AITacticalMission&);
-FDataStream& operator>>(FDataStream&, AITacticalMission&);
+//for tactical combat
+enum eAggressionLevel { AL_NONE, AL_LOW, AL_MEDIUM, AL_HIGH, AL_BRAVEHEART };
+extern const unsigned char TACTICAL_COMBAT_MAX_TARGET_DISTANCE;
 
 // STL "find_if" predicate
 class UnitIDMatch
@@ -132,48 +36,27 @@ private:
 	int m_iMatchingUnitID;
 };
 
-// Object stored in the list of move priorities (m_MovePriorityList)
-class CvTacticalMove
-{
-public:
-	CvTacticalMove()
-	{
-		m_eMoveType = NO_TACTICAL_MOVE;
-		m_iPriority = 0;
-	}
-
-	bool operator<(const CvTacticalMove& move) const
-	{
-		return (m_iPriority > move.m_iPriority);
-	}
-
-	TacticalAIMoveTypes m_eMoveType;
-	int m_iPriority;
-};
-
 // Object stored in the list of current move units (m_CurrentMoveUnits)
 class CvTacticalUnit
 {
 public:
-	CvTacticalUnit();
+	CvTacticalUnit(int iID) 
+	{
+		memset(this, 0, sizeof(CvTacticalUnit)); m_iID = iID;
+	}
 
 	bool operator<(const CvTacticalUnit& unit) const
 	{
 		return (GetAttackPriority() > unit.GetAttackPriority());
 	}
 
-	// Accessors
-	void SetID(int iID)
-	{
-		m_iID = iID;
-	};
 	int GetID() const
 	{
 		return m_iID;
 	};
+
 	void SetHealthPercent(int curHitPoints, int maxHitPoints)
 	{
-		CvAssert(maxHitPoints != 0);
 		m_iHealthPercent = curHitPoints * 100 / maxHitPoints;
 	}
 	int GetHealthPercent() const
@@ -213,6 +96,15 @@ public:
 		return m_iMovesToTarget;
 	};
 
+	void SetInterceptor(CvUnit* pInterceptor)
+	{
+		m_pInterceptor = pInterceptor;
+	}
+	CvUnit* GetInterceptor() const
+	{
+		return m_pInterceptor;
+	};
+
 	// Derived
 	int GetAttackPriority() const
 	{
@@ -226,6 +118,7 @@ private:
 	int m_iMovesToTarget;
 	int m_iExpectedTargetDamage;
 	int m_iExpectedSelfDamage;
+	CvUnit* m_pInterceptor;
 };
 
 // Object stored in the list of current move cities (m_CurrentMoveCities)
@@ -235,13 +128,12 @@ public:
 	CvTacticalCity()
 	{
 		m_iID = 0;
-		m_iAttackStrength = 0;
 		m_iExpectedTargetDamage = 0;
 	}
 
 	bool operator<(const CvTacticalCity& city) const
 	{
-		return (GetAttackPriority() > city.GetAttackPriority());
+		return (GetExpectedTargetDamage() > city.GetExpectedTargetDamage());
 	}
 
 	// Accessors
@@ -262,16 +154,33 @@ public:
 		return m_iExpectedTargetDamage;
 	};
 
-	// Derived
-	int GetAttackPriority() const
-	{
-		return m_iAttackStrength;
-	}
-
 private:
 	int m_iID;
-	int m_iAttackStrength;
 	int m_iExpectedTargetDamage;
+};
+
+//a simple wrapper around std::vector so we can log/break on certain units being added (in a central place)
+class CTacticalUnitArray
+{
+public:
+	CTacticalUnitArray() : m_eCurrentMoveType(AI_TACTICAL_MOVE_NONE) {}
+
+	std::vector<CvTacticalUnit>::const_iterator begin() const { return m_vec.begin(); }
+	std::vector<CvTacticalUnit>::const_iterator end() const { return m_vec.end(); }
+	std::vector<CvTacticalUnit>::iterator begin() { return m_vec.begin(); }
+	std::vector<CvTacticalUnit>::iterator end() { return m_vec.end(); }
+	std::vector<CvTacticalUnit>::size_type size() const { return m_vec.size(); }
+	std::vector<CvTacticalUnit>::reference operator[](std::vector<CvTacticalUnit>::size_type _Pos) { return m_vec[_Pos]; }
+	std::vector<CvTacticalUnit>::iterator erase(std::vector<CvTacticalUnit>::const_iterator _Where) { return m_vec.erase(_Where); }
+	CvTacticalUnit& back() { return m_vec.back(); }
+	void push_back(const CvTacticalUnit& unit);
+	void clear() { m_vec.clear(); }
+	void setCurrentTacticalMove(AITacticalMove move) { m_eCurrentMoveType = move; }
+	AITacticalMove getCurrentTacticalMove() const { return m_eCurrentMoveType; }
+
+private:
+	std::vector<CvTacticalUnit> m_vec;
+	AITacticalMove m_eCurrentMoveType;
 };
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -292,26 +201,26 @@ public:
 	void Clear()
 	{
 		m_eTargetType = AI_TACTICAL_TARGET_NONE;
-		m_iTargetX = -1;
-		m_iTargetY = -1;
-		m_eTargetPlayer = NO_PLAYER;
-		m_iDominanceZoneID = -1;
-		m_pAuxData = NULL;
+		m_iTargetX = INVALID_PLOT_COORD;
+		m_iTargetY = INVALID_PLOT_COORD;
+		m_iZoneID = -1;
+		m_pUnit = NULL;
 		m_iAuxData = 0;
+		m_eLastAggLvl = AL_NONE;
 	};
 	inline bool operator<(const CvTacticalTarget& target) const
 	{
 		return (m_iAuxData > target.m_iAuxData);
-	};
-	inline AITacticalTargetType GetTargetType()
+	}
+	inline AITacticalTargetType GetTargetType() const
 	{
 		return m_eTargetType;
 	}
-	inline void SetTargetType(AITacticalTargetType eTargetType)
+	void SetTargetType(AITacticalTargetType eTargetType)
 	{
 		m_eTargetType = eTargetType;
 	}
-	inline int GetTargetX()
+	inline int GetTargetX() const
 	{
 		return m_iTargetX;
 	}
@@ -319,7 +228,7 @@ public:
 	{
 		m_iTargetX = iValue;
 	}
-	inline int GetTargetY()
+	inline int GetTargetY() const
 	{
 		return m_iTargetY;
 	}
@@ -327,41 +236,37 @@ public:
 	{
 		m_iTargetY = iValue;
 	}
-	inline PlayerTypes GetTargetPlayer()
-	{
-		return m_eTargetPlayer;
-	}
-	inline void SetTargetPlayer(PlayerTypes eValue)
-	{
-		m_eTargetPlayer = eValue;
-	}
+
 	inline int GetDominanceZone() const
 	{
-		return m_iDominanceZoneID;
+		return m_iZoneID;
 	};
 	inline void SetDominanceZone(int iZone)
 	{
-		m_iDominanceZoneID = iZone;
+		m_iZoneID = iZone;
 	};
-	bool IsTargetStillAlive(PlayerTypes m_eAttackingPlayer);
-	bool IsTargetValidInThisDomain(DomainTypes eDomain);
 
-	// AuxData is used for a pointer to the actual target object (CvUnit, CvCity, etc.)
-	//    (for improvements & barbarian camps this is set to the plot).
-	inline void* GetAuxData()
+	bool IsTargetValidInThisDomain(DomainTypes eDomain) const;
+
+	//if we already tried with a high agg level, no point in trying again with a lower level
+	//chance that we have more units for an attack later in the turn is also slim
+	void SetLastAggLevel(eAggressionLevel lvl) { m_eLastAggLvl = lvl; }
+	eAggressionLevel GetLastAggLevel() const { return m_eLastAggLvl; }
+
+	inline CvUnit* GetUnitPtr() const
 	{
-		return m_pAuxData;
+		return m_pUnit;
 	}
-	inline void SetAuxData(void* pAuxData)
+	inline void SetUnitPtr(CvUnit* pUnit)
 	{
-		m_pAuxData = pAuxData;
+		m_pUnit = pUnit;
 	}
 
 	// Stores required damage for offensive targets
 	// For defensive items used to SORT targets in priority order
 	//    Set to the weight for defensive bastions
 	//    Set to the danger for cities to be garrisoned
-	inline int GetAuxIntData()
+	inline int GetAuxIntData() const
 	{
 		return m_iAuxData;
 	}
@@ -374,371 +279,32 @@ private:
 	AITacticalTargetType m_eTargetType;
 	int m_iTargetX;
 	int m_iTargetY;
-	PlayerTypes m_eTargetPlayer;
-	void* m_pAuxData;
+	CvUnit* m_pUnit;
 	int m_iAuxData;
-	int m_iDominanceZoneID;
+	int m_iZoneID;
+	eAggressionLevel m_eLastAggLvl;
 };
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//  CLASS:      CvQueuedAttack
-//!  \brief		A planned attack waiting to execute
-//
-//!  Key Attributes:
-//!  - Arises during processing of CvTacticalAI::ExecuteAttacks() or ProcessUnit()
-//!  - Created by calling QueueFirstAttack() or QueueSubsequentAttack()
-//!  - Combat animation system calls back into tactical AI when animation completes with call CombatResolved()
-//!  - This callback signals it is time to execute the next attack
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-class CvQueuedAttack
-{
-public:
-	CvQueuedAttack()
-	{
-		m_pAttacker = NULL;
-		m_iSeriesID = 0;
-		m_bRanged = false;
-		m_bCityAttack = false;
-	};
-	CvQueuedAttack(const CvQueuedAttack& rhs) : m_pAttacker(rhs.m_pAttacker), m_kTarget(rhs.m_kTarget), m_iSeriesID(rhs.m_iSeriesID), m_bRanged(rhs.m_bRanged), m_bCityAttack(rhs.m_bCityAttack) {}
-	void* GetAttacker()
-	{
-		return m_pAttacker;
-	}
-	void SetAttacker(void* pAttacker)
-	{
-		m_pAttacker = pAttacker;
-	}
-	CvTacticalTarget* GetTarget()
-	{
-		return &m_kTarget;
-	}
-	void SetTarget(CvTacticalTarget* pTarget)
-	{
-		m_kTarget = *pTarget;
-	}
-	int GetSeriesID()
-	{
-		return m_iSeriesID;
-	}
-	void SetSeriesID(int id)
-	{
-		m_iSeriesID = id;
-	}
-	bool IsRanged()
-	{
-		return m_bRanged;
-	}
-	void SetRanged(bool bRanged)
-	{
-		m_bRanged = bRanged;
-	}
-	bool IsCityAttack()
-	{
-		return m_bCityAttack;
-	}
-	void SetCityAttack(bool bCityAttack)
-	{
-		m_bCityAttack = bCityAttack;
-	}
-
-private:
-	void* m_pAttacker;
-	CvTacticalTarget m_kTarget;  // Needs to be a copy since original CvTacticalTarget is gone before a follow-on attack is made
-	int m_iSeriesID;
-	bool m_bRanged;
-	bool m_bCityAttack;
-};
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//  CLASS:      CvTacticalPosture
-//!  \brief		The posture an AI has adopted for fighting in a specific dominance zone
-//
-//!  Key Attributes:
-//!  - Used to keep consistency in approach from turn-to-turn
-//!  - Reevaluated by tactical AI each turn before units are moved for this zone
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-enum AITacticalPosture
-{
-    AI_TACTICAL_POSTURE_NONE = -1,
-    AI_TACTICAL_POSTURE_WITHDRAW,
-    AI_TACTICAL_POSTURE_SIT_AND_BOMBARD,
-    AI_TACTICAL_POSTURE_ATTRIT_FROM_RANGE,
-    AI_TACTICAL_POSTURE_EXPLOIT_FLANKS,
-    AI_TACTICAL_POSTURE_STEAMROLL,
-    AI_TACTICAL_POSTURE_SURGICAL_CITY_STRIKE,
-    AI_TACTICAL_POSTURE_HEDGEHOG,
-    AI_TACTICAL_POSTURE_COUNTERATTACK,
-    AI_TACTICAL_POSTURE_SHORE_BOMBARDMENT,
-};
-
-class CvTacticalPosture
-{
-public:
-	CvTacticalPosture(PlayerTypes ePlayer, bool bIsWater, int iCityID, AITacticalPosture ePosture)
-	{
-		m_iPlayerWaterInfo = (int)ePlayer * 2 + (int)bIsWater;
-		m_iCityID = iCityID;
-		m_ePosture = ePosture;
-	}
-
-	PlayerTypes GetPlayer() const
-	{
-		return (PlayerTypes)(m_iPlayerWaterInfo / 2);
-	};
-	bool IsWater()
-	{
-		return m_iPlayerWaterInfo & 0x1;
-	};
-	int GetCityID()
-	{
-		return m_iCityID;
-	};
-	AITacticalPosture GetPosture()
-	{
-		return m_ePosture;
-	};
-
-private:
-	int m_iPlayerWaterInfo;
-	int m_iCityID;
-	AITacticalPosture m_ePosture;
-};
-
-#define SAFE_ESTIMATE_NUM_TEMP_ZONES 10
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//  CLASS:      CvTemporaryZone
-//!  \brief		Location of a temporary dominance zone (like around a barbarian camp)
+//  CLASS:      CvFocusArea
+//!  \brief		Location of a temporary focus of attention (like around a barbarian camp)
 //
 //!  Key Attributes:
 //!  - Used to add dominance zones for short duration tactical strikes
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-class CvTemporaryZone
+struct CvFocusArea
 {
-public:
-	CvTemporaryZone()
-	{
-		Clear();
-	}
-	void Clear()
-	{
-		m_iX = 0;
-		m_iY = 0;
-		m_eTargetType = AI_TACTICAL_TARGET_NONE;
-		m_iLastTurn = 0;
-	};
+	template<typename FocusArea, typename Visitor>
+	static void Serialize(FocusArea& focusArea, Visitor& visitor);
 
-	int GetX() const
-	{
-		return m_iX;
-	};
-	void SetX(int iX)
-	{
-		m_iX = iX;
-	};
-	int GetY() const
-	{
-		return m_iY;
-	};
-	void SetY(int iY)
-	{
-		m_iY = iY;
-	};
-	AITacticalTargetType GetTargetType() const
-	{
-		return m_eTargetType;
-	};
-	void SetTargetType(AITacticalTargetType eType)
-	{
-		m_eTargetType = eType;
-	};
-	int GetLastTurn() const
-	{
-		return m_iLastTurn;
-	};
-	void SetLastTurn(int iTurn)
-	{
-		m_iLastTurn = iTurn;
-	};
-	bool IsNavalInvasion() const
-	{
-		return m_bIsNavalInvasion;
-	};
-	void SetNavalInvasion(bool bIsNavalInvasion)
-	{
-		m_bIsNavalInvasion = bIsNavalInvasion;
-	};
-
-private:
 	int m_iX;
 	int m_iY;
-	AITacticalTargetType m_eTargetType;
+	int m_iRadius;
 	int m_iLastTurn;
-	bool m_bIsNavalInvasion;
 };
 
-FDataStream& operator<<(FDataStream&, const CvTemporaryZone&);
-FDataStream& operator>>(FDataStream&, CvTemporaryZone&);
-
-#define SAFE_ESTIMATE_NUM_BLOCKING_UNITS 25
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//  CLASS:      CvBlockingUnit
-//!  \brief		Potential move of a unit to a hex to form a block keeping enemy away
-//
-//!  Key Attributes:
-//!  - Used by CanCoverFromEnemy() to track moves we may want to make to block enemy
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-class CvBlockingUnit
-{
-public:
-	CvBlockingUnit()
-	{
-		m_pPlot = NULL;
-		m_iUnitID = 0;
-		m_iNumChoices = 0;
-		m_iDistanceToTarget = 0;
-	};
-	bool operator<(const CvBlockingUnit& rhs) const
-	{
-		return (m_iUnitID < rhs.m_iUnitID);
-	};
-	CvPlot* GetPlot() const
-	{
-		return m_pPlot;
-	};
-	void SetPlot(CvPlot* pPlot)
-	{
-		m_pPlot = pPlot;
-	};
-	int GetUnitID() const
-	{
-		return m_iUnitID;
-	};
-	void SetUnitID(int iID)
-	{
-		m_iUnitID = iID;
-	};
-	int GetNumChoices() const
-	{
-		return m_iNumChoices;
-	};
-	void SetNumChoices(int iChoices)
-	{
-		m_iNumChoices = iChoices;
-	};
-	int GetDistanceToTarget() const
-	{
-		return m_iDistanceToTarget;
-	};
-	void SetDistanceToTarget(int iDistanceToTarget)
-	{
-		m_iDistanceToTarget = iDistanceToTarget;
-	};
-
-private:
-	CvPlot* m_pPlot;
-	int m_iUnitID;
-	int m_iNumChoices;
-	int m_iDistanceToTarget;
-};
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//  CLASS:      CvOperationUnit
-//!  \brief		One unit moving with operational army currently being processed
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-class CvOperationUnit
-{
-public:
-	CvOperationUnit()
-	{
-		m_iUnitID = 0;
-		m_ePosition = NO_MUPOSITION;
-	};
-	int GetUnitID() const
-	{
-		return m_iUnitID;
-	};
-	void SetUnitID(int iID)
-	{
-		m_iUnitID = iID;
-	};
-	int GetPosition() const
-	{
-		return m_ePosition;
-	};
-	void SetPosition(MultiunitPositionTypes eType)
-	{
-		m_ePosition = eType;
-	};
-
-private:
-	int m_iUnitID;
-	MultiunitPositionTypes m_ePosition;
-};
-
-enum TacticalAIInfoTypes
-{
-	eTACTICAL_UNASSIGNED,
-	eTACTICAL_POSTURE_SIT_AND_BOMBARD,
-	eTACTICAL_POSTURE_ATTRIT_FROM_RANGE,
-	eTACTICAL_POSTURE_EXPLOIT_FLANKS,
-	eTACTICAL_POSTURE_STEAMROLL,
-	eTACTICAL_POSTURE_SURGICAL_CITY_STRIKE,
-	eTACTICAL_POSTURE_COUNTERATTACK,
-	eTACTICAL_MOVE_NONCOMBATANTS_TO_SAFETY,
-	eTACTICAL_CAPTURE_CITY,
-	eTACTICAL_DAMAGE_CITY,
-	eTACTICAL_DESTROY_HIGH_UNIT,
-	eTACTICAL_DESTROY_MEDIUM_UNIT,
-	eTACTICAL_DESTROY_LOW_UNIT,
-	eTACTICAL_TO_SAFETY,
-	eTACTICAL_ATTRIT_HIGH_UNIT,
-	eTACTICAL_ATTRIT_MEDIUM_UNIT,
-	eTACTICAL_ATTRIT_LOW_UNIT,
-	eTACTICAL_REPOSITION,
-	eTACTICAL_BARBARIAN_CAMP,
-	eTACTICAL_PILLAGE,
-	eTACTICAL_ATTACK_VERY_HIGH_PRIORITY_CIVILIAN,
-	eTACTICAL_ATTACK_HIGH_PRIORITY_CIVILIAN,
-	eTACTICAL_ATTACK_MEDIUM_PRIORITY_CIVILIAN,
-	eTACTICAL_ATTACK_LOW_PRIORITY_CIVILIAN,
-	eTACTICAL_SAFE_BOMBARDS,
-	eTACTICAL_HEAL,
-	eTACTICAL_ANCIENT_RUINS,
-	eTACTICAL_GARRISON_TO_ALLOW_BOMBARD,
-	eTACTICAL_GARRISON_ALREADY_THERE,
-	eTACTICAL_BASTION_ALREADY_THERE,
-	eTACTICAL_GUARD_IMPROVEMENT_ALREADY_THERE,
-	eTACTICAL_GARRISON_1_TURN,
-	eTACTICAL_BASTION_1_TURN,
-	eTACTICAL_GUARD_IMPROVEMENT_1_TURN,
-	eTACTICAL_AIR_INTERCEPT,
-	eTACTICAL_AIR_SWEEP,
-	eTACTICAL_POSTURE_HEDGEHOG,
-	eTACTICAL_POSTURE_WITHDRAW,
-	eTACTICAL_POSTURE_SHORE_BOMBARDMENT,
-	eTACTICAL_CLOSE_ON_TARGET,
-	eTACTICAL_MOVE_OPERATIONS,
-	eTACTICAL_EMERGENCY_PURCHASES,
-	eTACTICAL_ESCORT_EMBARKED_UNIT,
-	eTACTICAL_PLUNDER_TRADE_UNIT,
-	eTACTICAL_PARK_ON_TRADE_ROUTE,
-	eTACTICAL_DEFENSIVE_AIRLIFT,
-	eTACTICAL_PILLAGE_CITADEL,
-	eTACTICAL_PILLAGE_RESOURCE,
-	eTACTICAL_PILLAGE_CITADEL_NEXT_TURN,
-	eTACTICAL_PILLAGE_RESOURCE_NEXT_TURN,
-	eTACTICAL_PILLAGE_NEXT_TURN,
-	eMUPOSITION_CIVILIAN_SUPPORT,
-	eMUPOSITION_NAVAL_ESCORT,
-	eMUPOSITION_BOMBARD,
-	eMUPOSITION_FRONT_LINE,
-	eNUM_TACTICAL_INFOTYPES
-};
-
-typedef FStaticVector<CvTacticalTarget, 256, false, c_eCiv5GameplayDLL > TacticalList;
+FDataStream& operator<<(FDataStream&, const CvFocusArea&);
+FDataStream& operator>>(FDataStream&, CvFocusArea&);
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //  CLASS:      CvTacticalAI
@@ -755,275 +321,762 @@ public:
 	~CvTacticalAI(void);
 	void Init(CvPlayer* pPlayer);
 	void Uninit();
-	void Reset();
 
 	// Serialization routines
+	template<typename TacticalAI, typename Visitor>
+	static void Serialize(TacticalAI& tacticalAI, Visitor& visitor);
 	void Read(FDataStream& kStream);
-	void Write(FDataStream& kStream);
+	void Write(FDataStream& kStream) const;
 
 	// Public turn update routines
-	void CommandeerUnits();
-	void DoTurn();
 	void Update();
+	void CleanUp();
 
-	// Temporary dominance zones
-	CvTemporaryZone* GetFirstTemporaryZone();
-	CvTemporaryZone* GetNextTemporaryZone();
-	void AddTemporaryZone(CvTemporaryZone zone);
-	void DeleteTemporaryZone(CvPlot* pPlot);
-	void DropObsoleteZones();
-	bool IsTemporaryZoneCity(CvCity* pCity);
+	// temporary focus of attention
+	void AddFocusArea(CvPlot* pPlot, int iRadius, int iDuration);
+	void DeleteFocusArea(CvPlot* pPlot);
+	void DropOldFocusAreas();
+	bool IsInFocusArea(const CvPlot* pPlot) const;
 
-	// Public routines to handle multiple unit attacks
-	void InitializeQueuedAttacks();
-	bool QueueAttack(void* pAttacker, CvTacticalTarget* pTarget, bool bRanged, bool bCityAttack);
-	void LaunchAttack(void* pAttacker, CvTacticalTarget* pTarget, bool bFirstAttack, bool bRanged, bool bCityAttack);
-	void CombatResolved(void* pAttacker, bool bVictorious, bool bCityAttack=false);
-	int PlotAlreadyTargeted(CvPlot* pPlot);
-	bool IsInQueuedAttack(const CvUnit* pAttacker);
-	bool IsCityInQueuedAttack(const CvCity* pAttackCity);
-	int NearXQueuedAttacks(const CvPlot* pPlot, const int iRange);
+	// Knowledge of other civs' vision
+	void UpdateVisibility();
+	void UpdateVisibilityFromUnits(CvPlot* pPlot);
+	void UpdateVisibilityFromBorders(CvPlot* pPlot);
+
+	// For air units
+	bool ShouldRebase(CvUnit* pUnit) const;
 
 	// Public logging
-#if defined(MOD_AI_SMART_V3)
-	CvString tacticalLogString;
-#endif
-	void LogTacticalMessage(CvString& strMsg, bool bSkipLogDominanceZone = true);
+	FILogFile* GetLogFile();
+	void LogTacticalMessage(const CvString& strMsg);
 
+	// Other people want to know this too
+	const vector<CvTacticalTarget>& GetTacticalTargets() const { return m_AllTargets; }
+	CvTacticalAnalysisMap* GetTacticalAnalysisMap() { return &m_tacticalMap; }
+
+	// Operational AI support functions
+	void PlotArmyMovesEscort(CvArmyAI* pThisArmy);
+	void PlotArmyMovesCombat(CvArmyAI* pThisArmy);
+	void AddCurrentTurnUnit(CvUnit* pUnit);
+
+	void UnitProcessed(int iID);
 private:
 
+	void RecruitUnits();
+
 	// Internal turn update routines - commandeered unit processing
-	void UpdatePostures();
-	AITacticalPosture SelectPosture(CvTacticalDominanceZone* pZone, AITacticalPosture eLastPosture);
-	AITacticalPosture FindPosture(CvTacticalDominanceZone* pZone);
-	void EstablishTacticalPriorities();
-	void EstablishBarbarianPriorities();
 	void FindTacticalTargets();
+	void PrioritizeNavalTargetsAndAddToMainList();
 	void ProcessDominanceZones();
-	void AssignTacticalMove(CvTacticalMove move);
+	void AssignGlobalHighPrioMoves();
+	void AssignGlobalMidPrioMoves();
+	void AssignGlobalLowPrioMoves();
 	void AssignBarbarianMoves();
 
 	// Routines to manage identifying and implementing tactical moves
-	bool PlotCaptureCityMoves();
-	bool PlotDamageCityMoves();
-	void PlotBarbarianCampMoves();
-	void PlotDestroyUnitMoves(AITacticalTargetType movePriorit, bool bMustBeAbleToKill, bool bAttackAtPoorOdds=false);
+	void ExecuteCaptureCityMoves();
+	void PlotGrabGoodyMoves();
 	void PlotMovesToSafety(bool bCombatUnits);
-	void PlotRepositionMoves();
 	void PlotOperationalArmyMoves();
-	void PlotPillageMoves(AITacticalTargetType eTarget, bool bFirstPass);
-	void PlotCitadelMoves();
+	void PlotPillageMoves(AITacticalTargetType eTarget, bool bImmediate);
 	void PlotPlunderTradeUnitMoves(DomainTypes eDomain);
-	void PlotPlunderTradePlotMoves(DomainTypes eDomain); // squat on trade plots to try to scoop up trade units
-	void PlotBlockadeImprovementMoves();
-	void PlotCivilianAttackMoves(AITacticalTargetType eTargetType);
-	void PlotSafeBombardMoves();
-	void PlotHealMoves();
-	void PlotCampDefenseMoves();
-	void PlotBarbarianMove(bool bAggressive);
-	void PlotBarbarianCivilianEscortMove();
-	void PlotBarbarianPlunderTradeUnitMove(DomainTypes eDomain);
-	void PlotGarrisonMoves(int iTurnsToArrive, bool bMustAllowRangedAttack=false);
-	void PlotBastionMoves(int iTurnsToArrive);
-	void PlotGuardImprovementMoves(int iTurnsToArrive);
-	void PlotAncientRuinMoves(int iNumTurnsAway);
-	void PlotAirInterceptMoves();
-	void PlotAirSweepMoves();
-	void PlotSitAndBombardMoves();
-	void PlotAttritFromRangeMoves();
-	void PlotExploitFlanksMoves();
-	void PlotSteamrollMoves();
-	void PlotSurgicalCityStrikeMoves();
-	void PlotHedgehogMoves();
-	void PlotCounterattackMoves();
-	void PlotWithdrawMoves();
-	void PlotShoreBombardmentMoves();
-	void PlotCloseOnTarget(bool bCheckDominance);
-	void PlotEmergencyPurchases();
-	void PlotDefensiveAirlifts();
-	void PlotEscortEmbarkedMoves();
+	void PlotBlockadeMoves();
+	void PlotCivilianAttackMoves();
+	void ExecuteCivilianAttackMoves(AITacticalTargetType eTargetType);
+	void PlotHealMoves(bool bFirstPass);
+	void PlotBarbarianAttacks();
+	void PlotBarbarianCampDefense();
+	void PlotBarbarianRoaming();
+
+///------------------------------
+//	unify these?
+///------------------------------
+	void PlotGarrisonMoves(int iNumTurnsAway, bool bEmergencyOnly);
+	void PlotBastionMoves(int iNumTurnsAway, bool bEmergencyOnly);
+	void PlotGuardImprovementMoves(int iNumTurnsAway);
+//--------------------------------
+
+	void PlotAirPatrolMoves();
+
+	void PlotAttritionAttacks(CvTacticalDominanceZone* pZone);
+	void PlotExploitFlanksMoves(CvTacticalDominanceZone* pZone);
+	void PlotSteamrollMoves(CvTacticalDominanceZone* pZone);
+	void PlotSurgicalCityStrikeMoves(CvTacticalDominanceZone* pZone);
+	void PlotHedgehogMoves(CvTacticalDominanceZone* pZone);
+	void PlotCounterattackMoves(CvTacticalDominanceZone* pZone);
+	void PlotWithdrawMoves(CvTacticalDominanceZone* pZone);
+	void PlotReinforcementMoves(CvTacticalDominanceZone* pTargetZone);
+
+	void PlotEmergencyPurchases(CvTacticalDominanceZone* pZone);
+	void PlotDefensiveAirlifts(CvTacticalDominanceZone* pZone);
+
+	void PlotNavalEscortMoves();
 	void ReviewUnassignedUnits();
 
 	// Operational AI support functions
-	void PlotSingleHexOperationMoves(CvAIEscortedOperation* pOperation);
-	void PlotEnemyTerritoryOperationMoves(CvAIEnemyTerritoryOperation* pOperation);
-	void PlotNavalEscortOperationMoves(CvAINavalEscortedOperation* pOperation);
-	void PlotFreeformNavalOperationMoves(CvAINavalOperation* pOperation);
-	void ClearEnemiesNearArmy(CvArmyAI* pArmy);
-	void MoveWithFormation(UnitHandle pUnit, MultiunitPositionTypes ePosition);
-	void ExecuteGatherMoves(CvArmyAI* pArmy);
-	void ExecuteFormationMoves(CvArmyAI* pArmy, CvPlot *pClosestCurrentCOMonPath);
-	bool ScoreDeploymentPlots(CvPlot* pTarget, CvArmyAI* pArmy, int iNumMeleeUnits, int iNumRangedUnits, int iDeployRange);
-	bool ScoreFormationPlots(CvArmyAI* pArmy, CvPlot* pForwardTarget, CvPlot *pCurrentCOM, int iNumUnits);
-	void ExecuteNavalFormationMoves(CvArmyAI* pArmy, CvPlot* pTurnTarget);
-	bool PlotEscortNavalOperationMoves(CvArmyAI* pArmy);
-	void ExecuteFleetMoveToTarget(CvArmyAI* pArmy, CvPlot* pTarget);
+	bool CheckForEnemiesNearArmy(CvArmyAI* pArmy);
+	void ExecuteGatherMoves(CvArmyAI* pArmy, CvPlot* pTurnTarget);
 
 	// Routines to process and sort targets
-	void IdentifyPriorityTargets();
-	void IdentifyPriorityBarbarianTargets();
-	void IdentifyPriorityTargetsByType();
-	void EliminateNearbyBlockadePoints();
-	void ExtractTargetsForZone(CvTacticalDominanceZone* pZone /* Pass in NULL for all zones */);
-	CvTacticalTarget* GetFirstZoneTarget(AITacticalTargetType eType);
-	CvTacticalTarget* GetNextZoneTarget();
-	CvTacticalTarget* GetFirstUnitTarget();
-	CvTacticalTarget* GetNextUnitTarget();
+	void UpdateTargetScores();
+	void SortTargetListAndDropUselessTargets();
+	void DumpTacticalTargets();
+
+	void ClearCurrentMoveUnits(AITacticalMove eNewMove);
+	int ExtractTargetsForZone(CvTacticalDominanceZone* pZone /* Pass in NULL for all zones */);
+	CvTacticalTarget* GetFirstZoneTarget(AITacticalTargetType eType, eAggressionLevel threshold = AL_BRAVEHEART);
+	CvTacticalTarget* GetNextZoneTarget(eAggressionLevel threshold = AL_BRAVEHEART);
 
 	// Routines to execute a mission
 	void ExecuteBarbarianCampMove(CvPlot* pTargetPlot);
-	void ExecuteCivilianCapture(CvPlot* pTargetPlot);
-	void ExecutePillage(CvPlot* pTargetPlot);
+	void ExecuteBarbarianTheft();
+	bool ExecutePillage(CvPlot* pTargetPlot);
 	void ExecutePlunderTradeUnit(CvPlot* pTargetPlot);
 	void ExecuteParadropPillage(CvPlot* pTargetPlot);
-	void ExecuteAttack(CvTacticalTarget* target, CvPlot* pTargetPlot, bool bInflictWhatWeTake=false, bool bMustSurviveAttack=true);
+	void ExecuteLandingOperation(CvPlot* pTargetPlot);
+	bool ExecuteSpotterMove(const vector<CvUnit*>& vUnits, CvPlot* pTargetPlot);
+	bool ExecuteAttackWithUnits(CvPlot* pTargetPlot, eAggressionLevel eAggLvl);
+	bool ExecuteAttackWithCities(CvUnit* pDefender);
+	bool PositionUnitsAroundTarget(const vector<CvUnit*>& vUnits, CvPlot* pTarget);
+	void ExecuteAirSweep(CvPlot* pTargetPlot);
+	void ExecuteAirAttack(CvPlot* pTargetPlot);
 	void ExecuteRepositionMoves();
-	void ExecuteMovesToSafestPlot();
-	void ExecuteHeals();
-	void ExecuteBarbarianMoves(bool bAggressive);
-	void ExecuteBarbarianCivilianEscortMove();
-	void ExecuteMoveToPlot(CvPlot* pTarget, bool bSaveMoves=false);
-	void ExecuteMoveToPlot(UnitHandle pUnit, CvPlot* pTarget, bool bSaveMoves = false);
-	bool ExecuteMoveOfBlockingUnit(UnitHandle pUnit);
+	void ExecuteMovesToSafestPlot(CvUnit* pUnit);
+	void ExecuteHeals(bool bFirstPass);
+	void ExecuteBarbarianRoaming();
+	int ExecuteMoveToPlot(CvUnit* pUnit, CvPlot* pTarget, bool bSetProcessed = true, int iFlags = 0);
+	bool ExecuteMoveOfBlockingUnit(CvUnit* pBlockingUnit, CvPlot* pPreferredDirection=NULL);
 	void ExecuteNavalBlockadeMove(CvPlot* pTarget);
-	void ExecuteMoveToTarget(CvPlot* pTarget);
-	void ExecuteAirInterceptMoves();
+	void ExecuteAirPatrolMoves();
 	void ExecuteAirSweepMoves();
-	bool ExecuteSafeBombards(CvTacticalTarget& kTarget);
-	bool ExecuteProtectedBombards(CvTacticalTarget& kTarget, bool bAttackUnderway);
-	bool ExecuteOneProtectedBombard(CvTacticalTarget& kTarget);
-	bool ExecuteFlankAttack(CvTacticalTarget& kTarget);
-	void ExecuteCloseOnTarget(CvTacticalTarget& kTarget, CvTacticalDominanceZone* pZone);
-	void ExecuteHedgehogDefense(CvTacticalTarget& kTarget, CvTacticalDominanceZone* pZone);
-	void ExecutePriorityAttacksOnUnitTarget(CvTacticalTarget& kTarget);
+	bool ExecuteDestroyEnemyUnits(CvTacticalTarget& kTarget, eAggressionLevel aggLvl = AL_MEDIUM);
 	void ExecuteWithdrawMoves();
-	void ExecuteEscortEmbarkedMoves();
+	void ExecuteEscortEmbarkedMoves(std::vector<CvUnit*> vTargets);
 
 	// Internal low-level utility routines
-#if defined(MOD_AI_SMART_V3)
-	public: int SamePlotFound(vector<CvPlot*> plotData, CvPlot* plotXy);
-	void GetBestPlot(CvPlot*& outputPlot, vector<CvPlot*> plotsToCheck);
-	CvPlot* GetBestRepositionPlot(UnitHandle unitH, CvPlot* plotTarget);
-#endif
-	void TurnOffMove(TacticalAIMoveTypes eType);
-	bool FindUnitsForThisMove(TacticalAIMoveTypes eMove, CvPlot* pTargetPlot, int iNumTurnsAway=0, bool bRangedOnly=false);
-	bool FindUnitsWithinStrikingDistance(CvPlot *pTargetPlot, int iNumTurnsAway, int iPreferredDamageLevel, bool bNoRangedUnits=false, bool bNavalOnly=false, bool bMustMoveThrough=false, bool bIncludeBlockedUnits=false, bool bWillPillage=false, bool bTargetUndefended=false, bool bIsDefenseCamp = false);
-	bool FindParatroopersWithinStrikingDistance(CvPlot *pTargetPlot);
+	CvPlot* GetBestRepositionPlot(CvUnit* pUnit, CvPlot* plotTarget, int iAcceptableDanger);
+	CvUnit* FindUnitForThisMove(AITacticalMove eMove, CvPlot* pTargetPlot, int iNumTurnsAway=0);
+	bool FindUnitsWithinStrikingDistance(CvPlot *pTargetPlot);
+	bool FindUnitsForHarassing(CvPlot* pTarget, int iNumTurnsAway, int iMinHitpoints, int iMaxHitpoints, DomainTypes eDomain, bool bMustHaveMovesLeft, bool bAllowEmbarkation, int iMaxNumUnits=3);
+	bool FindParatroopersWithinStrikingDistance(CvPlot *pTargetPlot, bool bCheckDanger);
+	bool FindEmbarkedUnitsAroundTarget(CvPlot *pTargetPlot, int iMaxDistance);
 	bool FindCitiesWithinStrikingDistance(CvPlot* pTargetPlot);
-	bool FindClosestUnit(CvPlot* pTargetPlot, int iNumTurnsAway, bool bMustHaveHalfHP, bool bMustBeRangedUnit=false, int iRangeRequired=2, bool bNeedsIgnoreLOS=false, bool bMustBeMeleeUnit=false, bool bIgnoreUnits=false, CvPlot* pRangedAttackTarget=NULL);
-	bool FindClosestOperationUnit(CvPlot* pTargetPlot, bool bSafeForRanged, bool bMustBeRangedUnit);
-	bool FindClosestNavalOperationUnit(CvPlot* pTargetPlot, bool bEscortedUnits);
-#if defined(MOD_AI_SMART_V3)
-	void FindAirUnitsToAirSweep(CvPlot* pTarget);
-#endif
-	int ComputeTotalExpectedDamage(CvTacticalTarget* target, CvPlot* pTargetPlot);
-	int ComputeTotalExpectedBombardDamage(UnitHandle pTarget);
-	bool IsExpectedToDamageWithRangedAttack(UnitHandle pAttacker, CvPlot* pTarget);
-	bool MoveToEmptySpaceNearTarget(UnitHandle pUnit, CvPlot* pTargetPlot, bool bLand=true);
-	bool MoveToEmptySpaceTwoFromTarget(UnitHandle pUnit, CvPlot* pTargetPlot, bool bLand=true);
-	bool MoveToUsingSafeEmbark(UnitHandle pUnit, CvPlot* pTargetPlot, bool &bMoveWasSafe);
-	CvPlot* FindBestBarbarianLandMove(UnitHandle pUnit);
-	CvPlot* FindPassiveBarbarianLandMove(UnitHandle pUnit);
-	CvPlot* FindBestBarbarianSeaMove(UnitHandle pUnit);
-	CvPlot* FindBarbarianExploreTarget(UnitHandle pUnit);
-	CvPlot* FindBarbarianGankTradeRouteTarget(UnitHandle pUnit);
-	CvPlot* FindNearbyTarget(UnitHandle pUnit, int iRange, AITacticalTargetType eType = AI_TACTICAL_TARGET_NONE, CvUnit* pNoLikeUnit = NULL);
-	bool NearVisibleEnemy(UnitHandle pUnit, int iRange);
-	void UnitProcessed(int iID, bool bMarkTacticalMap=true);
-	bool UseThisDominanceZone(CvTacticalDominanceZone* pZone);
-	bool IsVeryHighPriorityCivilianTarget(CvTacticalTarget* pTarget);
-	bool IsHighPriorityCivilianTarget(CvTacticalTarget* pTarget);
-	bool IsMediumPriorityCivilianTarget(CvTacticalTarget* pTarget);
+	CvPlot* FindAirTargetNearTarget(CvUnit* pUnit, CvPlot* pApproximateTargetPlot);
 
-	// Blocking position functions
-	bool CanCoverFromEnemy(CvPlot* pPlot, int& iNumUnitsRequiredToCover, int iAttackingUnitID);
-	bool AssignCoveringUnits(int iNumUnitsRequiredToCover);
-	bool AssignFlankingUnits(int iNumUnitsRequiredToFlank);
-	bool AssignDeployingUnits(int iNumUnitsRequiredToDeploy);
-	void PerformChosenMoves(int iFallbackMoveRange = 1);
-	void MoveGreatGeneral(CvArmyAI* pArmyAI = NULL);
-	bool HaveDuplicateUnit();
-	void RemoveChosenUnits(int iStartIndex = 0);
-	int NumUniqueUnitsLeft();
-	bool IsInChosenMoves(CvPlot* pPlot);
-	bool ChooseRemainingAssignments(int iNumUnitsDesired, int iNumUnitsAcceptable);
-	int ScoreAssignments(bool bCanLeaveOpenings);
-	int ScoreCloseOnPlots(CvPlot* pTarget, bool bLandOnly);
-	void ScoreHedgehogPlots(CvPlot* pTarget);
-	int ScoreGreatGeneralPlot(UnitHandle pGeneral, CvPlot* pTarget, CvArmyAI* pArmyAI);
+	int GetRecruitRange() const;
+
+	void FindAirUnitsToAirSweep(CvPlot* pTarget);
+
+	int ComputeTotalExpectedDamage(const CvTacticalTarget& target);
+	int ComputeTotalExpectedCityBombardDamage(CvUnit* pTarget);
+	bool IsExpectedToDamageWithRangedAttack(CvUnit* pAttacker, CvPlot* pTarget, int iMinDamage=0);
+
+	bool MoveToEmptySpaceNearTarget(CvUnit* pUnit, CvPlot* pTargetPlot, DomainTypes eDomain, int iMaxTurns, bool bMustBeSafePath = false);
+
+	CvPlot* FindBestBarbarianLandTarget(CvUnit* pUnit);
+	CvPlot* FindBestBarbarianSeaTarget(CvUnit* pUnit);
+	CvPlot* FindBarbarianExploreTarget(CvUnit* pUnit);
+	CvPlot* FindNearbyTarget(CvUnit* pUnit, int iMaxTurns, bool bOffensive);
+	bool IsHighPriorityCivilianTarget(CvTacticalTarget* pTarget);
 
 	// Logging functions
-	CvString GetLogFileName(CvString& playerName) const;
-	CvString GetTacticalMissionName(AITacticalMission eMission) const;
+	CvString GetLogFileName(const CvString& playerName) const;
 
-	// Class data
+	// Class data - some of it only temporary, does not need to be persisted
 	CvPlayer* m_pPlayer;
-	CvTacticalAnalysisMap* m_pMap;
-	list<int> m_CurrentTurnUnits;
-#if defined(MOD_AI_SMART_V3)	
-	std::vector<CvTacticalUnit> m_CurrentAirUnits;
-#endif
-	std::vector<CvTacticalUnit> m_CurrentMoveUnits;
-	std::vector<CvTacticalUnit> m_CurrentMoveHighPriorityUnits;
-	std::vector<CvTacticalCity> m_CurrentMoveCities;
-	FStaticVector<CvTacticalMove, 256, true, c_eCiv5GameplayDLL > m_MovePriorityList;
-	int m_MovePriorityTurn;
 
-	// Data for multi-unit attacks - not serialized, cleared out for each turn
-	std::list<CvQueuedAttack> m_QueuedAttacks;
-	int m_iCurrentSeriesID;
+	CvTacticalAnalysisMap m_tacticalMap;
+	std::list<int> m_CurrentTurnUnits;
+	std::vector<CvTacticalUnit> m_CurrentAirSweepUnits;
+	CTacticalUnitArray m_CurrentMoveUnits;
+	std::vector<CvTacticalCity> m_CurrentMoveCities;
 
 	// Lists of targets for the turn
-	TacticalList m_AllTargets;
-	TacticalList m_ZoneTargets;
-	TacticalList m_NavalResourceBlockadePoints;
-#if defined(MOD_GLOBAL_CITY_WORKING)
-	FStaticVector<CvTacticalTarget, MAX_CITY_PLOTS, true, c_eCiv5GameplayDLL, 0> m_TempTargets;
-#else
-	FStaticVector<CvTacticalTarget, NUM_CITY_PLOTS, true, c_eCiv5GameplayDLL, 0> m_TempTargets;
-#endif
+	vector<CvTacticalTarget> m_AllTargets;
+	vector<CvTacticalTarget*> m_ZoneTargets; //pointers only!
+	vector<CvTacticalTarget> m_NavalBlockadePoints;
 
 	// Targeting ranges (pulled in from GlobalAIDefines.XML)
 	int m_iRecruitRange;
 	int m_iLandBarbarianRange;
 	int m_iSeaBarbarianRange;
-	int m_iRepositionRange;
-	int m_iDeployRadius;
-	int m_iRandomRange;
-	double m_fFlavorDampening;
 
 	// Dominance zone info
-	int m_iCurrentZoneIndex;
 	int m_eCurrentTargetType;
 	int m_iCurrentTargetIndex;
 	int m_iCurrentUnitTargetIndex;
-	FStaticVector<CvTacticalPosture, SAFE_ESTIMATE_NUM_CITIES, true, c_eCiv5GameplayDLL, 0> m_Postures;
-	FStaticVector<CvTacticalPosture, SAFE_ESTIMATE_NUM_CITIES, true, c_eCiv5GameplayDLL, 0> m_NewPostures;
-	int m_iCurrentTempZoneIndex;
-	FStaticVector<CvTemporaryZone, SAFE_ESTIMATE_NUM_TEMP_ZONES, true, c_eCiv5GameplayDLL, 0> m_TempZones;
 
-	// Blocking (and flanking) position data
-	FStaticVector<CvBlockingUnit, SAFE_ESTIMATE_NUM_BLOCKING_UNITS, true, c_eCiv5GameplayDLL, 0> m_PotentialBlocks;
-	FStaticVector<CvBlockingUnit, SAFE_ESTIMATE_NUM_BLOCKING_UNITS, true, c_eCiv5GameplayDLL, 0> m_TemporaryBlocks;
-#if defined(MOD_GLOBAL_CITY_WORKING)
-	FStaticVector<CvBlockingUnit, MAX_CITY_PLOTS, true, c_eCiv5GameplayDLL, 0> m_ChosenBlocks;
-	FStaticVector<CvBlockingUnit, MAX_CITY_PLOTS, true, c_eCiv5GameplayDLL, 0> m_NewlyChosen;
-#else
-	FStaticVector<CvBlockingUnit, NUM_CITY_PLOTS, true, c_eCiv5GameplayDLL, 0> m_ChosenBlocks;
-	FStaticVector<CvBlockingUnit, NUM_CITY_PLOTS, true, c_eCiv5GameplayDLL, 0> m_NewlyChosen;
-#endif
-
-	// Operational AI support data
-	FStaticVector<CvOperationUnit, SAFE_ESTIMATE_NUM_MULTIUNITFORMATION_ENTRIES, true, c_eCiv5GameplayDLL, 0> m_OperationUnits;
-	FStaticVector<CvOperationUnit, SAFE_ESTIMATE_NUM_MULTIUNITFORMATION_ENTRIES, true, c_eCiv5GameplayDLL, 0> m_GeneralsToMove;
-	FStaticVector<CvOperationUnit, SAFE_ESTIMATE_NUM_MULTIUNITFORMATION_ENTRIES, true, c_eCiv5GameplayDLL, 0> m_ParatroopersToMove;
-
-	int m_CachedInfoTypes[eNUM_TACTICAL_INFOTYPES];
+	std::vector<CvFocusArea> m_focusAreas;
 };
+
+FDataStream& operator>>(FDataStream&, CvTacticalAI&);
+FDataStream& operator<<(FDataStream&, const CvTacticalAI&);
+
+enum eUnitMoveEvalMode { EM_INITIAL, EM_INTERMEDIATE, EM_FINAL };
+enum eUnitMovementStrategy { MS_NONE,MS_FIRSTLINE,MS_SECONDLINE,MS_THIRDLINE,MS_SUPPORT,MS_EMBARKED }; //we should probably differentiate between regular ranged and siege ranged ...
+enum eUnitAssignmentType { A_INITIAL, A_MOVE, A_MELEEATTACK, A_MELEEKILL, A_RANGEATTACK, A_RANGEKILL, A_FINISH,
+							A_BLOCKED, A_PILLAGE, A_CAPTURE, A_MOVE_FORCED, A_RESTART, A_MELEEKILL_NO_ADVANCE, A_MOVE_SWAP, A_MOVE_SWAP_REVERSE, A_USE_POWER, A_FINISH_TEMP };
+
+struct STacticalAssignment
+{
+	//todo: use smaller data types
+	eUnitAssignmentType eAssignmentType;
+	int iUnitID;
+	int iScore;
+	int iFromPlotIndex;
+	int iToPlotIndex;
+	int iRemainingMoves;
+	eUnitMovementStrategy eMoveType;
+
+	int iDamage; //just in case of attack, not set in constructor
+	int iSelfDamage; //only relevant for melee ...
+	int iKillOrNearKillId; //unit or city we might have killed (for danger estimation)
+
+	//convenience constructor
+	STacticalAssignment(int iFromPlot = 0, int iToPlot = 0, int iUnitID_ = 0, int iRemainingMoves_ = 0, eUnitMovementStrategy eMoveType_ = MS_NONE, int iScore_ = 0, eUnitAssignmentType eType_ = A_FINISH) :
+		eAssignmentType(eType_), iUnitID(iUnitID_), iScore(iScore_), iFromPlotIndex(iFromPlot), iToPlotIndex(iToPlot), 
+		iRemainingMoves(iRemainingMoves_), eMoveType(eMoveType_), iDamage(0), iSelfDamage(0), iKillOrNearKillId(-1) {}
+
+	//sort descending
+	bool operator<(const STacticalAssignment& rhs) const { return iScore>rhs.iScore; }
+	bool operator==(const STacticalAssignment& rhs) const;
+};
+
+struct SComboMove
+{
+	STacticalAssignment a, b;
+	bool operator<(const SComboMove& rhs) const { return a.iScore+b.iScore > rhs.a.iScore+rhs.b.iScore; }
+	bool operator==(const SComboMove& rhs) const { return a == rhs.a && b == rhs.b; }
+	bool addMove(const STacticalAssignment& move);
+};
+
+struct STacticalUnit
+{
+	int iUnitID;
+	eUnitMovementStrategy eMoveType;
+
+	//convenience constructor
+	STacticalUnit(int iUnitID_ = 0, eUnitMovementStrategy eMoveType_ = MS_NONE) : iUnitID(iUnitID_), eMoveType(eMoveType_) {}
+};
+
+struct SUnitStats
+{
+	int iUnitID;
+	int iPlotIndex;
+	int iAttacksLeft;
+	int iMovesLeft;
+	int iImportanceScore;
+	int iSelfDamage; //melee units take damage when attacking
+	int iMaxMoves;
+	eUnitAssignmentType eLastAssignment;
+	eUnitMovementStrategy eMoveStrategy;
+	const CvUnit* pUnit;
+
+	//convenience constructor - do not use pUnit here because it's initialized last! (pUnit_ is ok)
+	SUnitStats(const CvUnit* pUnit_, int iImportance, eUnitMovementStrategy eMoveStrategy_) :
+		iUnitID(pUnit_->GetID()), iPlotIndex(pUnit_->plot()->GetPlotIndex()), iAttacksLeft(pUnit_->getNumAttacks() - pUnit_->getNumAttacksMadeThisTurn()), 
+		iMovesLeft(pUnit_->getMoves()), iMaxMoves(pUnit_->maxMoves()), iImportanceScore(iImportance), iSelfDamage(0), eLastAssignment(A_INITIAL), eMoveStrategy(eMoveStrategy_), pUnit(pUnit_) { }
+	//use with caution, this may lead to an inconsistent state
+	SUnitStats(const CvUnit* pUnit_, int iUnit, int iPlot, int iAttacks, int iMoves, int iImportance, eUnitMovementStrategy eMoveStrategy_) :
+		iUnitID(iUnit), iPlotIndex(iPlot), iAttacksLeft(iAttacks), iMovesLeft(iMoves), iMaxMoves(pUnit_->maxMoves()), iImportanceScore(iImportance), iSelfDamage(0),
+		eLastAssignment(A_INITIAL), eMoveStrategy(eMoveStrategy_), pUnit(pUnit_) {}
+
+	bool operator<(const SUnitStats& rhs) const { return iImportanceScore > rhs.iImportanceScore; } //sort descending by default
+};
+
+struct SPathFinderStartPos
+{
+	int iUnitID;
+	int iPlotIndex;
+	int iMovesLeft;
+	PlotIndexContainer freedPlots;
+
+	SPathFinderStartPos(const SUnitStats& startpoint, const PlotIndexContainer& noZocPlots) :
+		iUnitID(startpoint.iUnitID), iPlotIndex(startpoint.iPlotIndex), iMovesLeft(startpoint.iMovesLeft), freedPlots(noZocPlots) {}
+
+	bool operator==(const SPathFinderStartPos& rhs) const
+	{
+		return (iUnitID == rhs.iUnitID) && (iPlotIndex == rhs.iPlotIndex) && (iMovesLeft == rhs.iMovesLeft) && (freedPlots == rhs.freedPlots);
+	}
+
+	bool operator<(const SPathFinderStartPos& rhs) const
+	{
+		//unit id is primary feature
+		if (iUnitID < rhs.iUnitID)
+			return true;
+		if (iUnitID > rhs.iUnitID)
+			return false;
+		//equal unit, check plot
+		if (iPlotIndex < rhs.iPlotIndex)
+			return true;
+		if (iPlotIndex > rhs.iPlotIndex)
+			return false;
+		//equal plot, check moves
+		if (iMovesLeft < rhs.iMovesLeft)
+			return true;
+		if (iMovesLeft > rhs.iMovesLeft)
+			return false;
+		//no good way to compare this ...
+		if (freedPlots.size() < rhs.freedPlots.size())
+			return true;
+		if (freedPlots.size() > rhs.freedPlots.size())
+			return false;
+		for (size_t i = 0; i < freedPlots.size(); i++)
+		{
+			if (freedPlots[i] < rhs.freedPlots[i])
+				return true;
+			if (freedPlots[i] > rhs.freedPlots[i])
+				return false;
+		}
+
+		return false;
+	}
+};
+
+// specialized hash function for unordered_map keys
+struct SPathFinderStartPosHash
+{
+	void hash_combine(size_t& hash, const size_t& extra) const
+	{
+		hash ^= extra + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+	}
+
+	std::size_t operator() (const SPathFinderStartPos& key) const
+	{
+		std::size_t h0 = key.freedPlots.size();
+
+		hash_combine(h0, tr1::hash<int>()(key.iUnitID));
+		hash_combine(h0, tr1::hash<int>()(key.iPlotIndex));
+		hash_combine(h0, tr1::hash<int>()(key.iMovesLeft));
+
+		for(vector<int>::const_iterator i = key.freedPlots.begin(); i!=key.freedPlots.end(); ++i)
+			hash_combine(h0, tr1::hash<int>()(*i));
+
+		return h0;
+	}
+};
+
+struct SIntPairHash
+{
+	void hash_combine(size_t& hash, const size_t& extra) const
+	{
+		hash ^= extra + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+	}
+
+	std::size_t operator() (const pair<int, int>& key) const
+	{
+		std::size_t h0 = tr1::hash<int>()(key.first);
+		hash_combine(h0, tr1::hash<int>()(key.second));
+		return h0;
+	}
+};
+
+typedef tr1::unordered_map<SPathFinderStartPos, ReachablePlots, SPathFinderStartPosHash> TCachedMovePlots;
+typedef tr1::unordered_map<pair<int, int>, vector<int>, SIntPairHash> TCachedRangeAttackPlots; // (unit:plot) -> plots
+typedef tr1::unordered_map<int, unsigned char> TUnitFlagLookup;
+
+//forward
+class CvTacticalPosition;
+class CvTactPosStorage;
+
+class CvTacticalPlot
+{
+public:
+	enum eTactPlotDomain { TD_LAND, TD_SEA, TD_BOTH };
+
+	CvTacticalPlot(const CvPlot* plot=NULL, PlayerTypes ePlayer=NO_PLAYER, const vector<CvUnit*>& allOurUnits= vector<CvUnit*>());
+	bool operator!=(const CvTacticalPlot& rhs) const;
+
+	const CvPlot* getPlot() const { return pPlot; }
+	int getPlotIndex() const { return pPlot ? pPlot->GetPlotIndex() : -1; }
+	bool isChokepoint() const { return pPlot ? pPlot->IsChokePoint() : false; }
+	bool isAdjacent(const CvTacticalPlot& other) const { return pPlot ? pPlot->isAdjacent(other.pPlot) : false; }
+	int getNumAdjacentEnemies(eTactPlotDomain eDomain) const { return aiEnemyCombatUnitsAdjacent[eDomain]; }
+	void setNumAdjacentEnemies(eTactPlotDomain eDomain, int iValue) { aiEnemyCombatUnitsAdjacent[eDomain]=static_cast<unsigned char>(iValue); }
+	int getNumAdjacentFriendlies(eTactPlotDomain eDomain, int iIgnoreUnitPlot) const;
+	int getNumAdjacentFriendliesEndTurn(eTactPlotDomain eDomain) const;
+	const vector<STacticalUnit>& getUnitsAtPlot() const { return vUnitsHere; }
+
+	bool isEnemy(eTactPlotDomain eDomain = TD_BOTH) const { return aiEnemyDistance[eDomain]==0; }
+	bool isEnemyCity() const { return isEnemy() && pPlot->isCity(); }
+	bool isEnemyCivilian() const { return bEnemyCivilianPresent; }
+
+	bool isEdgePlot() const { return bEdgeOfTheKnownWorld; }
+	bool isNextToEnemyCitadel() const { return bAdjacentToEnemyCitadel; }
+	void setNextToEnemyCitadel(bool bValue) { bAdjacentToEnemyCitadel = bValue; }
+	bool hasAirCover() const { return bHasAirCover; }
+	bool isVisibleToEnemy() const { return bIsVisibleToEnemy; }
+	bool isBlockedByNonSimUnit(eTactPlotDomain eDomain = TD_BOTH) const;
+	bool isNicePlotForCitadel() const { return bMightWantCitadel; }
+
+	bool hasFriendlyCombatUnit() const;
+	bool hasFriendlyEmbarkedUnit() const;
+	bool hasSupportBonus(int iIgnoreUnitPlot) const;
+
+	void changeDamage(int iDamage) { iDamageDealt += iDamage; }
+	int getDamage() const { return iDamageDealt; }
+
+	void resetVolatileProperties();
+	//update fictional state
+	void friendlyUnitMovingIn(CvTacticalPosition& currentPosition, const STacticalAssignment& assignment);
+	void friendlyUnitMovingOut(CvTacticalPosition& currentPosition, const STacticalAssignment& assignment);
+	bool removeEnemyUnitIfPresent();
+
+	unsigned char getEnemyDistance(eTactPlotDomain eDomain = TD_BOTH) const;
+	void setEnemyDistance(eTactPlotDomain eDomain, int iDistance);
+	bool checkEdgePlotsForSurprises(const CvTacticalPosition& currentPosition, vector<int>& landEnemies, vector<int>& seaEnemies);
+	bool isValid() const { return pPlot != NULL; }
+	bool isEnemyCombatUnit() const { return pEnemyCombatUnit!=NULL; }
+	CvUnit* getEnemyUnit() const { return pEnemyCombatUnit; }
+	bool isCombatEndTurn() const { return bFriendlyDefenderEndTurn; }
+	void changeNeighboringUnitCount(CvTacticalPosition& currentPosition, eUnitMovementStrategy moveType, eTactPlotDomain unitDomain, int iChange) const;
+	void setCombatUnitEndTurn(CvTacticalPosition& currentPosition, eTactPlotDomain unitDomain, bool bOverride=false);
+
+	int getNumVisiblePlotsRange2() const { return (int)nVisiblePlotsNearEnemyRange2; }
+	int getNumVisiblePlotsRange3() const { return (int)nVisiblePlotsNearEnemyRange2; }
+	void setNumVisiblePlotsRange2(int count) { nVisiblePlotsNearEnemyRange2 = (unsigned char)count; }
+	void setNumVisiblePlotsRange3(int count) { nVisiblePlotsNearEnemyRange3 = (unsigned char)count; }
+
+	bool hasCoverFromOtherUnits(const CvTacticalPosition& currentPosition) const;
+
+protected:
+	const CvPlot* pPlot; //null if invalid
+	CvUnit* pEnemyCombatUnit; //there may also be enemy cities without garrison!
+	vector<STacticalUnit> vUnitsHere; //which (simulated) units are in this plot?
+
+	unsigned char aiEnemyDistance[3]; //distance to attack targets, not civilians. recomputed every time an enemy is killed or discovered
+	unsigned char aiEnemyCombatUnitsAdjacent[3]; //recomputed every time an enemy is killed or discovered
+
+	unsigned char aiFriendlyCombatUnitsAdjacent[3]; //for flanking. set initially and updated every time a unit moves
+	unsigned char aiFriendlyCombatUnitsAdjacentEndTurn[3]; //ranged units need cover. updated every time a unit finishes
+	unsigned char nSupportUnitsAdjacent; //for general bonus (not differentiated by domain)
+	unsigned char iDamageDealt; //damage dealt to this plot in previous simulated attacks
+
+	unsigned char nVisiblePlotsNearEnemyRange2; //what can we see from here
+	unsigned char nVisiblePlotsNearEnemyRange3; //what can we see from here
+
+	//set once and not changed afterwards
+	unsigned char bfBlockedByNonSimCombatUnit; //bitfield per domain
+	bool bIsVisibleToEnemy:1;
+	bool bHasAirCover:1;
+
+	//this is updated if the civilian is captured
+	bool bEnemyCivilianPresent:1;
+	//when a new plot is created we don't know its status yet
+	bool bEdgeOfTheKnownWorldUnknown:1;
+	//so generals know where to plant themselves
+	bool bMightWantCitadel:1;
+
+	//updated if an enemy is killed, after pillage or after adding a newly visible plot
+	bool bEdgeOfTheKnownWorld:1; //neighboring plot is not part of sim and invisible
+	bool bAdjacentToEnemyCitadel:1;
+	bool bFriendlyDefenderEndTurn:1; 
+};
+
+struct SDefendStats
+{
+	int iDefenderPlot;
+	int iDefenderPrevDamage;
+	UnitIdContainer killedEnemies;
+	int iDanger;
+
+	SDefendStats(int iDefenderPlot_, int iDefenderPrevDamage_, const UnitIdContainer& killedEnemies_, int iDanger_)
+	{
+		iDefenderPlot = iDefenderPlot_;
+		iDefenderPrevDamage = iDefenderPrevDamage_;
+		killedEnemies = killedEnemies_;
+		iDanger = iDanger_;
+	}
+};
+
+struct SAttackStats
+{
+	int iAttackerPlot;
+	int iDefenderId;
+	int iDefenderPrevDamage;
+	int iAttackerDamageDealt;
+	int iAttackerDamageTaken;
+
+	SAttackStats(int iAttackerPlot_, int iDefenderId_, int iDefenderPrevDamage_, int iAttackerDamageDealt_, int iAttackerDamageTaken_)
+	{
+		iAttackerPlot = iAttackerPlot_;
+		iDefenderId = iDefenderId_;
+		iDefenderPrevDamage = iDefenderPrevDamage_;
+		iAttackerDamageDealt = iAttackerDamageDealt_;
+		iAttackerDamageTaken = iAttackerDamageTaken_;
+	}
+};
+
+class CDangerCache {
+public:
+	void clear();
+	void storeDanger(int iDefenderId, int iDefenderPlot, int iPrevDamage, const UnitIdContainer& killedEnemies, int iDanger);
+	bool findDanger(int iDefenderId, int iDefenderPlot, int iPrevDamage, const UnitIdContainer& killedEnemies, int& iDanger) const;
+protected:
+	//key is defender id
+	vector<pair<int, vector<SDefendStats>>> dangerStats;
+};
+
+class CAttackCache {
+public:
+	void clear();
+	void storeAttack(int iAttackerId, int iAttackerPlot, int iDefenderId, int iPrevDamage, int iDamageDealt, int iDamageTaken);
+	bool findAttack(int iAttackerId, int iAttackerPlot, int iDefenderId, int iPrevDamage, int& iDamageDealt, int& iDamageTaken) const;
+protected:
+	//key is attacker id
+	vector<pair<int, vector<SAttackStats>>> attackStats;
+};
+
+class CvTacticalPosition
+{
+protected:
+	//for final sorting (does not include intermediate moves)
+	int iTotalScore;
+	//for heap sorting (included all moves made in the last generation)
+	int iScoreOverParent;
+
+	//moves already assigned to get into this position (complete, mostly redundant with parent)
+	vector<STacticalAssignment> assignedMoves;
+
+	//the positions we can reach by adding more moves
+	vector<CvTacticalPosition*> childPositions;
+
+	//so we can look up stuff we haven't cached locally
+	const CvTacticalPosition* parentPosition;
+
+	vector<SUnitStats> availableUnits; //units which still need an assignment
+	vector<SUnitStats> notQuiteFinishedUnits; //unit which have no moves left and we need to do a deferred check if it's ok to stay in the plot
+
+	typedef vector<pair<unsigned short, unsigned char>> TactPlotIndexByPlotIndex; //save some bits
+	TactPlotIndexByPlotIndex tactPlotLookup; //map from plot index to storage index
+	vector<CvTacticalPlot> tactPlots; //storage for tactical plots (complete, mostly redundant with parent)
+
+	PlotIndexContainer enemyPlots; //plot indices for enemy units, to be checked for potential attacks
+	PlotIndexContainer freedPlots; //plot indices for killed enemy units, to be ignored for ZOC
+	UnitIdContainer killedEnemies; //enemy units which were killed, to be ignored for danger
+	int movePlotUpdateFlagA; //zero for nothing to do, unit id for a specific unit, -1 for all units
+	int movePlotUpdateFlagB; //zero for nothing to do, unit id for a specific unit, -1 for all units
+
+	//set in constructor, constant afterwards
+	PlayerTypes ePlayer;
+	eAggressionLevel eAggression;
+	unsigned char nOurOriginalUnits; //movable units included in sim. only valid for root position.
+	unsigned char nOriginalEnemies; //enemy units and cities. ignoring garrisons. not updated after sim-kills!
+	unsigned char nFirstInterestingAssignment; //in case we want to skip INITIALs and BLOCKEDs
+	CvPlot* pTargetPlot;
+
+	//should be unique
+	size_t iGeneration;
+	unsigned long long iID;
+
+	//dummy to avoid returning temporaries
+	CvTacticalPlot dummyPlot;
+
+	//------------
+	const ReachablePlots& getReachablePlotsForUnit(const SUnitStats& unit) const;
+	const vector<int>& getRangeAttackPlotsForUnit(const SUnitStats& unit) const;
+	void getPreferredAssignmentsForUnit(const SUnitStats& unit, int nMaxCount) const;
+	size_t addChild(CvTacticalPosition* pChild);
+	bool removeChild(CvTacticalPosition* pChild);
+	bool isMoveBlockedByOtherUnit(const STacticalAssignment& move) const;
+	void getPlotsWithChangedVisibility(const STacticalAssignment& assignment, vector<int>& madeVisible) const;
+	void updateMoveAndAttackPlotsForUnit(SUnitStats unit);
+	vector<CvTacticalPlot>::iterator findTactPlot(int iPlotIndex);
+	vector<CvTacticalPlot>::const_iterator findTactPlot(int iPlotIndex) const;
+
+	//finding a particular unit
+	struct PrMatchingUnit
+	{
+		int iUnitID;
+		PrMatchingUnit(int iID) : iUnitID(iID) {}
+		bool operator()(const SUnitStats& other) { return iUnitID == other.iUnitID; }
+	};
+
+	enum AddAssignmentResult
+	{
+		RESULT_NOOP,
+		RESULT_ADDED,
+		RESULT_ADDED_W_VIS_CHANGE,
+		RESULT_NOT_ADDED
+	};
+
+public:
+	struct PrPositionSortHeapGeneration
+	{
+		//this is quite tricky. initially we want to explore all sorts of moves, so go breadth-first
+		//later on we want to finish the most promising positions quickly, so go depth-first
+		bool bDepthFirst;
+
+		PrPositionSortHeapGeneration(bool depthFirst) : bDepthFirst(depthFirst) {}
+
+		//we will pop the *last* element from the heap later
+		bool operator()(const CvTacticalPosition* lhs, const CvTacticalPosition* rhs) const
+		{
+			//within a generation always sort by (last round) score
+			//continue where it seems most promising right now, ignore "historical" scores
+			if (lhs->getGeneration() == rhs->getGeneration())
+				return lhs->getScoreLastRound() < rhs->getScoreLastRound();
+
+			if (bDepthFirst)
+				//we want to pick the highest generation first
+				return lhs->getGeneration() < rhs->getGeneration();
+			else
+				//we want to pick the lowest generation first
+				return lhs->getGeneration() > rhs->getGeneration();
+		}
+	};
+
+	struct PrPositionSortArrayTotalScore
+	{
+		bool operator()(const CvTacticalPosition* lhs, const CvTacticalPosition* rhs) const
+		{
+			if (lhs->getScoreTotal() == rhs->getScoreTotal())
+				//equal ... try to use number of moves as a tiebraker
+				return lhs->getAssignments().size() < rhs->getAssignments().size();
+			
+			//regular descending sort. only makes sense for "completed" positions!
+			return lhs->getScoreTotal() > rhs->getScoreTotal();
+		}
+	};
+
+	CvTacticalPosition();
+
+	void initFromScratch(PlayerTypes player, eAggressionLevel eAggLvl, CvPlot* pTarget);
+	void initFromParent(const CvTacticalPosition& parent);
+	void wipe();
+
+	bool isExhausted() const;
+	bool isEarlyFinish() const;
+	bool wantToFight() const;
+	bool addFinishMovesIfAcceptable(bool bEarlyFinish, int& iBadUnitID);
+	bool isKillOrImprovedPosition() const;
+	void countEnemiesAndCheckVisibility();
+	void refreshVolatilePlotProperties(bool bInitial = false);
+	void dropSuperfluousUnits(int iMaxUnitsToKeep);
+	void addInitialAssignments();
+	bool makeNextAssignments(int iMaxBranches, int iMaxChoicesPerUnit, CvTactPosStorage& storage, 
+		vector<CvTacticalPosition*>& openPositionsHeap, vector<CvTacticalPosition*>& completedPositions, const PrPositionSortHeapGeneration& heapSort);
+	void updateMovePlotsIfRequired();
+	bool addTacticalPlot(const CvPlot* pPlot, const vector<CvUnit*>& allOurUnits);
+	bool addAvailableUnit(const CvUnit* pUnit);
+	const vector<SUnitStats>& getAvailableUnits() const { return availableUnits; }
+	int countChildren() const;
+	float getAggressionBias() const;
+	bool canProbablyEndTurnInPlot(const STacticalAssignment& assignment, const CvTacticalPlot& endPlot) const;
+	int countBlockingUnitsAtPlot(int iPlotIndex, eUnitMovementStrategy moveType) const;
+	int getFirstBlockingUnitIDAtPlot(int iPlotIndex, eUnitMovementStrategy moveType) const;
+	pair<int,int> doVisibilityUpdate(const STacticalAssignment& newAssignment);
+	bool lastAssignmentIsAfterRestart(int iUnitID) const;
+	const SUnitStats* getAvailableUnitStats(int iUnitID) const;
+	const STacticalAssignment* getInitialAssignment(int iUnitID) const;
+	STacticalAssignment* getInitialAssignmentMutable(int iUnitID);
+	const STacticalAssignment* getLatestAssignment(int iUnitID) const;
+	STacticalAssignment* getLatestAssignmentMutable(int iUnitID);
+	const STacticalAssignment* getLatestMoveAssignment(int iUnitID) const;
+	bool unitHasAssignmentOfType(int iUnitID, eUnitAssignmentType assignmentType) const;
+	bool plotHasAssignmentOfType(int iToPlotIndex, eUnitAssignmentType assignmentType) const;
+	bool isAttackablePlot(int iPlotIndex) const;
+	AddAssignmentResult addAssignment(const STacticalAssignment& newAssignment);
+	bool isUnique(int levelsToCheck=2) const;
+	void setFirstInterestingAssignment(size_t i);
+	size_t getFirstInterestingAssignment() const;
+
+	const CvTacticalPlot& getTactPlot(int plotindex) const; //get a reference to a local tact plot or higher up in the tree if we didn't modify it
+	CvTacticalPlot& getTactPlotMutable(int plotindex); //this is dangerous! the reference returned by one call may become invalid when calling this a second time
+	int getGeneration() const { return iGeneration; }
+
+	CvPlot* getTarget() const { return pTargetPlot; }
+	eAggressionLevel getAggressionLevel() const { return eAggression; }
+	PlayerTypes getPlayer() const { return ePlayer; }
+	int getScoreTotal() const { return iTotalScore; }
+	int getScoreLastRound() const { return iScoreOverParent; }
+
+	const CvTacticalPosition* getParent() const { return parentPosition; }
+	const vector<CvTacticalPosition*>& getChildren() const { return childPositions; }
+	const vector<STacticalAssignment>& getAssignments() const { return assignedMoves; }
+	const UnitIdContainer& getKilledEnemies() const { return killedEnemies; }
+	const int getNumEnemies() const { return nOriginalEnemies - killedEnemies.size(); }
+	const PlotIndexContainer& getFreedPlots() const { return freedPlots; }
+	const int getNumPlots() const { return (int)tactPlots.size(); }
+
+	//sort descending cumulative score. only makes sense for "completed" positions
+	bool operator<(const CvTacticalPosition& rhs) { return iTotalScore>rhs.iTotalScore; }
+
+	//debugging
+	unsigned long long getID() const { return iID; }
+	void dumpPlotStatus(const char* fname) const;
+	void exportToDotFile(const char* fname) const;
+	void dumpChildren(ofstream& out) const;
+
+	friend const CvTacticalPosition* tacticalPositionIsEquivalent(const CvTacticalPosition* ref, const CvTacticalPosition* other);
+};
+
+class CvTactPosStorage
+{
+public:
+	CvTactPosStorage(int iPreallocationSize) : iCount(0), iSize(iPreallocationSize), aPositions(new CvTacticalPosition[iPreallocationSize]), attackCache() {}
+	~CvTactPosStorage() { delete[] aPositions; }
+	void reset(bool bHard);
+	int getSizeLimit() const { return iSize; }
+	int getSize() const { return iCount; }
+	CvTacticalPosition* first() { return aPositions; }
+	CvTacticalPosition* peekNext() { return (iCount < iSize) ? aPositions + iCount : NULL; }
+	int consumeOne() { return iCount++; }
+	CAttackCache& getAttackCache() { return attackCache; }
+	CDangerCache& getDangerCache() { return dangerCache; }
+
+protected:
+	int iSize; //how many do we have
+	int iCount; //how many are currently in use
+	CvTacticalPosition* aPositions; //preallocated block of N positions
+	CAttackCache attackCache; //performance optimization, unit strength calculation takes too long
+	CDangerCache dangerCache; //performance optimization, unit strength calculation takes too long
+
+private:
+	//hide copy constructor and assignment operator
+	CvTactPosStorage(const CvTactPosStorage& other);
+	const CvTactPosStorage& operator=(const CvTactPosStorage& rhs);
+};
+
 
 namespace TacticalAIHelpers
 {
-bool CvBlockingUnitDistanceSort(CvBlockingUnit obj1, CvBlockingUnit obj2);
+	bool SortByExpectedTargetDamageDescending(const CvTacticalUnit& obj1, const CvTacticalUnit& obj2);
+
+	ReachablePlots GetAllPlotsInReachThisTurn(const CvUnit* pUnit, const CvPlot* pStartPlot, int iFlags, int iMinMovesLeft=0, int iStartMoves=-1, const PlotIndexContainer& plotsToIgnoreForZOC=PlotIndexContainer());
+	vector<int> GetPlotsUnderRangedAttackFrom(const CvUnit* pUnit, const CvPlot* pBasePlot, bool bOnlyWithEnemy, bool bIgnoreVisibility);
+	std::set<int> GetPlotsUnderRangedAttackFrom(const CvUnit* pUnit, ReachablePlots& basePlots, bool bOnlyWithEnemy,  bool bIgnoreVisibility);
+
+	bool PerformRangedOpportunityAttack(CvUnit* pUnit, bool bAllowMovement = false);
+	bool PerformOpportunityAttack(CvUnit* pUnit, bool bAllowMovement = false);
+	bool IsAttackNetPositive(CvUnit* pUnit, const CvPlot* pTarget);
+	CvPlot* FindSafestPlotInReach(const CvUnit* pUnit, bool bAllowEmbark, bool bConsiderPush = false);
+	CvPlot* FindClosestSafePlotForHealing(CvUnit* pUnit, bool bConservative = true);
+	bool IsGoodPlotForStaging(CvPlayer* pPlayer, CvPlot* pCandidate, DomainTypes eDomain);
+	bool IsCloseToContestedBorder(CvPlayer* pPlayer, CvPlot* pPlot);
+
+	std::vector<CvPlot*> GetPlotsForRangedAttack(const CvPlot* pTarget, const CvUnit* pUnit, int iRange, bool bCheckOccupied);
+	int GetSimulatedDamageFromAttackOnUnit(const CvUnit* pDefender, const CvUnit* pAttacker, const CvPlot* pDefenderPlot, const CvPlot* pAttackerPlot, int& iAttackerDamage, 
+									bool bIgnoreUnitAdjacencyBoni=false, int iExtraDefenderDamage=0, bool bQuickAndDirty = false);
+	int GetSimulatedDamageFromAttackOnCity(const CvCity* pCity, const CvUnit* pAttacker, const CvPlot* pAttackerPlot, int& iAttackerDamage, 
+									bool bIgnoreUnitAdjacencyBoni=false, int iExtraDefenderDamage=0, bool bQuickAndDirty = false);
+	bool KillLoneEnemyIfPossible(CvUnit* pOurUnit, CvUnit* pEnemyUnit);
+	bool IsSuicideMeleeAttack(const CvUnit* pAttacker, CvPlot* pTarget);
+	bool CanKillTarget(const CvUnit* pAttacker, CvPlot* pTarget);
+	vector<pair<CvPlot*,bool>> GetTargetsInRange(const CvUnit* pUnit, bool bMustBeAbleToKill=false, bool bIncludeCivilians=true);
+	pair<int, int> EstimateLocalUnitPower(const ReachablePlots& plotsToCheck, TeamTypes eTeamA, TeamTypes eTeamB, bool bMustBeVisibleToBoth);
+	int CountAdditionallyVisiblePlots(CvUnit* pUnit, CvPlot* pTestPlot);
+	bool IsPlayerCitadel(const CvPlot* pPlot, PlayerTypes ePlayer);
+	bool IsOtherPlayerCitadel(const CvPlot* pPlot, PlayerTypes ePlayer, bool bCheckWar);
+	int SentryScore(const CvPlot* pPlot, PlayerTypes ePlayer);
+
+	bool FindAndExecuteBestUnitAssignments(vector<CvUnit*>& vUnits, CvPlot* pTarget, eAggressionLevel eAggLvl);
+	vector<STacticalAssignment> FindBestUnitAssignments(const vector<CvUnit*>& vUnits, CvPlot* pTarget, eAggressionLevel eAggLvl, CvTactPosStorage& storage, set<int>& unuseableUnits);
+	bool ExecuteUnitAssignments(PlayerTypes ePlayer, const vector<STacticalAssignment>& vAssignments);
 }
+
+extern const char* tacticalMoveNames[];
+extern const char* postureNames[];
+extern const char* assignmentTypeNames[];
 
 #endif //CIV5_TACTICAL_AI_H

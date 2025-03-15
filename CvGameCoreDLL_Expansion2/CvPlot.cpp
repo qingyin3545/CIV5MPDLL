@@ -3829,6 +3829,313 @@ int CvPlot::GetNumAdjacentMountains() const
 }
 
 //	--------------------------------------------------------------------------------
+int CvPlot::GetSeaBlockadeScore(PlayerTypes ePlayer) const
+{
+	int iScore = 0;
+	int iRange = min(5,max(0, /*2 in CP, 1 in VP*/ GD_INT_GET(NAVAL_PLOT_BLOCKADE_RANGE)));
+
+	for(int iI = 0; iI < RING_PLOTS[iRange]; iI++)
+	{
+		CvPlot* pLoopPlot = iterateRingPlots(getX(), getY(), iI);
+		if(pLoopPlot == NULL || pLoopPlot->getDomain() != DOMAIN_SEA || pLoopPlot->getArea() != getArea())
+			continue;
+
+		if (GET_PLAYER(ePlayer).IsAtWarWith(pLoopPlot->getOwner()))
+		{
+			//there should really be a function that gives you a weighted score of all yields ...
+			iScore++;
+			if (pLoopPlot->getResourceType(GET_PLAYER(ePlayer).getTeam()) != NO_RESOURCE)
+				iScore++;
+			if (pLoopPlot->getFeatureType() != NO_FEATURE)
+				iScore++;
+			if (pLoopPlot->getImprovementType() != NO_IMPROVEMENT)
+				iScore++;
+		}
+
+		iScore++;
+	}
+
+	return iScore;
+}
+
+int CvPlot::countPassableNeighbors(DomainTypes eDomain, CvPlot** aPassableNeighbors) const
+{
+	int iPassable = 0;
+
+	for (int iI = 0; iI < NUM_DIRECTION_TYPES; ++iI)
+	{
+		CvPlot* pAdjacentPlot = plotDirection(getX(), getY(), ((DirectionTypes)iI));
+		if(pAdjacentPlot != NULL)
+		{
+			if ( (eDomain==NO_DOMAIN || eDomain==pAdjacentPlot->getDomain()) && !pAdjacentPlot->isImpassable(pAdjacentPlot->getTeam()) )
+			{
+				if (aPassableNeighbors)
+					aPassableNeighbors[iPassable] = pAdjacentPlot;
+				iPassable++;
+			}
+		}
+	}
+	return iPassable;
+}
+
+bool CvPlot::IsBorderLand(PlayerTypes eDefendingPlayer) const
+{
+	vector<PlayerTypes> vUnfriendlyMajors;
+
+	//check distance to all major players' cities
+	//if homefront for at least one ...
+	for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
+	{
+		PlayerTypes eLoopPlayer = (PlayerTypes)iPlayerLoop;
+		if (GET_PLAYER(eLoopPlayer).getTeam() == GET_PLAYER(eDefendingPlayer).getTeam())
+			continue;
+
+		if (!GET_PLAYER(eLoopPlayer).isAlive() || GET_PLAYER(eLoopPlayer).getNumCities() <= 0)
+			continue;
+
+		if (GET_PLAYER(eDefendingPlayer).isMajorCiv())
+		{
+			if (GET_PLAYER(eDefendingPlayer).GetDiplomacyAI()->GetMajorCivApproach(eLoopPlayer)!= MAJOR_CIV_APPROACH_FRIENDLY)
+				vUnfriendlyMajors.push_back(eLoopPlayer);
+			else
+				continue;
+		}
+		else if (GET_PLAYER(eDefendingPlayer).isMinorCiv())
+		{
+			TeamTypes eLoopTeam = GET_PLAYER(eLoopPlayer).getTeam();
+			if (GET_PLAYER(eDefendingPlayer).IsAtWarWith(eLoopPlayer) || GET_PLAYER(eDefendingPlayer).GetMinorCivAI()->IsWaryOfTeam(eLoopTeam))
+			{
+				vUnfriendlyMajors.push_back(eLoopPlayer);
+			}
+			else
+				continue;			
+		}
+
+		if (IsCloseToCity(eLoopPlayer))
+			return true;
+	}
+
+	//alternatively see if an adjacent plot is owned by an unfriendly player
+	//only check adjacent plots, everything else is too expensive
+	return IsAdjacentOwnedByUnfriendly(eDefendingPlayer, vUnfriendlyMajors);
+}
+
+bool CvPlot::IsBorderLand(PlayerTypes eDefendingPlayer, vector<PlayerTypes>& vUnfriendlyMajors) const
+{
+	// Were we already passed a set of players to check? (performance optimization)
+	if (!vUnfriendlyMajors.empty())
+	{
+		for (std::vector<PlayerTypes>::iterator it = vUnfriendlyMajors.begin(); it != vUnfriendlyMajors.end(); it++)
+		{
+			if (IsCloseToCity(*it))
+				return true;
+		}
+	}
+	else
+	{
+		//check distance to all major players' cities
+		//if homefront for at least one ...
+		for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
+		{
+			PlayerTypes eLoopPlayer = (PlayerTypes)iPlayerLoop;
+			if (GET_PLAYER(eLoopPlayer).getTeam() == GET_PLAYER(eDefendingPlayer).getTeam())
+				continue;
+
+			if (!GET_PLAYER(eLoopPlayer).isAlive() || GET_PLAYER(eLoopPlayer).getNumCities() <= 0)
+				continue;
+
+			if (GET_PLAYER(eDefendingPlayer).isMajorCiv())
+			{
+				if (GET_PLAYER(eDefendingPlayer).GetDiplomacyAI()->IsPotentialMilitaryTargetOrThreat(eLoopPlayer, false))
+					vUnfriendlyMajors.push_back(eLoopPlayer);
+				else
+					continue;
+			}
+			else if (GET_PLAYER(eDefendingPlayer).isMinorCiv())
+			{
+				TeamTypes eLoopTeam = GET_PLAYER(eLoopPlayer).getTeam();
+				if (GET_PLAYER(eDefendingPlayer).IsAtWarWith(eLoopPlayer) || GET_PLAYER(eDefendingPlayer).GetMinorCivAI()->IsWaryOfTeam(eLoopTeam)
+					|| GET_PLAYER(eDefendingPlayer).GetMinorCivAI()->GetJerkTurnsRemaining(eLoopTeam) > 0)
+				{
+					vUnfriendlyMajors.push_back(eLoopPlayer);
+				}
+				else
+					continue;			
+			}
+
+			if (IsCloseToCity(eLoopPlayer))
+				return true;
+		}
+	}
+
+	//alternatively see if an adjacent plot is owned by an unfriendly player
+	//only check adjacent plots, everything else is too expensive
+	return IsAdjacentOwnedByUnfriendly(eDefendingPlayer, vUnfriendlyMajors);
+}
+
+bool CvPlot::IsChokePoint() const
+{
+	if(isImpassable())
+		return false;
+
+	CvPlot* aPassableNeighbors[NUM_DIRECTION_TYPES];
+	int iPassable = countPassableNeighbors(DOMAIN_LAND, aPassableNeighbors);
+
+	//a plot is a chokepoint if it has between two and four passable land plots as neighbors
+	if (iPassable<2 || iPassable>4)
+		return false;
+
+	//each adjacent passable plot must have at least 3 passable neighbors (anti peninsula / mountain valley check)
+	int iPassableNoDeadEnd = 0;
+	CvPlot* aPassableNeighborsNoDeadEnd[NUM_DIRECTION_TYPES];
+	for (int iI = 0; iI<iPassable; iI++)
+	{
+		if (aPassableNeighbors[iI]->countPassableNeighbors(DOMAIN_LAND,NULL)>2)
+		{
+			aPassableNeighborsNoDeadEnd[iPassableNoDeadEnd] = aPassableNeighbors[iI];
+			iPassableNoDeadEnd++;
+		}
+	}
+
+	if (iPassableNoDeadEnd<2)
+	{
+		return false;
+	}
+	else if (iPassableNoDeadEnd==2)
+	{
+		//check they are not adjacent
+		return !aPassableNeighborsNoDeadEnd[0]->isAdjacent(aPassableNeighborsNoDeadEnd[1]);
+	}
+	else if (iPassableNoDeadEnd==3)
+	{
+		//three passable plots. not more than one pair may be adjacent
+		int AB = aPassableNeighborsNoDeadEnd[0]->isAdjacent(aPassableNeighborsNoDeadEnd[1]) ? 1 : 0;
+		int AC = aPassableNeighborsNoDeadEnd[0]->isAdjacent(aPassableNeighborsNoDeadEnd[2]) ? 1 : 0;
+		int BC = aPassableNeighborsNoDeadEnd[1]->isAdjacent(aPassableNeighborsNoDeadEnd[2]) ? 1 : 0;
+
+		return (AB+AC+BC)<2;
+	}
+	else if (iPassableNoDeadEnd==4)
+	{
+		//four passable plots. not more than two pairs may be adjacent
+		int AB = aPassableNeighborsNoDeadEnd[0]->isAdjacent(aPassableNeighborsNoDeadEnd[1]) ? 1 : 0;
+		int AC = aPassableNeighborsNoDeadEnd[0]->isAdjacent(aPassableNeighborsNoDeadEnd[2]) ? 1 : 0;
+		int AD = aPassableNeighborsNoDeadEnd[0]->isAdjacent(aPassableNeighborsNoDeadEnd[3]) ? 1 : 0;
+		int BC = aPassableNeighborsNoDeadEnd[1]->isAdjacent(aPassableNeighborsNoDeadEnd[2]) ? 1 : 0;
+		int BD = aPassableNeighborsNoDeadEnd[1]->isAdjacent(aPassableNeighborsNoDeadEnd[3]) ? 1 : 0;
+		int CD = aPassableNeighborsNoDeadEnd[2]->isAdjacent(aPassableNeighborsNoDeadEnd[3]) ? 1 : 0;
+
+		return (AB+AC+AD+BC+BD+CD)<3;
+	}
+
+	return false;
+}
+
+bool CvPlot::IsWaterAreaSeparator() const
+{
+	//only passable land plots
+	if(isWater() || isImpassable())
+		return false;
+
+	//for simplicity we simply require a different water area on both sides
+	int iFirstWaterArea = -1;
+
+	CvPlot** aPlotsToCheck = GC.getMap().getNeighborsUnchecked(this);
+	for (int iCount = 0; iCount < NUM_DIRECTION_TYPES; iCount++)
+	{
+		const CvPlot* pLoopPlot = aPlotsToCheck[iCount];
+		if(pLoopPlot==NULL || !pLoopPlot->isWater())
+			continue;
+
+		if (iFirstWaterArea == -1)
+		{
+			iFirstWaterArea = pLoopPlot->getArea();
+		}
+		else if (pLoopPlot->getArea() != iFirstWaterArea)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/// Is this Plot within a certain range of any of a player's Cities?
+bool CvPlot::IsCloseToCity(PlayerTypes ePlayer) const
+{
+	if (ePlayer == NO_PLAYER)
+		return false;
+
+	//do not use estimated turns here, performance is not good
+	int iDistance = GET_PLAYER(ePlayer).GetCityDistanceInPlots(this);
+	int iRange = /*5*/ GD_INT_GET(AI_DIPLO_PLOT_RANGE_FROM_CITY_HOME_FRONT);
+	return (iDistance <= iRange);
+}
+
+bool CvPlot::IsAdjacentOwnedByUnfriendly(PlayerTypes ePlayer, vector<PlayerTypes>& vUnfriendlyMajors) const
+{
+	CvPlot** aPlotsToCheck = GC.getMap().getNeighborsUnchecked(this);
+	set<PlayerTypes> adjacentPlayers;
+	for (int iI = 0; iI < NUM_DIRECTION_TYPES; iI++)
+	{
+		CvPlot* pAdjacentPlot = aPlotsToCheck[iI];
+		if (pAdjacentPlot != NULL)
+		{
+			PlayerTypes ePlotOwner = pAdjacentPlot->getOwner();
+			if (ePlotOwner != NO_PLAYER && GET_PLAYER(ePlotOwner).getTeam() != GET_PLAYER(ePlayer).getTeam())
+			{
+				if (pAdjacentPlot->isImpassable(GET_PLAYER(ePlotOwner).getTeam()))
+					continue;
+
+				// Directly insert ePlotOwner without checking if it already exists
+				adjacentPlayers.insert(ePlotOwner);
+			}
+		}
+	}
+
+	if (adjacentPlayers.size() > 0)
+	{
+		if (GET_PLAYER(ePlayer).isBarbarian())
+			return true;
+
+		// Were we already passed a set of players to check? (performance optimization)
+		if (!vUnfriendlyMajors.empty())
+		{
+			for (set<PlayerTypes>::iterator it = adjacentPlayers.begin(); it != adjacentPlayers.end(); ++it)
+			{
+				if (std::find(vUnfriendlyMajors.begin(), vUnfriendlyMajors.end(), *it) != vUnfriendlyMajors.end())
+					return true;
+			}
+		}
+		else
+		{
+			if (GET_PLAYER(ePlayer).isMajorCiv())
+			{
+				for (set<PlayerTypes>::iterator it = adjacentPlayers.begin(); it != adjacentPlayers.end(); ++it)
+				{
+					if (GET_PLAYER(ePlayer).GetDiplomacyAI()->IsPotentialMilitaryTargetOrThreat(*it, false))
+						return true;
+				}
+			}
+			else if (GET_PLAYER(ePlayer).isMinorCiv())
+			{
+				for (set<PlayerTypes>::iterator it = adjacentPlayers.begin(); it != adjacentPlayers.end(); ++it)
+				{
+					TeamTypes eAdjacentTeam = GET_PLAYER(*it).getTeam();
+					if (GET_PLAYER(ePlayer).IsAtWarWith(*it) || GET_PLAYER(ePlayer).GetMinorCivAI()->IsWaryOfTeam(eAdjacentTeam)
+						|| GET_PLAYER(ePlayer).GetMinorCivAI()->GetJerkTurnsRemaining(eAdjacentTeam) > 0)
+					{
+						return true;
+					}
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
+//	--------------------------------------------------------------------------------
 void CvPlot::plotAction(PlotUnitFunc func, int iData1, int iData2, PlayerTypes eOwner, TeamTypes eTeam)
 {
 	IDInfo* pUnitNode;
@@ -14090,3 +14397,44 @@ int CvPlot::GetNumSpecificPlayerUnitsAdjacent(PlayerTypes ePlayer, const CvUnit*
 }
 
 #endif
+
+template<typename PlotWithScore, typename Visitor>
+void SPlotWithScore::Serialize(PlotWithScore& plotWithScore, Visitor& visitor)
+{
+	visitor(plotWithScore.pPlot);
+	visitor(plotWithScore.score);
+}
+
+FDataStream& operator<<(FDataStream& saveTo, const SPlotWithScore& readFrom)
+{
+	CvStreamSaveVisitor serialVisitor(saveTo);
+	SPlotWithScore::Serialize(readFrom, serialVisitor);
+	return saveTo;
+}
+FDataStream& operator>>(FDataStream& loadFrom, SPlotWithScore& writeTo)
+{
+	CvStreamLoadVisitor serialVisitor(loadFrom);
+	SPlotWithScore::Serialize(writeTo, serialVisitor);
+	return loadFrom;
+}
+
+template<typename PlotWithTwoScoresL2, typename Visitor>
+void SPlotWithTwoScoresL2::Serialize(PlotWithTwoScoresL2& plotWithTwoScoresL2, Visitor& visitor)
+{
+	visitor(plotWithTwoScoresL2.pPlot);
+	visitor(plotWithTwoScoresL2.score1);
+	visitor(plotWithTwoScoresL2.score2);
+}
+
+FDataStream& operator<<(FDataStream& saveTo, const SPlotWithTwoScoresL2& readFrom)
+{
+	CvStreamSaveVisitor serialVisitor(saveTo);
+	SPlotWithTwoScoresL2::Serialize(readFrom, serialVisitor);
+	return saveTo;
+}
+FDataStream& operator>>(FDataStream& loadFrom, SPlotWithTwoScoresL2& writeTo)
+{
+	CvStreamLoadVisitor serialVisitor(loadFrom);
+	SPlotWithTwoScoresL2::Serialize(writeTo, serialVisitor);
+	return loadFrom;
+}
