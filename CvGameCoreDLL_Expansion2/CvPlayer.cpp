@@ -722,6 +722,7 @@ void CvPlayer::init(PlayerTypes eID)
 
 		CvAssert(m_pTraits);
 		m_pTraits->InitPlayerTraits();
+		GetBuilderTaskingAI()->UpdateKeepFeatures(this);
 
 		// Special handling for the Polynesian trait's overriding of embarked unit graphics
 		if(m_pTraits->IsEmbarkedAllWater())
@@ -9418,7 +9419,12 @@ int CvPlayer::getProductionNeeded(BuildingTypes eBuilding) const
 
 	if(pkBuildingInfo->GetNumCityCostMod() > 0 && getNumCities() > 0)
 	{
-		iProductionNeeded += (pkBuildingInfo->GetNumCityCostMod() * getNumCities());
+		int iNumCityCost = (pkBuildingInfo->GetNumCityCostMod() * getNumCities());
+		if(pkBuildingInfo->GetBuildingClassInfo().getMaxPlayerInstances() == 1)
+		{
+			iNumCityCost = iNumCityCost * (100 + getPolicyModifiers(POLICYMOD_NATIONAL_WONDER_CITY_COST_MODIFIER)) / 100;
+		}
+		iProductionNeeded += iNumCityCost;
 	}
 
 	if(isMinorCiv())
@@ -25576,7 +25582,7 @@ void CvPlayer::doAdvancedStartAction(AdvancedStartActionTypes eAction, int iX, i
 				{
 					pCity->GetCityBuildings()->SetNumRealBuilding(eBuilding, pCity->GetCityBuildings()->GetNumRealBuilding(eBuilding)+1);
 					changeAdvancedStartPoints(-iCost);
-					if(pkBuildingInfo->GetFoodKept() != 0)
+					if(pkBuildingInfo->GetFoodKept() != 0 || pkBuildingInfo->GetFoodKeptFromPollution() != 0)
 					{
 						pCity->setFoodKept((pCity->getFood() * pCity->getMaxFoodKeptPercent()) / 100);
 					}
@@ -25588,7 +25594,7 @@ void CvPlayer::doAdvancedStartAction(AdvancedStartActionTypes eAction, int iX, i
 			{
 				pCity->GetCityBuildings()->SetNumRealBuilding(eBuilding, pCity->GetCityBuildings()->GetNumRealBuilding(eBuilding)-1);
 				changeAdvancedStartPoints(iCost);
-				if(pkBuildingInfo->GetFoodKept() != 0)
+				if(pkBuildingInfo->GetFoodKept() != 0 || pkBuildingInfo->GetFoodKeptFromPollution() != 0)
 				{
 					pCity->setFoodKept((pCity->getFood() * pCity->getMaxFoodKeptPercent()) / 100);
 				}
@@ -26727,6 +26733,7 @@ void CvPlayer::processPolicies(PolicyTypes ePolicy, int iChange)
 	changePolicyModifiers(POLICYMOD_DIPLOMAT_PROPAGANDA_MODIFIER, pPolicy->GetDiplomatPropagandaModifier() * iChange);
 	changePolicyModifiers(POLICYMOD_DEEP_WATER_NAVAL_CULTURE_STRENGTH_MODIFIER, pPolicy->GetDeepWaterNavalStrengthCultureModifier() * iChange);
 	changePolicyModifiers(POLICYMOD_CITY_EXTRA_PRODUCTION_COUNT, pPolicy->GetCityExtraProductionCount() * iChange);
+	changePolicyModifiers(POLICYMOD_NATIONAL_WONDER_CITY_COST_MODIFIER, pPolicy->GetNationalWonderCityCostModifier() * iChange);
 
 	if(pPolicy->GetFreeBuildingClass() != NO_BUILDINGCLASS)
 	{
