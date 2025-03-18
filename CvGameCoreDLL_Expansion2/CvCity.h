@@ -861,6 +861,9 @@ public:
 	int GetYieldPerReligionTimes100(YieldTypes eIndex) const;
 	void ChangeYieldPerReligionTimes100(YieldTypes eIndex, int iChange);
 
+	int GetYieldPerEra(YieldTypes eIndex) const;
+	void ChangeYieldPerEra(YieldTypes eIndex, int iChange);
+
 
 	void changeNukeInterceptionChance(int iValue);
 	int getNukeInterceptionChance() const;
@@ -1436,6 +1439,9 @@ public:
 	int GetTradeRouteFromTheCityYields(YieldTypes eIndex) const;
 	void ChangeTradeRouteFromTheCityYields(YieldTypes eIndex, int iChange);
 
+	int GetTradeRouteFromTheCityYieldsPerEra(YieldTypes eIndex) const;
+	void ChangeTradeRouteFromTheCityYieldsPerEra(YieldTypes eIndex, int iChange);
+
 	int GetLastTurnWorkerDisbanded() const;
 	void SetLastTurnWorkerDisbanded(int iValue);
 
@@ -1622,6 +1628,7 @@ protected:
 
 
 	std::vector<int> m_aiYieldPerReligion;
+	std::vector<int> m_aiYieldPerEra;
 	FAutoVariable<std::vector<int>, CvCity> m_aiPowerYieldRateModifier;
 	FAutoVariable<std::vector<int>, CvCity> m_aiFeatureYieldRateModifier;
 	FAutoVariable<std::vector<int>, CvCity> m_aiTerrainYieldRateModifier;
@@ -1746,6 +1753,7 @@ protected:
 #endif
 
 	std::tr1::array<int, YieldTypes::NUM_YIELD_TYPES> m_aTradeRouteFromTheCityYields;
+	std::tr1::array<int, YieldTypes::NUM_YIELD_TYPES> m_aTradeRouteFromTheCityYieldsPerEra;
 
 	CvCityBuildings* m_pCityBuildings;
 	CvCityStrategyAI* m_pCityStrategyAI;
