@@ -1912,6 +1912,7 @@ int CvLuaCity::lIsCanPurchase(lua_State* L)
 	lua_pushboolean(L, bResult);
 	return 1;
 }
+#if defined(MOD_API_LUA_EXTENSIONS)
 // int GetTradeRouteFromTheCityYieldsPerEra(YieldTypes eYield);
 int CvLuaCity::lGetTradeRouteFromTheCityYieldsPerEra(lua_State* L)
 {
