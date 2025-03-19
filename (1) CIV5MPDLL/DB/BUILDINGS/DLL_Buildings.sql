@@ -62,6 +62,15 @@ ALTER TABLE Buildings ADD 'TechNoPrereqClasses' TEXT DEFAULT NULL REFERENCES Tec
 
 ALTER TABLE Buildings ADD 'CapitalOnly' BOOLEAN DEFAULT 0;
 ALTER TABLE Buildings ADD 'OriginalCapitalOnly' BOOLEAN DEFAULT 0;
+CREATE TABLE "Building_TradeRouteFromTheCityYieldsPerEra" (
+	"BuildingType"	text references Buildings(Type),
+	"YieldType"	text references Yields(Type),
+	"YieldValue"	integer
+);
+CREATE TABLE "Building_YieldChangesPerEra" (
+	"BuildingType"	text references Buildings(Type),
+	"YieldType"	text references Yields(Type),
+	"Yield"	integer
 
 CREATE TABLE Building_RiverPlotYieldChangesGlobal (
 	'BuildingType' text no null references Buildings(Type),

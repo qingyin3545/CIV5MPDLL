@@ -802,6 +802,7 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 	Method(IsSecondCapital);
 	Method(GetFoodConsumptionPerPopTimes100);
 	Method(GetDefendedAgainstSpreadUntilTurn);
+	Method(GetTradeRouteFromTheCityYieldsPerEra);
 }
 //------------------------------------------------------------------------------
 void CvLuaCity::HandleMissingInstance(lua_State* L)
@@ -1912,6 +1913,15 @@ int CvLuaCity::lIsCanPurchase(lua_State* L)
 	return 1;
 }
 #if defined(MOD_API_LUA_EXTENSIONS)
+// int GetTradeRouteFromTheCityYieldsPerEra(YieldTypes eYield);
+int CvLuaCity::lGetTradeRouteFromTheCityYieldsPerEra(lua_State* L)
+{
+	CvCity* pkCity = GetInstance(L);
+	const YieldTypes eIndex = (YieldTypes) lua_tointeger(L, 2);
+	const int iResult = pkCity->GetTradeRouteFromTheCityYieldsPerEra(eIndex);
+	lua_pushinteger(L, iResult);
+	return 1;
+}
 //------------------------------------------------------------------------------
 // void Purchase(UnitTypes eUnitType, BuildingTypes eBuildingType, ProjectTypes eProjectType, YieldTypes ePurchaseYield);
 int CvLuaCity::lPurchase(lua_State* L)

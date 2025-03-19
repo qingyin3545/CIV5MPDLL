@@ -262,6 +262,7 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_piLakePlotYieldChange(NULL),
 	m_piSeaResourceYieldChange(NULL),
 	m_piYieldChange(NULL),
+	m_piYieldChangePerEra(NULL),
 	m_piYieldChangePerPop(NULL),
 	m_piYieldChangePerReligion(NULL),
 	m_piYieldModifier(NULL),
@@ -394,6 +395,7 @@ CvBuildingEntry::~CvBuildingEntry(void)
 	SAFE_DELETE_ARRAY(m_piLakePlotYieldChange);
 	SAFE_DELETE_ARRAY(m_piSeaResourceYieldChange);
 	SAFE_DELETE_ARRAY(m_piYieldChange);
+	SAFE_DELETE_ARRAY(m_piYieldChangePerEra);
 	SAFE_DELETE_ARRAY(m_piYieldChangePerPop);
 	SAFE_DELETE_ARRAY(m_piYieldChangePerReligion);
 	SAFE_DELETE_ARRAY(m_piYieldModifier);
@@ -868,6 +870,7 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	kUtility.SetYields(m_piLakePlotYieldChange, "Building_LakePlotYieldChanges", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piSeaResourceYieldChange, "Building_SeaResourceYieldChanges", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldChange, "Building_YieldChanges", "BuildingType", szBuildingType);
+	kUtility.SetYields(m_piYieldChangePerEra, "Building_YieldChangesPerEra", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldChangePerPop, "Building_YieldChangesPerPop", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldChangePerReligion, "Building_YieldChangesPerReligion", "BuildingType", szBuildingType);
 	kUtility.SetYields(m_piYieldModifier, "Building_YieldModifiers", "BuildingType", szBuildingType);
@@ -1857,6 +1860,34 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 			if (yieldType >= 0 && yieldType < NUM_YIELD_TYPES)
 			{
 				m_aTradeRouteFromTheCityYields[yieldType] = yieldValue;
+			}
+		}
+
+		pResults->Reset();
+	}
+
+	// int GetTradeRouteFromTheCityYieldsPerEra(YieldTypes eYieldTypes);
+	{
+		for (size_t i = 0; i < NUM_YIELD_TYPES; i++)
+		{
+			m_aTradeRouteFromTheCityYieldsPerEra[i] = 0;
+		}
+
+		std::string strKey("Building_TradeRouteFromTheCityYieldsPerEra");
+		Database::Results* pResults = kUtility.GetResults(strKey);
+		if (pResults == nullptr)
+		{
+			pResults = kUtility.PrepareResults(strKey, "select YieldType, YieldValue from Building_TradeRouteFromTheCityYieldsPerEra where BuildingType = ?");
+		}
+		pResults->Bind(1, szBuildingType);
+
+		while (pResults->Step())
+		{
+			const auto yieldType = (YieldTypes) GC.getInfoTypeForString(pResults->GetText(0));
+			const int yieldValue = pResults->GetInt(1);
+			if (yieldType >= 0 && yieldType < NUM_YIELD_TYPES)
+			{
+				m_aTradeRouteFromTheCityYieldsPerEra[yieldType] = yieldValue;
 			}
 		}
 
@@ -3140,6 +3171,10 @@ bool CvBuildingEntry::IsScienceBuilding() const
 	{
 		bRtnValue = true;
 	}
+	else if(GetYieldChangePerEra(YIELD_SCIENCE) > 0)
+	{
+		bRtnValue = true;
+	}
 	else if(GetYieldChangePerPop(YIELD_SCIENCE) > 0)
 	{
 		bRtnValue = true;
@@ -3223,6 +3258,20 @@ int CvBuildingEntry::GetYieldChange(int i) const
 int* CvBuildingEntry::GetYieldChangeArray() const
 {
 	return m_piYieldChange;
+}
+
+/// Change to yield by type per era
+int CvBuildingEntry::GetYieldChangePerEra(int i) const
+{
+	CvAssertMsg(i < NUM_YIELD_TYPES, "Index out of bounds");
+	CvAssertMsg(i > -1, "Index out of bounds");
+	return m_piYieldChangePerEra ? m_piYieldChangePerEra[i] : -1;
+}
+
+/// Array of yield changes per era
+int* CvBuildingEntry::GetYieldChangePerEraArray() const
+{
+	return m_piYieldChangePerEra;
 }
 
 /// Change to yield by type
@@ -4443,6 +4492,16 @@ int CvBuildingEntry::GetTradeRouteFromTheCityYields(YieldTypes eYieldTypes) cons
 	}
 
 	return m_aTradeRouteFromTheCityYields[eYieldTypes];
+}
+
+int CvBuildingEntry::GetTradeRouteFromTheCityYieldsPerEra(YieldTypes eYieldTypes) const
+{
+	if (eYieldTypes < 0 || eYieldTypes >= NUM_YIELD_TYPES)
+	{
+		return 0;
+	}
+
+	return m_aTradeRouteFromTheCityYieldsPerEra[eYieldTypes];
 }
 
 //This building can only be built in capital

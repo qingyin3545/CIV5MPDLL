@@ -404,6 +404,8 @@ public:
 
 	int GetYieldChange(int i) const;
 	int* GetYieldChangeArray() const;
+	int GetYieldChangePerEra(int i) const;
+	int* GetYieldChangePerEraArray() const;
 	int GetYieldChangePerPop(int i) const;
 	int* GetYieldChangePerPopArray() const;
 	int GetYieldChangePerReligion(int i) const;
@@ -600,6 +602,7 @@ public:
 	int GetFoodKeptFromPollution() const;
 
 	int GetTradeRouteFromTheCityYields(YieldTypes eYieldTypes) const;
+	int GetTradeRouteFromTheCityYieldsPerEra(YieldTypes eYieldTypes) const;
 
 	bool IsCapitalOnly() const;
 	bool IsOriginalCapitalOnly() const;
@@ -887,6 +890,7 @@ private:
 	int* m_piLakePlotYieldChange;
 	int* m_piSeaResourceYieldChange;
 	int* m_piYieldChange;
+	int* m_piYieldChangePerEra;
 	int* m_piYieldChangePerPop;
 	int* m_piYieldChangePerReligion;
 	int* m_piYieldModifier;
@@ -1034,6 +1038,7 @@ private:
 	bool m_bOriginalCapitalOnly;
 
 	std::tr1::array<int, YieldTypes::NUM_YIELD_TYPES> m_aTradeRouteFromTheCityYields;
+	std::tr1::array<int, YieldTypes::NUM_YIELD_TYPES> m_aTradeRouteFromTheCityYieldsPerEra;
 };
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
