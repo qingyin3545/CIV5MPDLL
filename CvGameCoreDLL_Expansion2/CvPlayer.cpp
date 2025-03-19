@@ -17676,6 +17676,28 @@ void CvPlayer::ChangeDomainFreeExperiencePerGreatWorkGlobal(DomainTypes eIndex, 
 	m_aiDomainFreeExperiencePerGreatWorkGlobal[eIndex] += iChange;
 }
 
+int CvPlayer::GetDomainFreeExperiencesPerPopGlobal(DomainTypes eIndex)
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
+	CvAssertMsg(eIndex < NUM_DOMAIN_TYPES, "eIndex expected to be < NUM_DOMAIN_TYPES");
+	int iValue = 0;
+	
+	if( getNumCities() >= 1)
+	{
+		CvCity* pLoopCity;
+		int iLoop;
+		for(pLoopCity = firstCity(&iLoop); pLoopCity != NULL; pLoopCity = nextCity(&iLoop))
+		{
+			if(pLoopCity->GetDomainFreeExperiencesPerPopGlobal((DomainTypes)eIndex) > 0)
+			{
+				iValue += pLoopCity->GetDomainFreeExperiencesPerPopGlobal((DomainTypes)eIndex) * pLoopCity->getPopulation() / 100;
+			}
+		}
+	}
+	return iValue;
+}
+
 //	--------------------------------------------------------------------------------
 int CvPlayer::GetDomainFreeExperience(DomainTypes eIndex) const
 {

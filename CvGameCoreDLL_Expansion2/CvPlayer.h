@@ -1015,7 +1015,8 @@ public:
 #if defined(MOD_ROG_CORE)
 	void ChangeDomainFreeExperiencePerGreatWorkGlobal(DomainTypes eDomain, int iChange);
 	int GetDomainFreeExperiencePerGreatWorkGlobal(DomainTypes eDomain) const;
-
+	
+	int GetDomainFreeExperiencesPerPopGlobal(DomainTypes eDomain);
 	void ChangeDomainFreeExperience(DomainTypes eDomain, int iChange);
 	int GetDomainFreeExperience(DomainTypes) const;
 

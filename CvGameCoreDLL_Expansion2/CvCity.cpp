@@ -358,6 +358,8 @@ CvCity::CvCity() :
 	, m_aiExtraSpecialistYield("CvCity::m_aiExtraSpecialistYield", m_syncArchive)
 	, m_aiProductionToYieldModifier("CvCity::m_aiProductionToYieldModifier", m_syncArchive)
 	, m_aiDomainFreeExperience("CvCity::m_aiDomainFreeExperience", m_syncArchive)
+	, m_aiDomainFreeExperiencesPerPop("CvCity::m_aiDomainFreeExperiencesPerPop", m_syncArchive)
+	, m_aiDomainFreeExperiencesPerPopGlobal("CvCity::m_aiDomainFreeExperiencesPerPopGlobal", m_syncArchive)
 	, m_aiDomainProductionModifier("CvCity::m_aiDomainProductionModifier", m_syncArchive)
 	, m_abEverOwned("CvCity::m_abEverOwned", m_syncArchive)
 	, m_abRevealed("CvCity::m_abRevealed", m_syncArchive, true)
@@ -1298,10 +1300,14 @@ void CvCity::reset(int iID, PlayerTypes eOwner, int iX, int iY, bool bConstructo
 
 	m_aiDomainFreeExperience.resize(NUM_DOMAIN_TYPES);
 	m_aiDomainProductionModifier.resize(NUM_DOMAIN_TYPES);
+	m_aiDomainFreeExperiencesPerPop.resize(NUM_DOMAIN_TYPES);
+	m_aiDomainFreeExperiencesPerPopGlobal.resize(NUM_DOMAIN_TYPES);
 	for(iI = 0; iI < NUM_DOMAIN_TYPES; iI++)
 	{
 		m_aiDomainFreeExperience.setAt(iI, 0);
 		m_aiDomainProductionModifier.setAt(iI, 0);
+		m_aiDomainFreeExperiencesPerPop.setAt(iI, 0);
+		m_aiDomainFreeExperiencesPerPopGlobal.setAt(iI, 0);
 	}
 
 
@@ -4856,7 +4862,9 @@ int CvCity::getProductionExperience(UnitTypes eUnit)
 				iExperience += getDomainFreeExperience(eDomain);
 				iExperience += getDomainFreeExperienceFromGreatWorks(eDomain);
 				iExperience += getDomainFreeExperienceFromGreatWorksGlobal(eDomain);
+				iExperience += GetDomainFreeExperiencesPerPop(eDomain) * getPopulation() / 100;
 				iExperience += kOwner.GetDomainFreeExperience(eDomain);
+				iExperience += kOwner.GetDomainFreeExperiencesPerPopGlobal(eDomain);
 			}
 
 			iExperience += getSpecialistFreeExperience();
@@ -8349,7 +8357,9 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 		for(int iI = 0; iI < NUM_DOMAIN_TYPES; iI++)
 		{
 			changeDomainFreeExperience(((DomainTypes)iI), pBuildingInfo->GetDomainFreeExperience(iI) * iChange);
+			changeDomainFreeExperiencesPerPop(((DomainTypes)iI), pBuildingInfo->GetDomainFreeExperiencesPerPop(iI) * iChange);
 			changeDomainProductionModifier(((DomainTypes)iI), pBuildingInfo->GetDomainProductionModifier(iI) * iChange);
+			changeDomainFreeExperiencesPerPopGlobal(((DomainTypes)iI), pBuildingInfo->GetDomainFreeExperiencesPerPopGlobal(iI) * iChange);
 		}
 
 		// Process for our player
@@ -15428,6 +15438,39 @@ void CvCity::changeDomainFreeExperience(DomainTypes eIndex, int iChange)
 	CvAssert(getDomainFreeExperience(eIndex) >= 0);
 }
 
+//	--------------------------------------------------------------------------------
+int CvCity::GetDomainFreeExperiencesPerPop(DomainTypes eIndex) const
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
+	CvAssertMsg(eIndex < NUM_DOMAIN_TYPES, "eIndex expected to be < NUM_DOMAIN_TYPES");
+	return m_aiDomainFreeExperiencesPerPop[eIndex];
+}
+//	--------------------------------------------------------------------------------
+void CvCity::changeDomainFreeExperiencesPerPop(DomainTypes eIndex, int iChange)
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
+	CvAssertMsg(eIndex < NUM_DOMAIN_TYPES, "eIndex expected to be < NUM_DOMAIN_TYPES");
+	m_aiDomainFreeExperiencesPerPop.setAt(eIndex, m_aiDomainFreeExperiencesPerPop[eIndex] + iChange);
+	CvAssert(GetDomainFreeExperiencesPerPop(eIndex) >= 0);
+}
+int CvCity::GetDomainFreeExperiencesPerPopGlobal(DomainTypes eIndex) const
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
+	CvAssertMsg(eIndex < NUM_DOMAIN_TYPES, "eIndex expected to be < NUM_DOMAIN_TYPES");
+	return m_aiDomainFreeExperiencesPerPopGlobal[eIndex];
+}
+//	--------------------------------------------------------------------------------
+void CvCity::changeDomainFreeExperiencesPerPopGlobal(DomainTypes eIndex, int iChange)
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
+	CvAssertMsg(eIndex < NUM_DOMAIN_TYPES, "eIndex expected to be < NUM_DOMAIN_TYPES");
+	m_aiDomainFreeExperiencesPerPopGlobal.setAt(eIndex, m_aiDomainFreeExperiencesPerPopGlobal[eIndex] + iChange);
+	CvAssert(GetDomainFreeExperiencesPerPopGlobal(eIndex) >= 0);
+}
 
 //	--------------------------------------------------------------------------------
 int CvCity::getDomainFreeExperienceFromGreatWorks(DomainTypes eIndex) const
@@ -20021,6 +20064,8 @@ void CvCity::read(FDataStream& kStream)
 	kStream >> m_aiProductionToYieldModifier;
 	kStream >> m_aiDomainFreeExperience;
 	kStream >> m_aiDomainProductionModifier;
+	kStream >> m_aiDomainFreeExperiencesPerPop;
+	kStream >> m_aiDomainFreeExperiencesPerPopGlobal;
 
 	kStream >> m_abEverOwned;
 	kStream >> m_abRevealed;
@@ -20496,6 +20541,8 @@ void CvCity::write(FDataStream& kStream) const
 	kStream << m_aiProductionToYieldModifier;
 	kStream << m_aiDomainFreeExperience;
 	kStream << m_aiDomainProductionModifier;
+	kStream << m_aiDomainFreeExperiencesPerPop;
+	kStream << m_aiDomainFreeExperiencesPerPopGlobal;
 
 	kStream << m_abEverOwned;
 	kStream << m_abRevealed;

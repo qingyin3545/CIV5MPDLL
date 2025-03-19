@@ -457,6 +457,8 @@ public:
 	int GetUnitCombatProductionModifier(int i) const;
 	int GetDomainFreeExperience(int i) const;
 	int GetDomainFreeExperiencePerGreatWork(int i) const;
+	int GetDomainFreeExperiencesPerPop(int i) const;
+	int GetDomainFreeExperiencesPerPopGlobal(int i) const;
 
 #if defined(MOD_ROG_CORE)
 	int GetDomainFreeExperiencePerGreatWorkGlobal(int i) const;
@@ -916,6 +918,8 @@ private:
 	int* m_piUnitCombatProductionModifiers;
 	int* m_piDomainFreeExperience;
 	int* m_piDomainFreeExperiencePerGreatWork;
+	int* m_piDomainFreeExperiencesPerPop;
+	int* m_piDomainFreeExperiencesPerPopGlobal;
 
 #if defined(MOD_ROG_CORE)
 	int* m_piDomainFreeExperiencePerGreatWorkGlobal;

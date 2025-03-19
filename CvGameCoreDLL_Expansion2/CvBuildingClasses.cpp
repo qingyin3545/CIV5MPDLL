@@ -274,6 +274,8 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_piUnitCombatProductionModifiers(NULL),
 	m_piDomainFreeExperience(NULL),
 	m_piDomainFreeExperiencePerGreatWork(NULL),
+	m_piDomainFreeExperiencesPerPop(NULL),
+	m_piDomainFreeExperiencesPerPopGlobal(NULL),
 
 #if defined(MOD_ROG_CORE)
 	m_piYieldFromConstruction(NULL),
@@ -408,6 +410,8 @@ CvBuildingEntry::~CvBuildingEntry(void)
 	SAFE_DELETE_ARRAY(m_piUnitCombatProductionModifiers);
 	SAFE_DELETE_ARRAY(m_piDomainFreeExperience);
 	SAFE_DELETE_ARRAY(m_piDomainFreeExperiencePerGreatWork);
+	SAFE_DELETE_ARRAY(m_piDomainFreeExperiencesPerPop);
+	SAFE_DELETE_ARRAY(m_piDomainFreeExperiencesPerPopGlobal);
 
 #if defined(MOD_ROG_CORE)
 	SAFE_DELETE_ARRAY(m_piYieldFromConstruction);
@@ -908,6 +912,8 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	kUtility.PopulateArrayByValue(m_piDomainFreeExperience, "Domains", "Building_DomainFreeExperiences", "DomainType", "BuildingType", szBuildingType, "Experience", 0, NUM_DOMAIN_TYPES);
 	kUtility.PopulateArrayByValue(m_piDomainFreeExperiencePerGreatWork, "Domains", "Building_DomainFreeExperiencePerGreatWork", "DomainType", "BuildingType", szBuildingType, "Experience", 0, NUM_DOMAIN_TYPES);
 	kUtility.PopulateArrayByValue(m_piDomainProductionModifier, "Domains", "Building_DomainProductionModifiers", "DomainType", "BuildingType", szBuildingType, "Modifier", 0, NUM_DOMAIN_TYPES);
+	kUtility.PopulateArrayByValue(m_piDomainFreeExperiencesPerPop, "Domains", "Building_DomainFreeExperiencesPerPop", "DomainType", "BuildingType", szBuildingType, "Modifier", 0, NUM_DOMAIN_TYPES);
+	kUtility.PopulateArrayByValue(m_piDomainFreeExperiencesPerPopGlobal, "Domains", "Building_DomainFreeExperiencesPerPopGlobal", "DomainType", "BuildingType", szBuildingType, "Modifier", 0, NUM_DOMAIN_TYPES);
 
 
 #if defined(MOD_ROG_CORE)
@@ -3637,6 +3643,21 @@ int CvBuildingEntry::GetDomainFreeExperiencePerGreatWork(int i) const
 	CvAssertMsg(i < NUM_DOMAIN_TYPES, "Index out of bounds");
 	CvAssertMsg(i > -1, "Index out of bounds");
 	return m_piDomainFreeExperiencePerGreatWork ? m_piDomainFreeExperiencePerGreatWork[i] : -1;
+}
+
+/// Free experience gained for units in this domain from pops
+int CvBuildingEntry::GetDomainFreeExperiencesPerPop(int i) const
+{
+	CvAssertMsg(i < NUM_DOMAIN_TYPES, "Index out of bounds");
+	CvAssertMsg(i > -1, "Index out of bounds");
+	return m_piDomainFreeExperiencesPerPop ? m_piDomainFreeExperiencesPerPop[i] : -1;
+}
+
+int CvBuildingEntry::GetDomainFreeExperiencesPerPopGlobal(int i) const
+{
+	CvAssertMsg(i < NUM_DOMAIN_TYPES, "Index out of bounds");
+	CvAssertMsg(i > -1, "Index out of bounds");
+	return m_piDomainFreeExperiencesPerPopGlobal ? m_piDomainFreeExperiencesPerPopGlobal[i] : -1;
 }
 
 #if defined(MOD_ROG_CORE)
