@@ -1244,6 +1244,7 @@ void CvCity::reset(int iID, PlayerTypes eOwner, int iX, int iY, bool bConstructo
 #endif
 
 	m_aiYieldPerReligion.resize(NUM_YIELD_TYPES);
+	m_aiYieldPerEra.resize(NUM_YIELD_TYPES);
 	m_aiYieldRateModifier.resize(NUM_YIELD_TYPES);
 	m_aiYieldRateMultiplier.resize(NUM_YIELD_TYPES);
 	m_aiPowerYieldRateModifier.resize(NUM_YIELD_TYPES);
@@ -1269,6 +1270,7 @@ void CvCity::reset(int iID, PlayerTypes eOwner, int iX, int iY, bool bConstructo
 		m_aiBaseYieldRateFromReligion[iI] = 0;
 		m_aiYieldPerPop.setAt(iI, 0);
 		m_aiYieldPerReligion[iI] = 0;
+		m_aiYieldPerEra[iI] = 0;
 		m_aiYieldRateModifier.setAt(iI, 0);
 		m_aiYieldRateMultiplier.setAt(iI, 0);
 		m_aiPowerYieldRateModifier.setAt(iI, 0);
@@ -1638,6 +1640,10 @@ void CvCity::reset(int iID, PlayerTypes eOwner, int iX, int iY, bool bConstructo
 	for (int i = 0; i < NUM_YIELD_TYPES; ++i)
 	{
 		m_aTradeRouteFromTheCityYields[i] = 0;
+	}
+	for (int i = 0; i < NUM_YIELD_TYPES; ++i)
+	{
+		m_aTradeRouteFromTheCityYieldsPerEra[i] = 0;
 	}
 	m_iLastTurnWorkerDisbanded = 0;
 	m_iDefendedAgainstSpreadUntilTurn = 0;
@@ -6658,6 +6664,7 @@ int CvCity::getProductionModifier(BuildingTypes eBuilding, CvString* toolTipSink
 	{
 		int iBaseYield = getBaseYieldRate(YIELD_PRODUCTION, false) * 100;
 		iBaseYield += (GetYieldPerPopTimes100(YIELD_PRODUCTION) * getPopulation());
+		iBaseYield += (GetYieldPerEra(YIELD_PRODUCTION) * (GET_PLAYER(getOwner()).GetCurrentEra() + 1) * 100);
 		iBaseYield += (GET_PLAYER(getOwner()).GetYieldPerPopChange(YIELD_PRODUCTION) * getPopulation());
 		iBaseYield += (GetYieldPerReligionTimes100(YIELD_PRODUCTION) * GetCityReligions()->GetNumReligionsWithFollowers());
 
@@ -6776,6 +6783,7 @@ int CvCity::getProductionDifference(int /*iProductionNeeded*/, int /*iProduction
 
 	// Sum up difference
 	int iBaseProduction = getBaseYieldRate(YIELD_PRODUCTION, false) * 100;
+	iBaseProduction += (GetYieldPerEra(YIELD_PRODUCTION) * (GET_PLAYER(getOwner()).GetCurrentEra() + 1) * 100);
 	iBaseProduction += (GetYieldPerPopTimes100(YIELD_PRODUCTION) * getPopulation());
 	iBaseProduction += (GET_PLAYER(getOwner()).GetYieldPerPopChange(YIELD_PRODUCTION) * getPopulation());
 #if defined(MOD_ROG_CORE)
@@ -6831,6 +6839,7 @@ int CvCity::getProductionDifferenceTimes100(int /*iProductionNeeded*/, int /*iPr
 
 	// Sum up difference
 	int iBaseProduction = getBaseYieldRate(YIELD_PRODUCTION, false) * 100;
+	iBaseProduction += (GetYieldPerEra(YIELD_PRODUCTION) * (GET_PLAYER(getOwner()).GetCurrentEra() + 1) * 100);
 	iBaseProduction += (GetYieldPerPopTimes100(YIELD_PRODUCTION) * getPopulation());
 	iBaseProduction += (GET_PLAYER(getOwner()).GetYieldPerPopChange(YIELD_PRODUCTION) * getPopulation());
 #if defined(MOD_ROG_CORE)
@@ -8040,6 +8049,7 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 
 			ChangeYieldPerPopTimes100(eYield, pBuildingInfo->GetYieldChangePerPop(eYield) * iChange);
 			ChangeYieldPerReligionTimes100(eYield, pBuildingInfo->GetYieldChangePerReligion(eYield) * iChange);
+			ChangeYieldPerEra(eYield, pBuildingInfo->GetYieldChangePerEra(eYield) * iChange);
 			changeYieldRateModifier(eYield, (pBuildingInfo->GetYieldModifier(eYield) * iChange));
 			changeYieldRateMultiplier(eYield, (pBuildingInfo->GetYieldMultiplier(eYield) * iChange));
 
@@ -8087,6 +8097,7 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 			}
 
 			ChangeTradeRouteFromTheCityYields(eYield, pBuildingInfo->GetTradeRouteFromTheCityYields(eYield) * iChange);
+			ChangeTradeRouteFromTheCityYieldsPerEra(eYield, pBuildingInfo->GetTradeRouteFromTheCityYieldsPerEra(eYield) * iChange);
 
 			if ((pBuildingInfo->GetYieldFromBirth(eYield) > 0))
 			{
@@ -9340,6 +9351,25 @@ void CvCity::ChangeTradeRouteFromTheCityYields(YieldTypes eIndex, int iChange)
 	m_aTradeRouteFromTheCityYields[eIndex] += iChange;
 }
 
+int CvCity::GetTradeRouteFromTheCityYieldsPerEra(YieldTypes eIndex) const
+{
+	if (eIndex < 0 || eIndex >= NUM_YIELD_TYPES)
+	{
+		return 0;
+	}
+
+	return m_aTradeRouteFromTheCityYieldsPerEra[eIndex];
+}
+
+void CvCity::ChangeTradeRouteFromTheCityYieldsPerEra(YieldTypes eIndex, int iChange)
+{
+	if (eIndex < 0 || eIndex >= NUM_YIELD_TYPES)
+	{
+		return;
+	}
+	m_aTradeRouteFromTheCityYieldsPerEra[eIndex] += iChange;
+}
+
 //	--------------------------------------------------------------------------------
 int CvCity::GetLastTurnWorkerDisbanded() const
 {
@@ -10250,7 +10280,7 @@ int CvCity::GetBaseJONSCulturePerTurn() const
 	iCulturePerTurn += GET_PLAYER(getOwner()).GetYieldPerPopChange(YIELD_CULTURE) * getPopulation() / 100;
 #endif
 	iCulturePerTurn += (GetYieldPerReligionTimes100(YIELD_CULTURE) * GetCityReligions()->GetNumReligionsWithFollowers()) /100;
-
+	iCulturePerTurn += (GetYieldPerEra(YIELD_CULTURE) * (GET_PLAYER(getOwner()).GetCurrentEra() + 1) * 100);
 #if defined(MOD_ROG_CORE)
 	iCulturePerTurn += GetBaseYieldRateFromCSAlliance(YIELD_CULTURE);
 	iCulturePerTurn += GetBaseYieldRateFromCSFriendship(YIELD_CULTURE);
@@ -10439,7 +10469,7 @@ int CvCity::GetFaithPerTurn(bool bStatic) const
 	iFaith += GET_PLAYER(getOwner()).GetYieldPerPopChange(YIELD_FAITH)* getPopulation() / 100;
 #endif
 	iFaith += (GetYieldPerReligionTimes100(YIELD_FAITH) * GetCityReligions()->GetNumReligionsWithFollowers()) /100;
-
+	iFaith += (GetYieldPerEra(YIELD_FAITH) * (GET_PLAYER(getOwner()).GetCurrentEra() + 1) * 100);
 #if defined(MOD_ROG_CORE)
 	iFaith += GetBaseYieldRateFromCSAlliance(YIELD_FAITH);
 	iFaith += GetBaseYieldRateFromCSFriendship(YIELD_FAITH);
@@ -13377,7 +13407,7 @@ int CvCity::getBasicYieldRateTimes100(const YieldTypes eIndex, const bool bIgnor
 	iBaseYield += (GetYieldPerPopTimes100(eIndex) * getPopulation());
 	iBaseYield += (GET_PLAYER(getOwner()).GetYieldPerPopChange(eIndex) * getPopulation());
 	iBaseYield += (GetYieldPerReligionTimes100(eIndex) * GetCityReligions()->GetNumReligionsWithFollowers());
-
+	iBaseYield += (GetYieldPerEra(eIndex) * (GET_PLAYER(getOwner()).GetCurrentEra() + 1) * 100);
 #if defined(MOD_ROG_CORE)
 	iBaseYield += (GetYieldPerPopInEmpireTimes100(eIndex) * GET_PLAYER(m_eOwner).getTotalPopulation());
 #endif
@@ -13974,7 +14004,13 @@ CvString CvCity::getYieldRateInfoTool(YieldTypes eIndex, bool bIgnoreTrade) cons
 		iBaseYieldTimes100 /= 100;
 		szRtnValue += GetLocalizedText("TXT_KEY_CITYVIEW_BASE_YIELD_TT_FROM_RELOGION_POPULATION", iBaseYieldTimes100, YieldIcon);
 	}
-
+	iBaseValue = GetYieldPerEra(eIndex) * (GET_PLAYER(getOwner()).GetCurrentEra() + 1) * 100;
+	if(iBaseValue != 0)
+	{
+		iBaseYieldTimes100 = iBaseValue;
+		iBaseYieldTimes100 /= 100;
+		szRtnValue += GetLocalizedText("TXT_KEY_CITYVIEW_BASE_YIELD_TT_FROM_ERA", iBaseYieldTimes100, YieldIcon);
+	}
 #if defined(MOD_ROG_CORE)
 	iBaseValue = (GET_PLAYER(getOwner()).getYieldFromNonSpecialistCitizens(eIndex)) * (getPopulation() - GetCityCitizens()->GetTotalSpecialistCount());
 	if (iBaseValue != 0)
@@ -14878,12 +14914,34 @@ int CvCity::GetYieldPerReligionTimes100(YieldTypes eIndex) const
 void CvCity::ChangeYieldPerReligionTimes100(YieldTypes eIndex, int iChange)
 {
 	VALIDATE_OBJECT
-		CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
+	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
 	CvAssertMsg(eIndex < NUM_YIELD_TYPES, "eIndex expected to be < NUM_YIELD_TYPES");
 
 	if(iChange != 0)
 	{
 		m_aiYieldPerReligion[eIndex] = m_aiYieldPerReligion[eIndex] + iChange;
+	}
+}
+
+//	--------------------------------------------------------------------------------
+/// Extra yield for each era
+int CvCity::GetYieldPerEra(YieldTypes eIndex) const
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
+	CvAssertMsg(eIndex < NUM_YIELD_TYPES, "eIndex expected to be < NUM_YIELD_TYPES");
+
+	return m_aiYieldPerEra[eIndex];
+}
+void CvCity::ChangeYieldPerEra(YieldTypes eIndex, int iChange)
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
+	CvAssertMsg(eIndex < NUM_YIELD_TYPES, "eIndex expected to be < NUM_YIELD_TYPES");
+
+	if(iChange != 0)
+	{
+		m_aiYieldPerEra[eIndex] = m_aiYieldPerEra[eIndex] + iChange;
 	}
 }
 
@@ -19885,6 +19943,7 @@ void CvCity::read(FDataStream& kStream)
 			m_aiYieldPerReligion[iI] = 0;
 		}
 	}
+	kStream >> m_aiYieldPerEra;
 	kStream >> m_aiYieldRateModifier;
 	kStream >> m_aiYieldRateMultiplier;
 	kStream >> m_aiPowerYieldRateModifier;
@@ -20152,6 +20211,7 @@ void CvCity::read(FDataStream& kStream)
 	kStream >> m_ppiYieldModifierFromResource;
 
 	kStream >> m_aTradeRouteFromTheCityYields;
+	kStream >> m_aTradeRouteFromTheCityYieldsPerEra;
 
 	if (uiVersion >= 3)
 	{
@@ -20358,6 +20418,7 @@ void CvCity::write(FDataStream& kStream) const
 	kStream << m_aiResourceQuantityFromPOP;
 #endif
 	kStream << m_aiYieldPerReligion;
+	kStream << m_aiYieldPerEra;
 	kStream << m_aiYieldRateModifier;
 	kStream << m_aiYieldRateMultiplier;
 	kStream << m_aiPowerYieldRateModifier;
@@ -20549,6 +20610,7 @@ void CvCity::write(FDataStream& kStream) const
 	kStream << m_ppiYieldModifierFromResource;
 
 	kStream << m_aTradeRouteFromTheCityYields;
+	kStream << m_aTradeRouteFromTheCityYieldsPerEra;
 
 	kStream << m_iExtraHitPoints;
 	kStream << m_paiNumBuildingClasses;

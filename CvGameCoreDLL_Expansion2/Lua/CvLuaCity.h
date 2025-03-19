@@ -496,7 +496,7 @@ protected:
 
 	static int lUpdateStrengthValue(lua_State* L);
 	static int lGetStrengthValue(lua_State* L);
-
+	static int lGetTradeRouteFromTheCityYieldsPerEra(lua_State* L);
 	static int lGetDamage(lua_State* L);
 	static int lSetDamage(lua_State* L);
 
