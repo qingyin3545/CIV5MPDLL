@@ -250,6 +250,8 @@ public:
 	bool IsBuildingFeatureValid(BuildingTypes eBuilding, CvString* toolTipSink = NULL) const;
 	bool IsBuildingEmpireResourceValid(BuildingTypes eBuilding, CvString* toolTipSink = NULL) const;
 #endif
+	bool IsHasPlotLocal(PlotTypes ePlot) const;
+	bool IsBuildingPlotValid(BuildingTypes eBuilding, CvString* toolTipSink = NULL) const;
 	// Resource Demanded
 
 	ResourceTypes GetResourceDemanded(bool bHideUnknown = true) const;

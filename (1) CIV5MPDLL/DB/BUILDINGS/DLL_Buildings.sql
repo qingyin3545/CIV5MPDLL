@@ -71,11 +71,11 @@ CREATE TABLE "Building_YieldChangesPerEra" (
 	"BuildingType"	text references Buildings(Type),
 	"YieldType"	text references Yields(Type),
 	"Yield"	integer
-
+);
 CREATE TABLE Building_RiverPlotYieldChangesGlobal (
 	'BuildingType' text no null references Buildings(Type),
 	'YieldType' text references Yields(Type),
-	'YieldValue' int default 0 not null
+	'Yield' int default 0 not null
 );
 
 CREATE TABLE "Building_LocalPlotAnds" (

@@ -3468,7 +3468,10 @@ bool CvCity::canConstruct(BuildingTypes eBuilding, bool bContinue, bool bTestVis
 		return false;
 	}
 #endif
-
+	if (!IsBuildingPlotValid(eBuilding, toolTipSink))
+	{
+		return false;
+	}
 	// Holy city requirement
 	if (pkBuildingInfo->IsRequiresHolyCity() && !GetCityReligions()->IsHolyCityAnyReligion())
 	{
@@ -4290,6 +4293,68 @@ bool CvCity::IsBuildingFeatureValid(BuildingTypes eBuilding, CvString* toolTipSi
 
 
 #endif
+bool CvCity::IsHasPlotLocal(PlotTypes ePlot) const
+{
+	VALIDATE_OBJECT
+		CvAssertMsg(ePlot > -1 && ePlot < GC.getNumPlotInfos(), "Invalid resource index.");
+
+	// See if we have the resource linked to this city, but not connected yet
+	bool bFoundPlot = false;
+	// Loop through all plots near this City to see if we can find eResource - tests are ordered to optimize performance
+	for (int iCityPlotLoop = 0; iCityPlotLoop < GetNumWorkablePlots(); iCityPlotLoop++)
+	{
+		CvPlot* pLoopPlot = iterateRingPlots(getX(), getY(), iCityPlotLoop);
+		// Invalid plot
+		if (pLoopPlot == NULL)
+			continue;
+
+		// Doesn't have the resource (ignore team first to save time)
+		if (pLoopPlot->getPlotType() != ePlot)
+			continue;
+
+		// Not owned by this player
+		if (pLoopPlot->getOwner() != getOwner())
+			continue;
+
+		if (pLoopPlot->getWorkingCity() != this)
+			//if (pLoopPlot->getOwningCityID() != GetID())
+			continue;
+
+		bFoundPlot = true;
+		break;
+	}
+
+	return bFoundPlot;
+}
+bool CvCity::IsBuildingPlotValid(BuildingTypes eBuilding, CvString* toolTipSink) const
+{
+	VALIDATE_OBJECT
+		CvBuildingEntry* pkBuildingInfo = GC.getBuildingInfo(eBuilding);
+	if (pkBuildingInfo == NULL)
+		return false;
+
+	// ANDs: City must have ALL of these plots
+	for (int iPlotLoop = 0; iPlotLoop < GC.getNumPlotInfos(); iPlotLoop++)
+	{
+		PlotTypes ePlot = (PlotTypes)pkBuildingInfo->GetPlotAnd(iPlotLoop);
+		// Doesn't require a Plot in this AND slot
+		if (ePlot == NO_PLOT)
+			continue;
+
+		CvPlotInfo* pkPlot = GC.getPlotInfo(ePlot);
+		if (pkPlot == NULL)
+			continue;
+
+		// City doesn't have Plot locally - return false immediately
+		if (!IsHasPlotLocal(ePlot))
+		{
+			GC.getGame().BuildCannotPerformActionHelpText(toolTipSink, "TXT_KEY_NO_ACTION_BUILDING_LOCAL_FEATURE", pkPlot->GetTextKey());
+			return false;
+		}
+	}
+	return true;
+}
+
 
 //	--------------------------------------------------------------------------------
 /// What Resource does this City want so that it goes into WLTKD?

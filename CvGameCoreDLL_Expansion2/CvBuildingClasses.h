@@ -492,6 +492,7 @@ public:
 	int GetEmpireResourceOr(int i) const;
 	int GetFeatureOr(int i) const;
 	int GetFeatureAnd(int i) const;
+	int GetPlotAnd(int i) const;
 	int GetHurryModifier(int i) const;
 	int GetHurryModifierLocal(int i) const;
 	bool IsBuildingClassNeededInCity(int i) const;
@@ -944,6 +945,7 @@ private:
 	int* m_piEmpireResourceOrs;
 	int* m_piLocalFeatureOrs;
 	int* m_piLocalFeatureAnds;
+	int* m_piLocalPlotAnds;
 	int* m_paiHurryModifier;
 	int* m_paiHurryModifierLocal;
 

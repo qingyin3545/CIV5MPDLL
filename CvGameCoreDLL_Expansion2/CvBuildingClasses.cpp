@@ -315,6 +315,7 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_piEmpireResourceOrs(NULL),
     m_piLocalFeatureOrs(NULL),
 	m_piLocalFeatureAnds(NULL),
+	m_piLocalPlotAnds(NULL),
 
 	m_paiHurryModifier(NULL),
 	m_paiHurryModifierLocal(NULL),
@@ -436,6 +437,7 @@ CvBuildingEntry::~CvBuildingEntry(void)
 	SAFE_DELETE_ARRAY(m_piEmpireResourceOrs);
 	SAFE_DELETE_ARRAY(m_piLocalFeatureOrs);
 	SAFE_DELETE_ARRAY(m_piLocalFeatureAnds);
+	SAFE_DELETE_ARRAY(m_piLocalPlotAnds);
 
 	SAFE_DELETE_ARRAY(m_paiHurryModifier);
 	SAFE_DELETE_ARRAY(m_paiHurryModifierLocal);
@@ -933,6 +935,7 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	kUtility.PopulateArrayByExistence(m_piEmpireResourceOrs, "Resources", "Building_EmpireResourceOrs", "ResourceType", "BuildingType", szBuildingType);
 	kUtility.PopulateArrayByExistence(m_piLocalFeatureOrs, "Features", "Building_LocalFeatureOrs", "FeatureType", "BuildingType", szBuildingType);
 	kUtility.PopulateArrayByExistence(m_piLocalFeatureAnds, "Features", "Building_LocalFeatureAnds", "FeatureType", "BuildingType", szBuildingType);
+	kUtility.PopulateArrayByExistence(m_piLocalPlotAnds, "Plots", "Building_LocalPlotAnds", "PlotType", "BuildingType", szBuildingType);
 #if defined(MOD_GLOBAL_BUILDING_INSTANT_YIELD)
 	kUtility.SetYields(m_piInstantYield, "Building_InstantYield", "BuildingType", szBuildingType);
 	{
@@ -3812,7 +3815,13 @@ int CvBuildingEntry::GetFeatureOr(int i) const
 	CvAssertMsg(i > -1, "Index out of bounds");
 	return m_piLocalFeatureOrs ? m_piLocalFeatureOrs[i] : -1;
 }
-
+/// Prerequisite Plot with AND
+int CvBuildingEntry::GetPlotAnd(int i) const
+{
+	CvAssertMsg(i < GC.getNumPlotInfos(), "Index out of bounds");
+	CvAssertMsg(i > -1, "Index out of bounds");
+	return m_piLocalPlotAnds ? m_piLocalPlotAnds[i] : -1;
+}
 
 /// Modifier to Hurry cost
 int CvBuildingEntry::GetHurryModifier(int i) const
