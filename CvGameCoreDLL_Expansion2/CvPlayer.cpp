@@ -474,6 +474,7 @@ CvPlayer::CvPlayer() :
 	, m_aiCapitalYieldPerPopChange("CvPlayer::m_aiCapitalYieldPerPopChange", m_syncArchive)
 	, m_aiYieldPerPopChange("CvPlayer::m_aiYieldPerPopChange", m_syncArchive)
 	, m_aiSeaPlotYield("CvPlayer::m_aiSeaPlotYield", m_syncArchive)
+	, m_aiRiverPlotYield("CvPlayer::m_aiRiverPlotYield", m_syncArchive)
 	, m_aiYieldFromProcessModifierGlobal("CvPlayer::m_aiYieldFromProcessModifierGlobal", m_syncArchive)
 	, m_aiCityLoveKingDayYieldMod("CvPlayer::m_aiCityLoveKingDayYieldMod", m_syncArchive)
 	, m_aiYieldRateModifier("CvPlayer::m_aiYieldRateModifier", m_syncArchive)
@@ -1397,6 +1398,9 @@ void CvPlayer::reset(PlayerTypes eID, bool bConstructorCall)
 
 	m_aiSeaPlotYield.clear();
 	m_aiSeaPlotYield.resize(NUM_YIELD_TYPES, 0);
+
+	m_aiRiverPlotYield.clear();
+	m_aiRiverPlotYield.resize(NUM_YIELD_TYPES, 0);
 
 	m_aiYieldFromProcessModifierGlobal.clear();
 	m_aiYieldFromProcessModifierGlobal.resize(NUM_YIELD_TYPES, 0);
@@ -10231,6 +10235,7 @@ void CvPlayer::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst
 		{
 			changeSpecialistExtraYield(((SpecialistTypes)iI), ((YieldTypes)iJ), (pBuildingInfo->GetSpecialistYieldChange(iI, iJ) * iChange));
 		}
+		changeRiverPlotYield((YieldTypes)iJ, (pBuildingInfo->GetRiverPlotYieldChangeGlobalArray()[iJ] * iChange));
 
 	}
 
@@ -21282,6 +21287,29 @@ void CvPlayer::changeSeaPlotYield(YieldTypes eIndex, int iChange)
 	}
 }
 
+//	--------------------------------------------------------------------------------
+int CvPlayer::getRiverPlotYield(YieldTypes eIndex) const
+{
+	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eIndex < NUM_YIELD_TYPES, "eIndex is expected to be within maximum bounds (invalid Index)");
+	return m_aiRiverPlotYield[eIndex];
+}
+
+
+//	--------------------------------------------------------------------------------
+void CvPlayer::changeRiverPlotYield(YieldTypes eIndex, int iChange)
+{
+	CvAssertMsg(eIndex >= 0, "eIndex is expected to be non-negative (invalid Index)");
+	CvAssertMsg(eIndex < NUM_YIELD_TYPES, "eIndex is expected to be within maximum bounds (invalid Index)");
+
+	if(iChange != 0)
+	{
+		m_aiRiverPlotYield.setAt(eIndex, m_aiRiverPlotYield[eIndex] + iChange);
+
+		updateYield();
+	}
+}
+
 
 //	--------------------------------------------------------------------------------
 int CvPlayer::getYieldRateModifier(YieldTypes eIndex) const
@@ -28314,6 +28342,7 @@ void CvPlayer::Read(FDataStream& kStream)
 	kStream >> m_aiCapitalYieldPerPopChange;
 	kStream >> m_aiYieldPerPopChange;
 	kStream >> m_aiSeaPlotYield;
+	kStream >> m_aiRiverPlotYield;
 	kStream >> m_aiCityLoveKingDayYieldMod;
 	kStream >> m_aiYieldRateModifier;
 	kStream >> m_aiCapitalYieldRateModifier;
@@ -29064,6 +29093,7 @@ void CvPlayer::Write(FDataStream& kStream) const
 	kStream << m_aiCapitalYieldPerPopChange;
 	kStream << m_aiYieldPerPopChange;
 	kStream << m_aiSeaPlotYield;
+	kStream << m_aiRiverPlotYield;
 	kStream << m_aiCityLoveKingDayYieldMod;
 	kStream << m_aiYieldRateModifier;
 	kStream << m_aiCapitalYieldRateModifier;

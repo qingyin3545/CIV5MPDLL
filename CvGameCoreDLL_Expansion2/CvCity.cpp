@@ -12685,7 +12685,7 @@ int CvCity::getRiverPlotYield(YieldTypes eIndex) const
 	VALIDATE_OBJECT
 	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
 	CvAssertMsg(eIndex < NUM_YIELD_TYPES, "eIndex expected to be < NUM_YIELD_TYPES");
-	return m_aiRiverPlotYield[eIndex];
+	return m_aiRiverPlotYield[eIndex] + GET_PLAYER(getOwner()).getRiverPlotYield(eIndex);
 }
 
 //	--------------------------------------------------------------------------------

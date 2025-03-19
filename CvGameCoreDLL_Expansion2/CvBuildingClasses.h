@@ -444,6 +444,8 @@ public:
 	int* GetSeaPlotYieldChangeArray() const;
 	int GetRiverPlotYieldChange(int i) const;
 	int* GetRiverPlotYieldChangeArray() const;
+	int GetRiverPlotYieldChangeGlobal(int i) const;
+	int* GetRiverPlotYieldChangeGlobalArray() const;
 	int GetLakePlotYieldChange(int i) const;
 	int* GetLakePlotYieldChangeArray() const;
 	int GetSeaResourceYieldChange(int i) const;
@@ -881,6 +883,7 @@ private:
 	int* m_piProductionTraits;
 	int* m_piSeaPlotYieldChange;
 	int* m_piRiverPlotYieldChange;
+	int* m_piRiverPlotYieldChangeGlobal;
 	int* m_piLakePlotYieldChange;
 	int* m_piSeaResourceYieldChange;
 	int* m_piYieldChange;

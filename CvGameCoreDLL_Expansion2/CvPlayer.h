@@ -1315,6 +1315,9 @@ public:
 	int getSeaPlotYield(YieldTypes eIndex) const;
 	void changeSeaPlotYield(YieldTypes eIndex, int iChange);
 
+	int getRiverPlotYield(YieldTypes eIndex) const;
+	void changeRiverPlotYield(YieldTypes eIndex, int iChange);
+
 	int getCityLoveKingDayYieldMod(YieldTypes eIndex) const;
 	void changeCityLoveKingDayYieldMod(YieldTypes eIndex, int iChange);
 
@@ -2661,6 +2664,7 @@ protected:
 	FAutoVariable<std::vector<int>, CvPlayer> m_aiCapitalYieldPerPopChange;
 	FAutoVariable<std::vector<int>, CvPlayer> m_aiYieldPerPopChange;
 	FAutoVariable<std::vector<int>, CvPlayer> m_aiSeaPlotYield;
+	FAutoVariable<std::vector<int>, CvPlayer> m_aiRiverPlotYield;
 
 	FAutoVariable<std::vector<int>, CvPlayer> m_aiYieldFromProcessModifierGlobal;
 
