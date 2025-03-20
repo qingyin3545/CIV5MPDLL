@@ -455,6 +455,7 @@ CvPlayer::CvPlayer() :
 
 #if defined(MOD_ROG_CORE)
 	, m_aiDomainFreeExperiencePerGreatWorkGlobal()
+	, m_aiDomainFreeExperiencesPerTurnGlobal()
 	, m_piDomainFreeExperience()
 	, m_piUnitTypePrmoteHealGlobal()
 #endif
@@ -1337,6 +1338,8 @@ void CvPlayer::reset(PlayerTypes eID, bool bConstructorCall)
 #if defined(MOD_ROG_CORE)
 	m_aiDomainFreeExperiencePerGreatWorkGlobal.clear();
 	m_aiDomainFreeExperiencePerGreatWorkGlobal.resize(NUM_DOMAIN_TYPES, 0);
+	m_aiDomainFreeExperiencesPerTurnGlobal.clear();
+	m_aiDomainFreeExperiencesPerTurnGlobal.resize(NUM_DOMAIN_TYPES, 0);
 
 	m_piDomainFreeExperience.clear();
 	m_piUnitTypePrmoteHealGlobal.clear();
@@ -10016,6 +10019,11 @@ void CvPlayer::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst
 			{
 				ChangeDomainFreeExperiencePerGreatWorkGlobal(eDomain, iNewValue);
 			}
+			iNewValue = pBuildingInfo->GetDomainFreeExperiencesPerTurnGlobal(iDomains);
+			if (iNewValue > 0)
+			{
+				ChangeDomainFreeExperiencesPerTurnGlobal(eDomain, iNewValue);
+			}
 			iNewValue = pBuildingInfo->GetDomainFreeExperienceGlobal(iDomains);
 			if (iNewValue > 0)
 			{
@@ -17696,6 +17704,25 @@ int CvPlayer::GetDomainFreeExperiencesPerPopGlobal(DomainTypes eIndex)
 		}
 	}
 	return iValue;
+}
+
+//	--------------------------------------------------------------------------------
+int CvPlayer::GetDomainFreeExperiencesPerTurnGlobal(DomainTypes eIndex) const
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
+	CvAssertMsg(eIndex < NUM_DOMAIN_TYPES, "eIndex expected to be < NUM_DOMAIN_TYPES");
+	return m_aiDomainFreeExperiencesPerTurnGlobal[eIndex];
+}
+
+
+//	--------------------------------------------------------------------------------
+void CvPlayer::ChangeDomainFreeExperiencesPerTurnGlobal(DomainTypes eIndex, int iChange)
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
+	CvAssertMsg(eIndex < NUM_DOMAIN_TYPES, "eIndex expected to be < NUM_DOMAIN_TYPES");
+	m_aiDomainFreeExperiencesPerTurnGlobal[eIndex] += iChange;
 }
 
 //	--------------------------------------------------------------------------------
@@ -28352,6 +28379,7 @@ void CvPlayer::Read(FDataStream& kStream)
 	kStream >> m_iCSFriends;
 #if defined(MOD_ROG_CORE)
 	kStream >> m_aiDomainFreeExperiencePerGreatWorkGlobal;
+	kStream >> m_aiDomainFreeExperiencesPerTurnGlobal;
 	kStream >> m_piDomainFreeExperience;
 	kStream >> m_piUnitTypePrmoteHealGlobal;
 #endif
@@ -29103,6 +29131,7 @@ void CvPlayer::Write(FDataStream& kStream) const
 	kStream << m_iCSFriends;
 #if defined(MOD_ROG_CORE)
 	kStream << m_aiDomainFreeExperiencePerGreatWorkGlobal;
+	kStream << m_aiDomainFreeExperiencesPerTurnGlobal;
 	kStream << m_piDomainFreeExperience;
 	kStream << m_piUnitTypePrmoteHealGlobal;
 #endif

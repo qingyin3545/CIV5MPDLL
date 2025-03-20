@@ -360,6 +360,7 @@ CvCity::CvCity() :
 	, m_aiDomainFreeExperience("CvCity::m_aiDomainFreeExperience", m_syncArchive)
 	, m_aiDomainFreeExperiencesPerPop("CvCity::m_aiDomainFreeExperiencesPerPop", m_syncArchive)
 	, m_aiDomainFreeExperiencesPerPopGlobal("CvCity::m_aiDomainFreeExperiencesPerPopGlobal", m_syncArchive)
+	, m_aiDomainFreeExperiencesPerTurn("CvCity::m_aiDomainFreeExperiencesPerTurn", m_syncArchive)
 	, m_aiDomainProductionModifier("CvCity::m_aiDomainProductionModifier", m_syncArchive)
 	, m_abEverOwned("CvCity::m_abEverOwned", m_syncArchive)
 	, m_abRevealed("CvCity::m_abRevealed", m_syncArchive, true)
@@ -1302,12 +1303,14 @@ void CvCity::reset(int iID, PlayerTypes eOwner, int iX, int iY, bool bConstructo
 	m_aiDomainProductionModifier.resize(NUM_DOMAIN_TYPES);
 	m_aiDomainFreeExperiencesPerPop.resize(NUM_DOMAIN_TYPES);
 	m_aiDomainFreeExperiencesPerPopGlobal.resize(NUM_DOMAIN_TYPES);
+	m_aiDomainFreeExperiencesPerTurn.resize(NUM_DOMAIN_TYPES);
 	for(iI = 0; iI < NUM_DOMAIN_TYPES; iI++)
 	{
 		m_aiDomainFreeExperience.setAt(iI, 0);
 		m_aiDomainProductionModifier.setAt(iI, 0);
 		m_aiDomainFreeExperiencesPerPop.setAt(iI, 0);
 		m_aiDomainFreeExperiencesPerPopGlobal.setAt(iI, 0);
+		m_aiDomainFreeExperiencesPerTurn.setAt(iI, 0);
 	}
 
 
@@ -8360,6 +8363,7 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 			changeDomainFreeExperiencesPerPop(((DomainTypes)iI), pBuildingInfo->GetDomainFreeExperiencesPerPop(iI) * iChange);
 			changeDomainProductionModifier(((DomainTypes)iI), pBuildingInfo->GetDomainProductionModifier(iI) * iChange);
 			changeDomainFreeExperiencesPerPopGlobal(((DomainTypes)iI), pBuildingInfo->GetDomainFreeExperiencesPerPopGlobal(iI) * iChange);
+			changeDomainFreeExperiencesPerTurn(((DomainTypes)iI), pBuildingInfo->GetDomainFreeExperiencesPerTurn(iI) * iChange);
 		}
 
 		// Process for our player
@@ -15462,7 +15466,7 @@ int CvCity::GetDomainFreeExperiencesPerPopGlobal(DomainTypes eIndex) const
 	CvAssertMsg(eIndex < NUM_DOMAIN_TYPES, "eIndex expected to be < NUM_DOMAIN_TYPES");
 	return m_aiDomainFreeExperiencesPerPopGlobal[eIndex];
 }
-//	--------------------------------------------------------------------------------
+
 void CvCity::changeDomainFreeExperiencesPerPopGlobal(DomainTypes eIndex, int iChange)
 {
 	VALIDATE_OBJECT
@@ -15470,6 +15474,24 @@ void CvCity::changeDomainFreeExperiencesPerPopGlobal(DomainTypes eIndex, int iCh
 	CvAssertMsg(eIndex < NUM_DOMAIN_TYPES, "eIndex expected to be < NUM_DOMAIN_TYPES");
 	m_aiDomainFreeExperiencesPerPopGlobal.setAt(eIndex, m_aiDomainFreeExperiencesPerPopGlobal[eIndex] + iChange);
 	CvAssert(GetDomainFreeExperiencesPerPopGlobal(eIndex) >= 0);
+}
+
+//	--------------------------------------------------------------------------------
+int CvCity::GetDomainFreeExperiencesPerTurn(DomainTypes eIndex) const
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
+	CvAssertMsg(eIndex < NUM_DOMAIN_TYPES, "eIndex expected to be < NUM_DOMAIN_TYPES");
+	return m_aiDomainFreeExperiencesPerTurn[eIndex];
+}
+//	--------------------------------------------------------------------------------
+void CvCity::changeDomainFreeExperiencesPerTurn(DomainTypes eIndex, int iChange)
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
+	CvAssertMsg(eIndex < NUM_DOMAIN_TYPES, "eIndex expected to be < NUM_DOMAIN_TYPES");
+	m_aiDomainFreeExperiencesPerTurn.setAt(eIndex, m_aiDomainFreeExperiencesPerTurn[eIndex] + iChange);
+	CvAssert(GetDomainFreeExperiencesPerTurn(eIndex) >= 0);
 }
 
 //	--------------------------------------------------------------------------------
@@ -20066,6 +20088,7 @@ void CvCity::read(FDataStream& kStream)
 	kStream >> m_aiDomainProductionModifier;
 	kStream >> m_aiDomainFreeExperiencesPerPop;
 	kStream >> m_aiDomainFreeExperiencesPerPopGlobal;
+	kStream >> m_aiDomainFreeExperiencesPerTurn;
 
 	kStream >> m_abEverOwned;
 	kStream >> m_abRevealed;
@@ -20543,6 +20566,7 @@ void CvCity::write(FDataStream& kStream) const
 	kStream << m_aiDomainProductionModifier;
 	kStream << m_aiDomainFreeExperiencesPerPop;
 	kStream << m_aiDomainFreeExperiencesPerPopGlobal;
+	kStream << m_aiDomainFreeExperiencesPerTurn;
 
 	kStream << m_abEverOwned;
 	kStream << m_abRevealed;

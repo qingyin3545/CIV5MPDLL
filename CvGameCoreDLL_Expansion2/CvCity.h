@@ -951,6 +951,8 @@ public:
 	void changeDomainFreeExperiencesPerPop(DomainTypes eIndex, int iChange);
 	int GetDomainFreeExperiencesPerPopGlobal(DomainTypes eIndex) const;
 	void changeDomainFreeExperiencesPerPopGlobal(DomainTypes eIndex, int iChange);
+	int GetDomainFreeExperiencesPerTurn(DomainTypes eIndex) const;
+	void changeDomainFreeExperiencesPerTurn(DomainTypes eIndex, int iChange);
 #if defined(MOD_ROG_CORE)
 	int GetBaseYieldRateFromCSAlliance(YieldTypes eIndex) const;
 	void ChangeBaseYieldRateFromCSAlliance(YieldTypes eIndex, int iChange);
@@ -1646,6 +1648,7 @@ protected:
 	FAutoVariable<std::vector<int>, CvCity> m_aiDomainProductionModifier;
 	FAutoVariable<std::vector<int>, CvCity> m_aiDomainFreeExperiencesPerPop;
 	FAutoVariable<std::vector<int>, CvCity> m_aiDomainFreeExperiencesPerPopGlobal;
+	FAutoVariable<std::vector<int>, CvCity> m_aiDomainFreeExperiencesPerTurn;
 
 	FAutoVariable<std::vector<bool>, CvCity> m_abEverOwned;
 	FAutoVariable<std::vector<bool>, CvCity> m_abRevealed;

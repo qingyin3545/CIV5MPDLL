@@ -459,6 +459,8 @@ public:
 	int GetDomainFreeExperiencePerGreatWork(int i) const;
 	int GetDomainFreeExperiencesPerPop(int i) const;
 	int GetDomainFreeExperiencesPerPopGlobal(int i) const;
+	int GetDomainFreeExperiencesPerTurn(int i) const;
+	int GetDomainFreeExperiencesPerTurnGlobal(int i) const;
 
 #if defined(MOD_ROG_CORE)
 	int GetDomainFreeExperiencePerGreatWorkGlobal(int i) const;
@@ -920,6 +922,8 @@ private:
 	int* m_piDomainFreeExperiencePerGreatWork;
 	int* m_piDomainFreeExperiencesPerPop;
 	int* m_piDomainFreeExperiencesPerPopGlobal;
+	int* m_piDomainFreeExperiencesPerTurn;
+	int* m_piDomainFreeExperiencesPerTurnGlobal;
 
 #if defined(MOD_ROG_CORE)
 	int* m_piDomainFreeExperiencePerGreatWorkGlobal;

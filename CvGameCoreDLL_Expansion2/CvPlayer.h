@@ -1017,6 +1017,8 @@ public:
 	int GetDomainFreeExperiencePerGreatWorkGlobal(DomainTypes eDomain) const;
 	
 	int GetDomainFreeExperiencesPerPopGlobal(DomainTypes eDomain);
+	void ChangeDomainFreeExperiencesPerTurnGlobal(DomainTypes eDomain, int iChange);
+	int GetDomainFreeExperiencesPerTurnGlobal(DomainTypes eDomain) const;
 	void ChangeDomainFreeExperience(DomainTypes eDomain, int iChange);
 	int GetDomainFreeExperience(DomainTypes) const;
 
@@ -2694,6 +2696,7 @@ protected:
 	std::vector<int> m_aiWorldWonderCityYieldRateModifier;
 
 	std::vector<int> m_aiDomainFreeExperiencePerGreatWorkGlobal;
+	std::vector<int> m_aiDomainFreeExperiencesPerTurnGlobal;
 
 	std::map<int, int> m_piDomainFreeExperience;
 	std::map<int, int> m_piUnitTypePrmoteHealGlobal;
