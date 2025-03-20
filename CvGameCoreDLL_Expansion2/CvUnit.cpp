@@ -2906,22 +2906,25 @@ void CvUnit::doTurn()
 				}
 			}
 		}
-		CvCity* pCity = NULL;
-		CvPlot* pPlot = plot();
-		if (pPlot)
+		if(IsCombatUnit())
 		{
-			pCity = pPlot->getPlotCity();
-			if (!pCity == NULL)
+			CvCity* pCity = NULL;
+			CvPlot* pPlot = plot();
+			if (pPlot)
 			{
-				int itempexp = 0;
-				itempexp = pCity->GetDomainFreeExperiencesPerTurn(getDomainType());
-				if (itempexp > 0)
+				pCity = pPlot->getPlotCity();
+				if (!pCity == NULL)
 				{
-					iTotalxp += itempexp;
+					int itempexp = 0;
+					itempexp = pCity->GetDomainFreeExperiencesPerTurn(getDomainType());
+					if (itempexp > 0)
+					{
+						iTotalxp += itempexp;
+					}
 				}
 			}
+			iTotalxp += GET_PLAYER(getOwner()).GetDomainFreeExperiencesPerTurnGlobal(getDomainType());
 		}
-		iTotalxp += GET_PLAYER(getOwner()).GetDomainFreeExperiencesPerTurnGlobal(getDomainType());
 		if (iTotalxp > 0)
 		{
 #if defined(MOD_UNITS_XP_TIMES_100)

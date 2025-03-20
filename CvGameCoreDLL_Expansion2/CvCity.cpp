@@ -6740,7 +6740,6 @@ int CvCity::getProductionModifier(BuildingTypes eBuilding, CvString* toolTipSink
 	{
 		int iBaseYield = getBaseYieldRate(YIELD_PRODUCTION, false) * 100;
 		iBaseYield += (GetYieldPerPopTimes100(YIELD_PRODUCTION) * getPopulation());
-		iBaseYield += (GetYieldPerEra(YIELD_PRODUCTION) * (GET_PLAYER(getOwner()).GetCurrentEra() + 1) * 100);
 		iBaseYield += (GET_PLAYER(getOwner()).GetYieldPerPopChange(YIELD_PRODUCTION) * getPopulation());
 		iBaseYield += (GetYieldPerReligionTimes100(YIELD_PRODUCTION) * GetCityReligions()->GetNumReligionsWithFollowers());
 
@@ -6859,7 +6858,6 @@ int CvCity::getProductionDifference(int /*iProductionNeeded*/, int /*iProduction
 
 	// Sum up difference
 	int iBaseProduction = getBaseYieldRate(YIELD_PRODUCTION, false) * 100;
-	iBaseProduction += (GetYieldPerEra(YIELD_PRODUCTION) * (GET_PLAYER(getOwner()).GetCurrentEra() + 1) * 100);
 	iBaseProduction += (GetYieldPerPopTimes100(YIELD_PRODUCTION) * getPopulation());
 	iBaseProduction += (GET_PLAYER(getOwner()).GetYieldPerPopChange(YIELD_PRODUCTION) * getPopulation());
 #if defined(MOD_ROG_CORE)
@@ -6915,7 +6913,6 @@ int CvCity::getProductionDifferenceTimes100(int /*iProductionNeeded*/, int /*iPr
 
 	// Sum up difference
 	int iBaseProduction = getBaseYieldRate(YIELD_PRODUCTION, false) * 100;
-	iBaseProduction += (GetYieldPerEra(YIELD_PRODUCTION) * (GET_PLAYER(getOwner()).GetCurrentEra() + 1) * 100);
 	iBaseProduction += (GetYieldPerPopTimes100(YIELD_PRODUCTION) * getPopulation());
 	iBaseProduction += (GET_PLAYER(getOwner()).GetYieldPerPopChange(YIELD_PRODUCTION) * getPopulation());
 #if defined(MOD_ROG_CORE)
@@ -10359,7 +10356,7 @@ int CvCity::GetBaseJONSCulturePerTurn() const
 	iCulturePerTurn += GET_PLAYER(getOwner()).GetYieldPerPopChange(YIELD_CULTURE) * getPopulation() / 100;
 #endif
 	iCulturePerTurn += (GetYieldPerReligionTimes100(YIELD_CULTURE) * GetCityReligions()->GetNumReligionsWithFollowers()) /100;
-	iCulturePerTurn += (GetYieldPerEra(YIELD_CULTURE) * (GET_PLAYER(getOwner()).GetCurrentEra() + 1) * 100);
+	iCulturePerTurn += (GetYieldPerEra(YIELD_CULTURE) * (GET_PLAYER(getOwner()).GetCurrentEra() + 1));
 #if defined(MOD_ROG_CORE)
 	iCulturePerTurn += GetBaseYieldRateFromCSAlliance(YIELD_CULTURE);
 	iCulturePerTurn += GetBaseYieldRateFromCSFriendship(YIELD_CULTURE);
@@ -10548,7 +10545,7 @@ int CvCity::GetFaithPerTurn(bool bStatic) const
 	iFaith += GET_PLAYER(getOwner()).GetYieldPerPopChange(YIELD_FAITH)* getPopulation() / 100;
 #endif
 	iFaith += (GetYieldPerReligionTimes100(YIELD_FAITH) * GetCityReligions()->GetNumReligionsWithFollowers()) /100;
-	iFaith += (GetYieldPerEra(YIELD_FAITH) * (GET_PLAYER(getOwner()).GetCurrentEra() + 1) * 100);
+	iFaith += (GetYieldPerEra(YIELD_FAITH) * (GET_PLAYER(getOwner()).GetCurrentEra() + 1));
 #if defined(MOD_ROG_CORE)
 	iFaith += GetBaseYieldRateFromCSAlliance(YIELD_FAITH);
 	iFaith += GetBaseYieldRateFromCSFriendship(YIELD_FAITH);
@@ -13486,7 +13483,6 @@ int CvCity::getBasicYieldRateTimes100(const YieldTypes eIndex, const bool bIgnor
 	iBaseYield += (GetYieldPerPopTimes100(eIndex) * getPopulation());
 	iBaseYield += (GET_PLAYER(getOwner()).GetYieldPerPopChange(eIndex) * getPopulation());
 	iBaseYield += (GetYieldPerReligionTimes100(eIndex) * GetCityReligions()->GetNumReligionsWithFollowers());
-	iBaseYield += (GetYieldPerEra(eIndex) * (GET_PLAYER(getOwner()).GetCurrentEra() + 1) * 100);
 #if defined(MOD_ROG_CORE)
 	iBaseYield += (GetYieldPerPopInEmpireTimes100(eIndex) * GET_PLAYER(m_eOwner).getTotalPopulation());
 #endif
@@ -13600,6 +13596,7 @@ int CvCity::getBaseYieldRate(YieldTypes eIndex, const bool bIgnoreFromOtherYield
 	iValue += GetBaseYieldRateFromMisc(eIndex);
 	iValue += GetBaseYieldRateFromReligion(eIndex);
 	iValue += GetBaseYieldRateFromProjects(eIndex);
+	iValue += (GetYieldPerEra(eIndex) * (GET_PLAYER(getOwner()).GetCurrentEra() + 1));
 
 #ifdef MOD_BUILDINGS_YIELD_FROM_OTHER_YIELD
 	if (MOD_BUILDINGS_YIELD_FROM_OTHER_YIELD && !bIgnoreFromOtherYield)

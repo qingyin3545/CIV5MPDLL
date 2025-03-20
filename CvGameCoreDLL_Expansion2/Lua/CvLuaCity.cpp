@@ -536,6 +536,7 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 	Method(GetBaseYieldRate);
 	Method(GetYieldRateInfoTool);
 	Method(GetBaseYieldRateFromProjects);
+	Method(GetYieldPerEra);
 #if defined(MOD_API_LUA_EXTENSIONS) && defined(MOD_GLOBAL_GREATWORK_YIELDTYPES)
 	Method(GetBaseYieldRateFromGreatWorks);
 #endif
@@ -3802,6 +3803,15 @@ int CvLuaCity::lGetYieldRateInfoTool(lua_State* L)
 	CvString toolTip = pkCity->getYieldRateInfoTool(eIndex);
 	lua_pushstring(L, toolTip.c_str());
 	return 1;
+}
+
+int CvLuaCity::lGetYieldPerEra(lua_State* L) {
+    CvCity* pkCity = GetInstance(L);
+	const YieldTypes eIndex = (YieldTypes)lua_tointeger(L, 2);
+    CvPlayerAI& kPlayer = GET_PLAYER(pkCity->getOwner());
+    int totalYield = (pkCity->GetYieldPerEra(eIndex)) *  (kPlayer.GetCurrentEra() + 1) * 100;
+    lua_pushinteger(L, totalYield);
+    return 1;
 }
 
 int CvLuaCity::lGetBaseYieldRateFromProjects(lua_State* L)
