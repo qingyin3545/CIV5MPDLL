@@ -628,11 +628,7 @@
 			<Text>[NEWLINE][ICON_BULLET]{1_Num}{2_IconString} from Eras</Text>
 		</Row>
 		<Row Tag="TXT_KEY_CITYVIEW_BASE_YIELD_TT_FROM_PerERA">
-<<<<<<< HEAD
-			<Text>[NEWLINE][ICON_BULLET]from Eras Modifier: {1_Num}%</Text>
-=======
-			<Text>[NEWLINE][ICON_BULLET]from Eras: {1_Num}%</Text>
->>>>>>> 3a3e7a3f77925047203f6e295b43f57804ccdca7
+			<Text>[NEWLINE][ICON_BULLET]Eras Modifier: {1_Num}%</Text>
 		</Row>
 
 		<Row Tag="TXT_KEY_VOLCAN_EVENT_TITLE">

@@ -630,11 +630,7 @@
 			<Text>[NEWLINE][ICON_BULLET]{1_Num}{2_IconString} 来自時代</Text>
 		</Row>
 		<Row Tag="TXT_KEY_CITYVIEW_BASE_YIELD_TT_FROM_PerERA">
-<<<<<<< HEAD
-			<Text>[NEWLINE][ICON_BULLET]来自時代修正: {1_Num}%</Text>
-=======
-			<Text>[NEWLINE][ICON_BULLET]来自時代: {1_Num}%</Text>
->>>>>>> 3a3e7a3f77925047203f6e295b43f57804ccdca7
+			<Text>[NEWLINE][ICON_BULLET]時代修正: {1_Num}%</Text>
 		</Row>
 
 
