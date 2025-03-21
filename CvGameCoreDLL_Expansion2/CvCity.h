@@ -865,6 +865,8 @@ public:
 
 	int GetYieldPerEra(YieldTypes eIndex) const;
 	void ChangeYieldPerEra(YieldTypes eIndex, int iChange);
+	int GetYieldModifierPerEra(YieldTypes eIndex) const;
+	void ChangeYieldModifierPerEra(YieldTypes eIndex, int iChange);
 
 
 	void changeNukeInterceptionChance(int iValue);
@@ -1636,6 +1638,7 @@ protected:
 
 	std::vector<int> m_aiYieldPerReligion;
 	std::vector<int> m_aiYieldPerEra;
+	std::vector<int> m_aiYieldModifierPerEra;
 	FAutoVariable<std::vector<int>, CvCity> m_aiPowerYieldRateModifier;
 	FAutoVariable<std::vector<int>, CvCity> m_aiFeatureYieldRateModifier;
 	FAutoVariable<std::vector<int>, CvCity> m_aiTerrainYieldRateModifier;

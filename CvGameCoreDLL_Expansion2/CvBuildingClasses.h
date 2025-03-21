@@ -406,6 +406,8 @@ public:
 	int* GetYieldChangeArray() const;
 	int GetYieldChangePerEra(int i) const;
 	int* GetYieldChangePerEraArray() const;
+	int GetYieldModifierChangePerEra(int i) const;
+	int* GetYieldModifierChangePerEraArray() const;
 	int GetYieldChangePerPop(int i) const;
 	int* GetYieldChangePerPopArray() const;
 	int GetYieldChangePerReligion(int i) const;
@@ -896,6 +898,7 @@ private:
 	int* m_piSeaResourceYieldChange;
 	int* m_piYieldChange;
 	int* m_piYieldChangePerEra;
+	int* m_piYieldModifierChangePerEra;
 	int* m_piYieldChangePerPop;
 	int* m_piYieldChangePerReligion;
 	int* m_piYieldModifier;

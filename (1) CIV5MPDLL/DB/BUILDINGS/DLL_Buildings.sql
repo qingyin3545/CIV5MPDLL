@@ -106,3 +106,8 @@ CREATE TABLE "Building_DomainFreeExperiencesPerTurnGlobal" (
 	'DomainType'	no null references Domains(Type),
 	'Value'	integer
 );
+CREATE TABLE "Building_YieldModifiersChangesPerEra" (
+	"BuildingType"	text references Buildings(Type),
+	"YieldType"	text references Yields(Type),
+	"Yield"	integer
+);

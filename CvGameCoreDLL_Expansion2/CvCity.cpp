@@ -1248,6 +1248,7 @@ void CvCity::reset(int iID, PlayerTypes eOwner, int iX, int iY, bool bConstructo
 
 	m_aiYieldPerReligion.resize(NUM_YIELD_TYPES);
 	m_aiYieldPerEra.resize(NUM_YIELD_TYPES);
+	m_aiYieldModifierPerEra.resize(NUM_YIELD_TYPES);
 	m_aiYieldRateModifier.resize(NUM_YIELD_TYPES);
 	m_aiYieldRateMultiplier.resize(NUM_YIELD_TYPES);
 	m_aiPowerYieldRateModifier.resize(NUM_YIELD_TYPES);
@@ -1274,6 +1275,7 @@ void CvCity::reset(int iID, PlayerTypes eOwner, int iX, int iY, bool bConstructo
 		m_aiYieldPerPop.setAt(iI, 0);
 		m_aiYieldPerReligion[iI] = 0;
 		m_aiYieldPerEra[iI] = 0;
+		m_aiYieldModifierPerEra[iI] = 0;
 		m_aiYieldRateModifier.setAt(iI, 0);
 		m_aiYieldRateMultiplier.setAt(iI, 0);
 		m_aiPowerYieldRateModifier.setAt(iI, 0);
@@ -8123,6 +8125,7 @@ void CvCity::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst, 
 			ChangeYieldPerPopTimes100(eYield, pBuildingInfo->GetYieldChangePerPop(eYield) * iChange);
 			ChangeYieldPerReligionTimes100(eYield, pBuildingInfo->GetYieldChangePerReligion(eYield) * iChange);
 			ChangeYieldPerEra(eYield, pBuildingInfo->GetYieldChangePerEra(eYield) * iChange);
+			ChangeYieldModifierPerEra(eYield, (pBuildingInfo->GetYieldModifierChangePerEra(eYield) * iChange));
 			changeYieldRateModifier(eYield, (pBuildingInfo->GetYieldModifier(eYield) * iChange));
 			changeYieldRateMultiplier(eYield, (pBuildingInfo->GetYieldMultiplier(eYield) * iChange));
 
@@ -12996,6 +12999,11 @@ int CvCity::getBaseYieldRateModifier(YieldTypes eIndex, int iExtra, CvString* to
 	iModifier += iTempMod;
 	if(iTempMod != 0 && toolTipSink)
 		GC.getGame().BuildProdModHelpText(toolTipSink, "TXT_KEY_PRODMOD_YIELD", iTempMod);
+	//Yield Modifier from PerEra
+	iTempMod = GetYieldModifierPerEra(eIndex)*(GET_PLAYER(getOwner()).GetCurrentEra()+1);
+	iModifier += iTempMod;
+	if(iTempMod != 0 && toolTipSink)
+		GC.getGame().BuildProdModHelpText(toolTipSink, "TXT_KEY_CITYVIEW_BASE_YIELD_TT_FROM_PerERA", iTempMod);
 
 	// Yield Modifier from adjacent Feature
 	iTempMod = getAdjacentFeaturesYieldRateModifier(eIndex);
@@ -15020,7 +15028,24 @@ void CvCity::ChangeYieldPerEra(YieldTypes eIndex, int iChange)
 		m_aiYieldPerEra[eIndex] = m_aiYieldPerEra[eIndex] + iChange;
 	}
 }
+int CvCity::GetYieldModifierPerEra(YieldTypes eIndex) const
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
+	CvAssertMsg(eIndex < NUM_YIELD_TYPES, "eIndex expected to be < NUM_YIELD_TYPES");
+	return m_aiYieldModifierPerEra[eIndex];
+}
+void CvCity::ChangeYieldModifierPerEra(YieldTypes eIndex, int iChange)
+{
+	VALIDATE_OBJECT
+	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
+	CvAssertMsg(eIndex < NUM_YIELD_TYPES, "eIndex expected to be < NUM_YIELD_TYPES");
 
+	if(iChange != 0)
+	{
+		m_aiYieldModifierPerEra[eIndex] = m_aiYieldModifierPerEra[eIndex] + iChange;
+	}
+}
 //	--------------------------------------------------------------------------------
 int CvCity::getYieldRateModifier(YieldTypes eIndex)	const
 {
@@ -20071,6 +20096,7 @@ void CvCity::read(FDataStream& kStream)
 		}
 	}
 	kStream >> m_aiYieldPerEra;
+	kStream >> m_aiYieldModifierPerEra;
 	kStream >> m_aiYieldRateModifier;
 	kStream >> m_aiYieldRateMultiplier;
 	kStream >> m_aiPowerYieldRateModifier;
@@ -20549,6 +20575,7 @@ void CvCity::write(FDataStream& kStream) const
 #endif
 	kStream << m_aiYieldPerReligion;
 	kStream << m_aiYieldPerEra;
+	kStream << m_aiYieldModifierPerEra;
 	kStream << m_aiYieldRateModifier;
 	kStream << m_aiYieldRateMultiplier;
 	kStream << m_aiPowerYieldRateModifier;
