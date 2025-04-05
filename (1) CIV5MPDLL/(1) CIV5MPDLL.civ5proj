@@ -1158,7 +1158,7 @@
       <SubType>Lua</SubType>
       <ImportIntoVFS>False</ImportIntoVFS>
     </Content>
-    <Content Include="DLL\CvGameCoreDLL_Expansion2Win32Release.pdb">
+    <Content Include="DLL\CvGameCore_Expansion2.pdb">
       <SubType>Lua</SubType>
       <ImportIntoVFS>False</ImportIntoVFS>
     </Content>
