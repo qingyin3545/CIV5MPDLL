@@ -33739,7 +33739,7 @@ void CvPlayer::DoInstantResearchFromFriendlyGreatScientist(CvUnit* pUnit, int iX
 		}
 
 		int iMod = eLoopPlayer == GetID() ? GetInstantResearchFromFriendlyGreatScientist() : 
-			GET_PLAYER(eLoopPlayer).GetInstantResearchFromFriendlyGreatScientist() + GetInstantResearchFromFriendlyGreatScientist();
+			(GET_PLAYER(eLoopPlayer).GetInstantResearchFromFriendlyGreatScientist() + GetInstantResearchFromFriendlyGreatScientist());
 		if (iMod == 0)
 		{
 			continue;
