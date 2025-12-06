@@ -12058,7 +12058,7 @@ bool CvUnit::CanBuildSpaceship(const CvPlot* pPlot, bool bVisible) const
 			return false;
 
 		// Can only build SS part in our capital
-		if(!pCity->isCapital())
+		if (!pCity->IsAllowSpaceshipLaunch())
 			return false;
 	}
 

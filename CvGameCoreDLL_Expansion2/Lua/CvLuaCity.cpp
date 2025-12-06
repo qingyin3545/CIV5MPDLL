@@ -804,6 +804,7 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 	Method(GetHurryModifierLocal);
 	Method(GetUnitMaxExperienceLocal);
 	Method(IsSecondCapital);
+	Method(IsAllowSpaceshipLaunch);
 	Method(GetFoodConsumptionPerPopTimes100);
 	Method(GetDefendedAgainstSpreadUntilTurn);
 }
@@ -5316,6 +5317,8 @@ LUAAPIIMPL(City, GetUnitMaxExperienceLocal);
 #endif
 
 LUAAPIIMPL(City, IsSecondCapital);
+
+LUAAPIIMPL(City, IsAllowSpaceshipLaunch);
 
 int CvLuaCity::lGetFoodConsumptionPerPopTimes100(lua_State* L)
 {
