@@ -6488,6 +6488,8 @@ void CvWorldInfo::readFrom(FDataStream& loadFrom)
 #if defined(MOD_TRADE_ROUTE_SCALING)
 	MOD_SERIALIZE_READ(52, loadFrom, m_iTradeRouteDistanceMod, 100);
 #endif
+	loadFrom >> m_iExtraCityDistance;
+	loadFrom >> m_viHandicapExtraAIStartingUnit;
 }
 
 // A special reader for version 0 (pre-versioning)
@@ -6543,6 +6545,8 @@ void CvWorldInfo::writeTo(FDataStream& saveTo) const
 #if defined(MOD_TRADE_ROUTE_SCALING)
 	MOD_SERIALIZE_WRITE(saveTo, m_iTradeRouteDistanceMod);
 #endif
+	saveTo << m_iExtraCityDistance;
+	saveTo << m_viHandicapExtraAIStartingUnit;
 }
 
 FDataStream& operator<<(FDataStream& saveTo, const CvWorldInfo& readFrom)
