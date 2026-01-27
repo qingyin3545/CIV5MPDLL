@@ -801,6 +801,13 @@ public:
 	int GetUpgradeAllTerritory() const;
 	void ChangeUpgradeAllTerritory(int iValue);
 
+	bool CanNoTechForWonder() const;
+	int GetNoTechForWonder() const;
+	void ChangeNoTechForWonder(int iChange);
+	bool CanNoTechForProject() const;
+	int GetNoTechForProject() const;
+	void ChangeNoTechForProject(int iChange);
+
 	int getCityCaptureHealGlobal() const;
 	void changeCityCaptureHealGlobal(int iChange);
 	int getOriginalCapitalCaptureTech() const;
@@ -2443,6 +2450,8 @@ protected:
 	int m_iAlwaysWeLoveKindDayInGoldenAge;
 	int m_iNoResistance;
 	int m_iUpgradeAllTerritory;
+	int m_iNoTechForWonder;
+	int m_iNoTechForProject;
 	int m_iCityCaptureHealGlobal;
 	int m_iOriginalCapitalCaptureTech;
 	int m_iOriginalCapitalCapturePolicy;

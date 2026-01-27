@@ -102,6 +102,9 @@ alter table Policies add NationalWonderCityCostModifier integer default 0;
 alter table Policies add CityExtraProductionCount integer default 0;
 alter table Policies add DeepWaterNavalStrengthCultureModifier integer default 0;
 
+alter table Policies add NoTechForWonder boolean default 0;
+alter table Policies add NoTechForProject boolean default 0;
+
 alter table Policies add GreatScientistBeakerPolicyModifier integer default 0;
 alter table Policies add ProductionBeakerMod integer default 0;
 create table Policy_GreatPersonOutputModifierPerGWs (

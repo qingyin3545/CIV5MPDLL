@@ -254,6 +254,8 @@ CvPlayer::CvPlayer() :
 	, m_iAlwaysWeLoveKindDayInGoldenAge()
 	, m_iNoResistance()
 	, m_iUpgradeAllTerritory()
+	, m_iNoTechForWonder()
+	, m_iNoTechForProject()
 	, m_iCityCaptureHealGlobal(0)
 	, m_iOriginalCapitalCaptureTech(0)
 	, m_iOriginalCapitalCapturePolicy(0)
@@ -1042,6 +1044,8 @@ void CvPlayer::uninit()
 	m_iAlwaysWeLoveKindDayInGoldenAge = 0;
 	m_iNoResistance = 0;
 	m_iUpgradeAllTerritory = 0;
+	m_iNoTechForWonder = 0;
+	m_iNoTechForProject = 0;
 	m_iCityCaptureHealGlobal = 0;
 	m_iOriginalCapitalCaptureTech = 0;
 	m_iOriginalCapitalCapturePolicy = 0;
@@ -8755,16 +8759,23 @@ bool CvPlayer::canConstruct(BuildingTypes eBuilding, bool bContinue, bool bTestV
 		}
 	}
 
-	if(!(currentTeam.GetTeamTechs()->HasTech((TechTypes)(pBuildingInfo.GetPrereqAndTech()))))
+	if(CanNoTechForWonder() && pBuildingInfo.GetBuildingClassInfo().getMaxGlobalInstances() == 1)
 	{
-		return false;
+		// skip Tech
 	}
-
-	for(auto iTech : pBuildingInfo.GetPrereqAndTechs())
+	else
 	{
-		if(!currentTeam.GetTeamTechs()->HasTech((TechTypes)iTech))
+		if(!(currentTeam.GetTeamTechs()->HasTech((TechTypes)(pBuildingInfo.GetPrereqAndTech()))))
 		{
 			return false;
+		}
+
+		for(auto iTech : pBuildingInfo.GetPrereqAndTechs())
+		{
+			if(!currentTeam.GetTeamTechs()->HasTech((TechTypes)iTech))
+			{
+				return false;
+			}
 		}
 	}
 
@@ -9027,7 +9038,11 @@ bool CvPlayer::canCreate(ProjectTypes eProject, bool bContinue, bool bTestVisibl
 	}
 
 	// Tech requirement
-	if(!(GET_TEAM(getTeam()).GetTeamTechs()->HasTech((TechTypes)(pProjectInfo.GetTechPrereq()))))
+	if(CanNoTechForProject())
+	{
+		// skip Tech
+	}
+	else if(!(GET_TEAM(getTeam()).GetTeamTechs()->HasTech((TechTypes)(pProjectInfo.GetTechPrereq()))))
 	{
 		return false;
 	}
@@ -16375,8 +16390,6 @@ void CvPlayer::ChangeNoResistance(int iChange)
 	m_iNoResistance += iChange;
 }
 
-
-
 //	--------------------------------------------------------------------------------
 bool CvPlayer::CanUpgradeAllTerritory() const
 {
@@ -16399,8 +16412,35 @@ void CvPlayer::ChangeUpgradeAllTerritory(int iChange)
 	m_iUpgradeAllTerritory += iChange;
 }
 
+//	--------------------------------------------------------------------------------
+bool CvPlayer::CanNoTechForWonder() const
+{
+	return m_iNoTechForWonder > 0;
+}
+int CvPlayer::GetNoTechForWonder() const
+{
+	return m_iNoTechForWonder;
+}
+void CvPlayer::ChangeNoTechForWonder(int iChange)
+{
+	m_iNoTechForWonder += iChange;
+}
 
+//	--------------------------------------------------------------------------------
+bool CvPlayer::CanNoTechForProject() const
+{
+	return m_iNoTechForProject > 0;
+}
+int CvPlayer::GetNoTechForProject() const
+{
+	return m_iNoTechForProject;
+}
+void CvPlayer::ChangeNoTechForProject(int iChange)
+{
+	m_iNoTechForProject += iChange;
+}
 
+//	--------------------------------------------------------------------------------
 int CvPlayer::getCityCaptureHealGlobal() const
 {
 	return m_iCityCaptureHealGlobal;
@@ -26946,20 +26986,11 @@ void CvPlayer::processPolicies(PolicyTypes ePolicy, int iChange)
 	changeOriginalCapitalCapturePolicy(pPolicy->GetOriginalCapitalCapturePolicy() * iChange);
 	changeOriginalCapitalCaptureGreatPerson(pPolicy->GetOriginalCapitalCaptureGreatPerson() * iChange);
 
-	if (pPolicy->IsNoResistance())
-	{
-		ChangeNoResistance(pPolicy->IsNoResistance() * iChange);
-	}
-
-	if (pPolicy->IsAlwaysWeLoveKindDayInGoldenAge())
-	{
-		ChangeAlwaysWeLoveKindDayInGoldenAge(pPolicy->IsAlwaysWeLoveKindDayInGoldenAge() * iChange);
-	}
-
-	if (pPolicy->IsUpgradeAllTerritory())
-	{
-		ChangeUpgradeAllTerritory(pPolicy->IsUpgradeAllTerritory() * iChange);
-	}
+	ChangeNoResistance(pPolicy->IsNoResistance() ? iChange : 0);
+	ChangeUpgradeAllTerritory(pPolicy->IsUpgradeAllTerritory() ? iChange : 0);
+	ChangeNoTechForWonder(pPolicy->IsNoTechForWonder() ? iChange : 0);
+	ChangeNoTechForProject(pPolicy->IsNoTechForProject() ? iChange : 0);
+	ChangeAlwaysWeLoveKindDayInGoldenAge(pPolicy->IsAlwaysWeLoveKindDayInGoldenAge() ? iChange : 0);
 
 	if (pPolicy->GetExtraSpies() > 0)
 	{
@@ -28158,6 +28189,8 @@ void CvPlayer::Read(FDataStream& kStream)
 	kStream >> m_iAlwaysWeLoveKindDayInGoldenAge;
 	kStream >> m_iNoResistance;
 	kStream >> m_iUpgradeAllTerritory;
+	kStream >> m_iNoTechForProject;
+	kStream >> m_iNoTechForWonder;
 	kStream >> m_iCityCaptureHealGlobal;
 	kStream >> m_iOriginalCapitalCaptureTech;
 	kStream >> m_iOriginalCapitalCapturePolicy;
@@ -28971,6 +29004,8 @@ void CvPlayer::Write(FDataStream& kStream) const
 	kStream << m_iAlwaysWeLoveKindDayInGoldenAge;
 	kStream << m_iNoResistance;
 	kStream << m_iUpgradeAllTerritory;
+	kStream << m_iNoTechForWonder;
+	kStream << m_iNoTechForProject;
 	kStream << m_iCityCaptureHealGlobal;
 	kStream << m_iOriginalCapitalCaptureTech;
 	kStream << m_iOriginalCapitalCapturePolicy;
