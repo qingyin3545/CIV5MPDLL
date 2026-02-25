@@ -986,7 +986,7 @@ void CvPlayer::uninit()
 	m_piDomainFreeExperience.clear();
 	m_piUnitTypePrmoteHealGlobal.clear();
 #endif
-
+	m_mapEraUnitClassMaxInstances.clear();
 
 #if defined(MOD_RELIGION_CONVERSION_MODIFIERS)
 	m_iConversionModifier = 0;
@@ -1346,6 +1346,7 @@ void CvPlayer::reset(PlayerTypes eID, bool bConstructorCall)
 	m_piDomainFreeExperience.clear();
 	m_piUnitTypePrmoteHealGlobal.clear();
 #endif
+	m_mapEraUnitClassMaxInstances.clear();
 
 #if defined(MOD_TROOPS_AND_CROPS_FOR_SP)
 	m_aiDomainTroopsTotal.clear();
@@ -10073,22 +10074,26 @@ void CvPlayer::processBuilding(BuildingTypes eBuilding, int iChange, bool bFirst
 		}
 	}
 
-
 	// Loop through adding the available units
-	for (int iUnitLoop = 0; iUnitLoop < GC.getNumUnitInfos(); iUnitLoop++)
+	for (const auto& it : pBuildingInfo->GetUnitTypePrmoteHealGlobal())
 	{
-		UnitTypes eLoopUnit = (UnitTypes)iUnitLoop;
-		if (eLoopUnit != NO_UNIT)
+		UnitTypes eLoopUnit = (UnitTypes)it.first;
+		int iNewHeal = it.second;
+		if (eLoopUnit != NO_UNIT && iNewHeal > 0)
 		{
-			int iNewHeal = 0;
-			iNewHeal = pBuildingInfo->GetUnitTypePrmoteHealGlobal(eLoopUnit);
-			if (iNewHeal > 0)
-			{
-				ChangeUnitTypePrmoteHealGlobal(eLoopUnit, iNewHeal);
-			}
+			ChangeUnitTypePrmoteHealGlobal(eLoopUnit, iNewHeal);
 		}
 	}
 #endif
+	for (const auto& it : pBuildingInfo->GetEraUnitClassMaxInstances())
+	{
+		UnitClassTypes eUnitClass = (UnitClassTypes)it.first;
+		int iExtraMax = it.second;
+		if (eUnitClass != NO_UNITCLASS && iExtraMax != 0)
+		{
+			ChangeEraUnitClassMaxInstances(eUnitClass, iExtraMax);
+		}
+	}
 
 #if defined(MOD_ROG_CORE)
 	ChangeAllowPuppetPurchase(pBuildingInfo->IsAllowsPuppetPurchase() ? iChange : 0);
@@ -17833,7 +17838,7 @@ int CvPlayer::GetUnitTypePrmoteHealGlobal(UnitTypes eIndex) const
 	VALIDATE_OBJECT
 	CvAssertMsg(eIndex >= 0, "eIndex expected to be >= 0");
 	CvAssertMsg(eIndex < GC.getNumUnitInfos(), "eIndex expected to be < NUM_UNIT_TYPES");
-	std::map<int, int>::const_iterator it = m_piUnitTypePrmoteHealGlobal.find((int)eIndex);
+	auto it = m_piUnitTypePrmoteHealGlobal.find((int)eIndex);
 	if (it != m_piUnitTypePrmoteHealGlobal.end()) // find returns the iterator to map::end if the key i is not present in the map
 	{
 		return it->second;
@@ -17850,6 +17855,24 @@ void CvPlayer::ChangeUnitTypePrmoteHealGlobal(UnitTypes eIndex, int iChange)
 }
 #endif
 
+//	--------------------------------------------------------------------------------
+void CvPlayer::ChangeEraUnitClassMaxInstances(UnitClassTypes eUnitClass, int iChange)
+{
+	m_mapEraUnitClassMaxInstances[eUnitClass] += iChange;
+	if (m_mapEraUnitClassMaxInstances[eUnitClass] == 0)
+	{
+		m_mapEraUnitClassMaxInstances.erase(eUnitClass);
+	}
+}
+int CvPlayer::GetEraUnitClassMaxInstances(UnitClassTypes eUnitClass) const
+{
+	auto it = m_mapEraUnitClassMaxInstances.find(eUnitClass);
+	if (it != m_mapEraUnitClassMaxInstances.end())
+	{
+		return it->second;
+	}
+	return 0;
+}
 
 //	--------------------------------------------------------------------------------
 #if defined(MOD_PROMOTION_AURA_PROMOTION)
@@ -23587,7 +23610,8 @@ bool CvPlayer::isUnitClassMaxedOut(UnitClassTypes eIndex, int iExtra) const
 
 	CvAssertMsg(getUnitClassCount(eIndex) <= pkUnitClassInfo->getMaxPlayerInstances(), "getUnitClassCount is expected to be less than maximum bound of MaxPlayerInstances (invalid index)");
 
-	return ((getUnitClassCount(eIndex) + iExtra) >= pkUnitClassInfo->getMaxPlayerInstances() + GetExtraUnitPlayerInstances());
+	int iPlayerExtraMax = GetExtraUnitPlayerInstances() + GetEraUnitClassMaxInstances(eIndex);
+	return ((getUnitClassCount(eIndex) + iExtra) >= pkUnitClassInfo->getMaxPlayerInstances() + iPlayerExtraMax);
 }
 
 
@@ -28473,6 +28497,7 @@ void CvPlayer::Read(FDataStream& kStream)
 	kStream >> m_piDomainFreeExperience;
 	kStream >> m_piUnitTypePrmoteHealGlobal;
 #endif
+	kStream >> m_mapEraUnitClassMaxInstances;
 
 	kStream >> m_ownedNaturalWonders;
 
@@ -29227,6 +29252,7 @@ void CvPlayer::Write(FDataStream& kStream) const
 	kStream << m_piDomainFreeExperience;
 	kStream << m_piUnitTypePrmoteHealGlobal;
 #endif
+	kStream << m_mapEraUnitClassMaxInstances;
 
 	kStream << m_ownedNaturalWonders;
 

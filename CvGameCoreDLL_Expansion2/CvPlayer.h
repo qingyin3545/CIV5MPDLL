@@ -1038,6 +1038,9 @@ public:
 	void ChangeUnitTypePrmoteHealGlobal(UnitTypes eUnit, int iChange);
 	int GetUnitTypePrmoteHealGlobal(UnitTypes) const;
 #endif
+	void ChangeEraUnitClassMaxInstances(UnitClassTypes eUnitClass, int iChange);
+	int GetEraUnitClassMaxInstances(UnitClassTypes eUnitClass) const;
+
 	int getPolicyModifiers(PolicyModifierType eIndex) const;
 	void changePolicyModifiers(PolicyModifierType eIndex, int iChange);
 
@@ -2715,8 +2718,10 @@ protected:
 	std::vector<int> m_aiDomainEnemyCombatModifierGlobal;
 
 	std::map<int, int> m_piDomainFreeExperience;
-	std::map<int, int> m_piUnitTypePrmoteHealGlobal;
+	std::tr1::unordered_map<int, int> m_piUnitTypePrmoteHealGlobal;
 #endif
+	std::tr1::unordered_map<int, int> m_mapEraUnitClassMaxInstances;
+
 	FAutoVariable<std::vector<int>, CvPlayer> m_aiPolicyModifiers;
 
 	std::vector<int> m_aiYieldFromNonSpecialistCitizens;
