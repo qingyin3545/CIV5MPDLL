@@ -373,6 +373,11 @@ create table Building_UnitTypePrmoteHealGlobal (
 	UnitType text not null references Units(Type),
 	Heal integer not null default 0
 );
+create table Building_UnitClassMaxInstances (
+	BuildingType text not null references Buildings(Type),
+	UnitClassType text not null references UnitClasses(Type),
+	ExtraMax integer default 0
+);
 --******************** New City Defense ********************--
 alter table Buildings add ExtraAttacks integer default 0;
 alter table Buildings add BombardRange integer default 0;

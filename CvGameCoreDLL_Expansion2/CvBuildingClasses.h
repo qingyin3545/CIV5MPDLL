@@ -472,8 +472,9 @@ public:
 #if defined(MOD_ROG_CORE)
 	int GetDomainFreeExperiencePerGreatWorkGlobal(int i) const;
 	int GetDomainFreeExperienceGlobal(int i) const;
-	int GetUnitTypePrmoteHealGlobal(int i) const;
+	const std::map<int, int>& GetUnitTypePrmoteHealGlobal() const;
 #endif
+	const std::map<int, int>& GetEraUnitClassMaxInstances() const;
 
 #if defined(MOD_NUCLEAR_WINTER_FOR_SP)
 	bool IsNoNuclearWinterLocal() const;
@@ -941,6 +942,7 @@ private:
 	std::map<int, int> m_piDomainFreeExperienceGlobal;
 	std::map<int, int> m_piUnitTypePrmoteHealGlobal;
 #endif
+	std::map<int, int> m_mapUnitClassMaxInstances;
 
 #if defined(MOD_NUCLEAR_WINTER_FOR_SP)
 	bool m_bNoNuclearWinterLocal = false;

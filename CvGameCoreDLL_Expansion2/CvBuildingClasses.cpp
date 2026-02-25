@@ -1157,6 +1157,27 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 		std::map<int, int>(m_piUnitTypePrmoteHealGlobal).swap(m_piUnitTypePrmoteHealGlobal);
 	}
 #endif
+	{
+		std::string strKey("Building_UnitClassMaxInstances");
+		Database::Results* pResults = kUtility.GetResults(strKey);
+		if (pResults == NULL)
+		{
+			pResults = kUtility.PrepareResults(strKey, "select UnitClasses.ID as UnitClassID, ExtraMax from Building_UnitClassMaxInstances inner join UnitClasses on UnitClasses.Type = UnitClassType where BuildingType = ?");
+		}
+		pResults->Bind(1, szBuildingType);
+
+		while (pResults->Step())
+		{
+			int iUnitClass = pResults->GetInt(0);
+			int iExtraMax = pResults->GetInt(1);
+
+			m_mapUnitClassMaxInstances[iUnitClass] += iExtraMax;
+		}
+		pResults->Reset();
+
+		//Trim extra memory off container since this is mostly read-only.
+		std::map<int, int>(m_mapUnitClassMaxInstances).swap(m_mapUnitClassMaxInstances);
+	}
 
 #if defined(MOD_ROG_CORE)
 	//SpecialistYieldChangesLocal
@@ -3749,19 +3770,16 @@ int CvBuildingEntry::GetDomainFreeExperienceGlobal(int i) const
 	return 0;
 }
 
-int CvBuildingEntry::GetUnitTypePrmoteHealGlobal(int i) const
+const std::map<int, int>& CvBuildingEntry::GetUnitTypePrmoteHealGlobal() const
 {
-	CvAssertMsg(i < GC.getNumUnitInfos(), "Index out of bounds");
-	CvAssertMsg(i > -1, "Index out of bounds");
-
-	std::map<int, int>::const_iterator it = m_piUnitTypePrmoteHealGlobal.find(i);
-	if (it != m_piUnitTypePrmoteHealGlobal.end()) // find returns the iterator to map::end if the key i is not present in the map
-	{
-		return it->second;
-	}
-	return 0;
+	return m_piUnitTypePrmoteHealGlobal;
 }
 #endif
+
+const std::map<int, int>&  CvBuildingEntry::GetEraUnitClassMaxInstances() const
+{
+	return m_mapUnitClassMaxInstances;
+}
 
 #if defined(MOD_TROOPS_AND_CROPS_FOR_SP)
 int CvBuildingEntry::GetDomainTroops(int i) const
