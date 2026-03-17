@@ -28499,7 +28499,7 @@ void CvPlayer::Read(FDataStream& kStream)
 	kStream >> m_piDomainFreeExperience;
 	kStream >> m_piUnitTypePrmoteHealGlobal;
 #endif
-	kStream >> m_mapEraUnitClassMaxInstances;
+	MOD_SERIALIZE_READ(158, kStream, m_mapEraUnitClassMaxInstances, {});
 
 	kStream >> m_ownedNaturalWonders;
 
@@ -29254,7 +29254,7 @@ void CvPlayer::Write(FDataStream& kStream) const
 	kStream << m_piDomainFreeExperience;
 	kStream << m_piUnitTypePrmoteHealGlobal;
 #endif
-	kStream << m_mapEraUnitClassMaxInstances;
+	MOD_SERIALIZE_WRITE(kStream, m_mapEraUnitClassMaxInstances);
 
 	kStream << m_ownedNaturalWonders;
 
