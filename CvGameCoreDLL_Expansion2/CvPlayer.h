@@ -801,6 +801,13 @@ public:
 	int GetUpgradeAllTerritory() const;
 	void ChangeUpgradeAllTerritory(int iValue);
 
+	bool CanNoTechForWonder() const;
+	int GetNoTechForWonder() const;
+	void ChangeNoTechForWonder(int iChange);
+	bool CanNoTechForProject() const;
+	int GetNoTechForProject() const;
+	void ChangeNoTechForProject(int iChange);
+
 	int getCityCaptureHealGlobal() const;
 	void changeCityCaptureHealGlobal(int iChange);
 	int getOriginalCapitalCaptureTech() const;
@@ -1031,6 +1038,9 @@ public:
 	void ChangeUnitTypePrmoteHealGlobal(UnitTypes eUnit, int iChange);
 	int GetUnitTypePrmoteHealGlobal(UnitTypes) const;
 #endif
+	void ChangeEraUnitClassMaxInstances(UnitClassTypes eUnitClass, int iChange);
+	int GetEraUnitClassMaxInstances(UnitClassTypes eUnitClass) const;
+
 	int getPolicyModifiers(PolicyModifierType eIndex) const;
 	void changePolicyModifiers(PolicyModifierType eIndex, int iChange);
 
@@ -1335,10 +1345,8 @@ public:
 	int getYieldRateModifier(YieldTypes eIndex) const;
 	void changeYieldRateModifier(YieldTypes eIndex, int iChange);
 
-#ifdef MOD_TRAITS_GOLDEN_AGE_YIELD_MODIFIER
 	int getGoldenAgeYieldRateModifier(YieldTypes eIndex) const;
 	void changeGoldenAgeYieldRateModifier(YieldTypes eIndex, int iChange);
-#endif
 
 	int getCapitalYieldRateModifier(YieldTypes eIndex) const;
 	void changeCapitalYieldRateModifier(YieldTypes eIndex, int iChange);
@@ -2445,6 +2453,8 @@ protected:
 	int m_iAlwaysWeLoveKindDayInGoldenAge;
 	int m_iNoResistance;
 	int m_iUpgradeAllTerritory;
+	int m_iNoTechForWonder;
+	int m_iNoTechForProject;
 	int m_iCityCaptureHealGlobal;
 	int m_iOriginalCapitalCaptureTech;
 	int m_iOriginalCapitalCapturePolicy;
@@ -2696,9 +2706,7 @@ protected:
 	std::vector<int> m_aiSiphonLuxuryCount;
 	std::vector<int> m_aiGreatWorkYieldChange;
 
-#ifdef MOD_TRAITS_GOLDEN_AGE_YIELD_MODIFIER
 	std::vector<int> m_aiGoldenAgeYieldRateModifier;
-#endif
 
 	int m_iMoveAfterCreated;
 
@@ -2710,8 +2718,10 @@ protected:
 	std::vector<int> m_aiDomainEnemyCombatModifierGlobal;
 
 	std::map<int, int> m_piDomainFreeExperience;
-	std::map<int, int> m_piUnitTypePrmoteHealGlobal;
+	std::tr1::unordered_map<int, int> m_piUnitTypePrmoteHealGlobal;
 #endif
+	std::tr1::unordered_map<int, int> m_mapEraUnitClassMaxInstances;
+
 	FAutoVariable<std::vector<int>, CvPlayer> m_aiPolicyModifiers;
 
 	std::vector<int> m_aiYieldFromNonSpecialistCitizens;

@@ -308,6 +308,8 @@ public:
 	bool IsAlwaysWeLoveKindDayInGoldenAge() const;
 	bool IsNoResistance() const;
 	bool IsUpgradeAllTerritory() const;
+	bool IsNoTechForWonder() const;
+	bool IsNoTechForProject() const;
 	int GetDefenseBoost() const;
 	int GetCityCaptureHealGlobal() const;
 	int GetOriginalCapitalCaptureTech() const;
@@ -553,6 +555,8 @@ private:
 	bool m_bAlwaysWeLoveKindDayInGoldenAge;
 	bool m_bNoResistance;
 	bool m_bUpgradeAllTerritory;
+	bool m_bNoTechForWonder;
+	bool m_bNoTechForProject;
 	int m_iDefenseBoost;
 	int m_iCityCaptureHealGlobal;
 	int m_iOriginalCapitalCaptureTech;
