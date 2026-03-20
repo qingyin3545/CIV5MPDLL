@@ -107,3 +107,4 @@ create table Trait_BuildingClassFaithCost (
 
 alter table Civilizations add SpecialGAText text default 'TXT_KEY_GOLDEN_AGE_ANNOUNCE';
 alter table Civilizations add SpecialGAHelpText text default 'TXT_KEY_TP_GOLDEN_AGE_EFFECT';
+alter table Traits add ConquestCasualtiesModifier int default 0;
