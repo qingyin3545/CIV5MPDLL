@@ -30,6 +30,8 @@ alter table Units add ExtraNukeBlastRadius integer default 0;
 alter table Units add BarbarianCanTrait boolean default 0;
 alter table Units add BarbarianTraitTechObsolete boolean default 0;
 
+alter table Unit_UniqueNames add FreePromotion text references UnitPromotions(Type);
+
 create table Unit_ScalingFromOwnedImprovements (
 	UnitType text references Units(Type),
 	ImprovementType text references Improvements(Type),

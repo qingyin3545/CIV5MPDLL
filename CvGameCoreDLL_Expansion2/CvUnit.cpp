@@ -701,6 +701,11 @@ void CvUnit::initWithNameOffset(int iID, UnitTypes eUnit, int iNameOffset, UnitA
 #endif
 				
 				setName(strName);
+				PromotionTypes eFreePromotion = (PromotionTypes)getUnitInfo().GetUnitNameFreePromotion(iIndex);
+				if (eFreePromotion != NO_PROMOTION)
+				{
+					setHasPromotion(eFreePromotion, true);
+				}
 				SetGreatWork(getUnitInfo().GetGreatWorks(iIndex));
 				GC.getGame().addGreatPersonBornName(strName);
 #if defined(MOD_GLOBAL_NO_LOST_GREATWORKS)

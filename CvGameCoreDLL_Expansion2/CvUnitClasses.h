@@ -213,6 +213,7 @@ public:
 	bool IsPuppetPurchaseOverride() const;
 	bool IsUnitTechUpgrade() const;
 	bool GetFreePromotions(int i) const;
+	int GetUnitNameFreePromotion(int iIndex) const;
 
 	// Derived fields (not in XML)
 	int GetCargoSpace() const;  // (from free promotions)
@@ -417,6 +418,7 @@ private:
 	CvString* m_paszLateArtDefineTags;
 	CvString* m_paszMiddleArtDefineTags;
 	CvString* m_paszUnitNames;
+	int* m_piFreePromotions;
 	GreatWorkType* m_paeGreatWorks;
 
 	int m_iCombatStrengthChangeAfterKilling = 0;
