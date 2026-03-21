@@ -27406,17 +27406,20 @@ void CvPlayer::processPolicies(PolicyTypes ePolicy, int iChange)
 				CvUnit* iUnit = pPlot->getUnitByIndex(iUnitLoop);
 				if(iUnit->GetBaseCombatStrength(true/*bIgnoreEmbarked*/) > 0 && iUnit->getDomainType() == DOMAIN_LAND)
 				{
-					if(bCulturePerGarrisonedUnit)
-					{
-						iCityCultureChange += (bCulturePerGarrisonedUnit * iChange);
-					}
 					if(bGarrisonFreeMaintenance)
 					{
 						changeExtraUnitCost(-iUnit->getUnitInfo().GetExtraMaintenanceCost() * iChange);
 					}
-					if(bNoOccupiedUnhappinessGarrisonedCity)
+					if (iUnit->getOwner() == pLoopCity->getOwner())
 					{
-						pLoopCity->ChangeNoOccupiedUnhappinessCount(iChange);
+						if(bCulturePerGarrisonedUnit)
+						{
+							iCityCultureChange += (bCulturePerGarrisonedUnit * iChange);
+						}
+						if(bNoOccupiedUnhappinessGarrisonedCity)
+						{
+							pLoopCity->ChangeNoOccupiedUnhappinessCount(iChange);
+						}
 					}
 				}
 			}
