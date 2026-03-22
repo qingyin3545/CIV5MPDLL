@@ -117,3 +117,4 @@ create table PolicyBranch_CivilizationLocked (
     PolicyBranchType text references PolicyBranchTypes(Type),
     CivilizationType text references Civilizations(Type)
 );
+alter table Policies add ConquestCasualtiesModifier integer default 0;
