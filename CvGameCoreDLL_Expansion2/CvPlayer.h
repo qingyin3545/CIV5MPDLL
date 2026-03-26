@@ -1716,7 +1716,6 @@ public:
 	void ChangeExtraUnitPlayerInstances(int iChange);
 
 	int GetConquestCasualtiesModifier() const;
-	void SetConquestCasualtiesModifier(int iValue);
 	void ChangeConquestCasualtiesModifier(int iChange);
 
 

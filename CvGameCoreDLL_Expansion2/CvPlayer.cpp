@@ -2947,7 +2947,7 @@ CvCity* CvPlayer::acquireCity(CvCity* pOldCity, bool bConquest, bool bGift, bool
 	{
 		int iPercentPopulationRetained = /*50*/ GC.getCITY_CAPTURE_POPULATION_PERCENT();
 		int iInfluenceReduction = GetCulture()->GetInfluenceCityConquestReduction(eOldOwner);
-		int iPlayerReduction = GetPlayerTraits()->GetConquestCasualtiesModifier() + GET_PLAYER(GetID()).GetPlayerPolicies()->GetNumericModifier(POLICYMOD_CONQUEST_CASUALTIES_MODIFIER);
+		int iPlayerReduction = GetConquestCasualtiesModifier();
 		iPercentPopulationRetained += (iInfluenceReduction + iPlayerReduction) * (100 - iPercentPopulationRetained) / 100;
 		iPercentPopulationRetained -= GC.getGame().GetGameLeagues()->GetGlobalWarCasualtiesChanges();
 		iPercentPopulationRetained = iPercentPopulationRetained > 100 ? 100 : iPercentPopulationRetained;
@@ -26850,6 +26850,7 @@ void CvPlayer::processPolicies(PolicyTypes ePolicy, int iChange)
 	ChangeGoldenAgeMeterMod(pPolicy->GetGoldenAgeMeterMod() * iChange);
 	changeGoldenAgeModifier(pPolicy->GetGoldenAgeDurationMod() * iChange);
 	changeWorkerSpeedModifier(pPolicy->GetWorkerSpeedModifier() * iChange);
+	ChangeConquestCasualtiesModifier(pPolicy->GetConquestCasualtiesModifier() * iChange);
 
 	changePolicyModifiers(POLICYMOD_EXTRA_HAPPINESS, pPolicy->GetExtraHappiness() * iChange);
 	changePolicyModifiers(POLICYMOD_EXTRA_HAPPINESS_PER_CITY, pPolicy->GetExtraHappinessPerCity() * iChange);
@@ -26872,7 +26873,6 @@ void CvPlayer::processPolicies(PolicyTypes ePolicy, int iChange)
 	changePolicyModifiers(POLICYMOD_TRADE_MISSION_GOLD_MODIFIER, pPolicy->GetTradeMissionGoldModifier() * iChange);
 	changePolicyModifiers(POLICYMOD_FAITH_COST_MODIFIER, pPolicy->GetFaithCostModifier() * iChange);
 	changePolicyModifiers(POLICYMOD_CULTURAL_PLUNDER_MULTIPLIER, pPolicy->GetCulturalPlunderMultiplier() * iChange);
-	changePolicyModifiers(POLICYMOD_CONQUEST_CASUALTIES_MODIFIER, pPolicy->GetConquestCasualtiesModifier() * iChange);
 	changePolicyModifiers(POLICYMOD_STEAL_TECH_SLOWER_MODIFIER, pPolicy->GetStealTechSlowerModifier() * iChange);
 	changePolicyModifiers(POLICYMOD_CATCH_SPIES_MODIFIER, pPolicy->GetCatchSpiesModifier() * iChange);
 	changePolicyModifiers(POLICYMOD_GREAT_ADMIRAL_RATE, pPolicy->GetGreatAdmiralRateModifier() * iChange);
@@ -30296,18 +30296,11 @@ int CvPlayer::GetConquestCasualtiesModifier() const
 {
 	return m_iConquestCasualtiesModifier;
 }
-
-void CvPlayer::SetConquestCasualtiesModifier(int iValue)
-{
-	CvAssert(iValue >= 0);
-	m_iConquestCasualtiesModifier = iValue;
-}
-
 void CvPlayer::ChangeConquestCasualtiesModifier(int iChange)
 {
 	if (iChange != 0)
 	{
-		SetConquestCasualtiesModifier(GetConquestCasualtiesModifier() + iChange);
+		m_iConquestCasualtiesModifier += iChange;
 	}
 }
 
