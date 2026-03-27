@@ -122,6 +122,7 @@ public:
 	int GetTradeMissionGoldModifier() const;
 	int GetFaithCostModifier() const;
 	int GetCulturalPlunderMultiplier() const;
+	int GetConquestCasualtiesModifier() const;
 	int GetStealTechSlowerModifier() const;
 	int GetStealTechFasterModifier() const;
 	int GetCatchSpiesModifier() const;
@@ -457,6 +458,7 @@ private:
 	int m_iTradeMissionGoldModifier;
 	int m_iFaithCostModifier;
 	int m_iCulturalPlunderMultiplier;
+	int m_iConquestCasualtiesModifier;
 	int m_iStealTechSlowerModifier;
 	int m_iStealTechFasterModifier;
 	int m_iCatchSpiesModifier;

@@ -128,6 +128,7 @@ public:
 	int GetFreeSocialPoliciesPerEra() const;
 	int GetFreeGreatPeoplePerEra() const;
 	int GetExtraUnitPlayerInstances() const;
+	int GetConquestCasualtiesModifier() const;
 	int GetOwnedReligionUnitCultureExtraTurns() const;
 	int GetNumTradeRoutesModifier() const;
 	int GetTradeRouteResourceModifier() const;
@@ -419,6 +420,7 @@ protected:
 	int m_iFreeSocialPoliciesPerEra;
 	int m_iFreeGreatPeoplePerEra;
 	int m_iExtraUnitPlayerInstances;
+	int m_iConquestCasualtiesModifier;
 	int m_iOwnedReligionUnitCultureExtraTurns;
 	int m_iNumTradeRoutesModifier;
 	int m_iTradeRouteResourceModifier;
@@ -938,6 +940,10 @@ public:
 	int GetExtraUnitPlayerInstances() const
 	{
 		return m_iExtraUnitPlayerInstances;
+	}
+	int GetConquestCasualtiesModifier() const
+	{
+		return m_iConquestCasualtiesModifier;
 	}
 	int GetOwnedReligionUnitCultureExtraTurns() const
 	{
@@ -1507,6 +1513,7 @@ private:
 	int m_iFreeSocialPoliciesPerEra;
 	int m_iFreeGreatPeoplePerEra;
 	int m_iExtraUnitPlayerInstances;
+	int m_iConquestCasualtiesModifier;
 	int m_iOwnedReligionUnitCultureExtraTurns;
 	int m_iNumTradeRoutesModifier;
 	int m_iTradeRouteResourceModifier;

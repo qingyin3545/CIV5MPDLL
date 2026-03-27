@@ -104,6 +104,7 @@ CvTraitEntry::CvTraitEntry() :
 	m_iFreeSocialPoliciesPerEra(0),
 	m_iFreeGreatPeoplePerEra(0),
 	m_iExtraUnitPlayerInstances(0),
+	m_iConquestCasualtiesModifier(0),
 	m_iOwnedReligionUnitCultureExtraTurns(0),
 	m_iNumTradeRoutesModifier(0),
 	m_iTradeRouteResourceModifier(0),
@@ -691,6 +692,10 @@ int CvTraitEntry::GetExtraUnitPlayerInstances() const
 	return m_iExtraUnitPlayerInstances;
 }
 
+int CvTraitEntry::GetConquestCasualtiesModifier() const
+{
+	return m_iConquestCasualtiesModifier;
+}
 int CvTraitEntry::GetOwnedReligionUnitCultureExtraTurns() const
 {
 	return m_iOwnedReligionUnitCultureExtraTurns;
@@ -1749,6 +1754,7 @@ bool CvTraitEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility& 
 	m_iFreeSocialPoliciesPerEra				= kResults.GetInt("FreeSocialPoliciesPerEra");
 	m_iFreeGreatPeoplePerEra				= kResults.GetInt("FreeGreatPeoplePerEra");
 	m_iExtraUnitPlayerInstances				= kResults.GetInt("ExtraUnitPlayerInstances");
+	m_iConquestCasualtiesModifier			= kResults.GetInt("ConquestCasualtiesModifier");
 	m_iOwnedReligionUnitCultureExtraTurns	= kResults.GetInt("OwnedReligionUnitCultureExtraTurns");
 	m_iNumTradeRoutesModifier				= kResults.GetInt("NumTradeRoutesModifier");
 	m_iTradeRouteResourceModifier			= kResults.GetInt("TradeRouteResourceModifier");
@@ -2777,6 +2783,7 @@ void CvPlayerTraits::InitPlayerTraits()
 			m_iFreeSocialPoliciesPerEra += trait->GetFreeSocialPoliciesPerEra();
 			m_iFreeGreatPeoplePerEra += trait->GetFreeGreatPeoplePerEra();
 			m_iExtraUnitPlayerInstances += trait->GetExtraUnitPlayerInstances();
+			m_iConquestCasualtiesModifier += trait->GetConquestCasualtiesModifier();
 			m_iOwnedReligionUnitCultureExtraTurns += trait->GetOwnedReligionUnitCultureExtraTurns();
 			m_iNumTradeRoutesModifier += trait->GetNumTradeRoutesModifier();
 			m_iTradeRouteResourceModifier += trait->GetTradeRouteResourceModifier();
@@ -3345,6 +3352,7 @@ void CvPlayerTraits::Reset()
 	m_iFreeSocialPoliciesPerEra = 0;
 	m_iFreeGreatPeoplePerEra = 0;
 	m_iExtraUnitPlayerInstances = 0;
+	m_iConquestCasualtiesModifier = 0;
 	m_iOwnedReligionUnitCultureExtraTurns = 0;
 	m_iNumTradeRoutesModifier = 0;
 	m_iTradeRouteResourceModifier = 0;
@@ -4784,6 +4792,7 @@ void CvPlayerTraits::Read(FDataStream& kStream)
 		m_iFreeGreatPeoplePerEra = 0;
 	}
 	kStream >> m_iExtraUnitPlayerInstances;
+	kStream >> m_iConquestCasualtiesModifier;
 	MOD_SERIALIZE_READ(151, kStream, m_iOwnedReligionUnitCultureExtraTurns, 0);
 
 	if (uiVersion >= 6)
@@ -5277,6 +5286,7 @@ void CvPlayerTraits::Write(FDataStream& kStream)
 	kStream << m_iFreeSocialPoliciesPerEra;
 	kStream << m_iFreeGreatPeoplePerEra;
 	kStream << m_iExtraUnitPlayerInstances;
+	kStream << m_iConquestCasualtiesModifier;
 	MOD_SERIALIZE_WRITE(kStream, m_iOwnedReligionUnitCultureExtraTurns);
 	kStream << m_iNumTradeRoutesModifier;
 	kStream << m_iTradeRouteResourceModifier;

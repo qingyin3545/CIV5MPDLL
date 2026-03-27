@@ -76,6 +76,7 @@ alter table Traits add GoldenAgeOnWar boolean default 0;
 alter table Traits add CanConquerUC boolean default 0;
 alter table Traits add FreePolicyWhenFirstConquerMajorCapital int default 0;
 alter table Traits add InstantTourismBombWhenFirstConquerMajorCapital int default 0; -- apply tourism (x turn) pressure to all civs
+alter table Traits add ConquestCasualtiesModifier int default 0;
 
 --******************** Other Bonus ********************--
 alter table Traits add AbleToDualEmpire boolean default 0;

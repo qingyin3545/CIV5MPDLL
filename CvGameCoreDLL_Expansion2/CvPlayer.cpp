@@ -391,6 +391,7 @@ CvPlayer::CvPlayer() :
 	, m_iResearchTotalCostModifierGoldenAge(0)
 	, m_iLiberatedInfluence(0)
 	, m_iExtraUnitPlayerInstances(0)
+	, m_iConquestCasualtiesModifier(0)
 	, m_iWaterTileDamageGlobal(0)
 	, m_iWaterTileMovementReduceGlobal(0)
 	, m_iWaterTileTurnDamageGlobal(0)
@@ -759,6 +760,7 @@ void CvPlayer::init(PlayerTypes eID)
 		changeWonderProductionModifier(GetPlayerTraits()->GetWonderProductionModifier());
 		ChangeRouteGoldMaintenanceMod(GetPlayerTraits()->GetImprovementMaintenanceModifier());
 		ChangeExtraUnitPlayerInstances(GetPlayerTraits()->GetExtraUnitPlayerInstances());
+		ChangeConquestCasualtiesModifier(GetPlayerTraits()->GetConquestCasualtiesModifier());
 		for(iJ = 0; iJ < NUM_YIELD_TYPES; iJ++)
 		{
 			ChangeCityYieldChangeTimes100((YieldTypes)iJ, 100 * GetPlayerTraits()->GetFreeCityYield((YieldTypes)iJ));
@@ -1182,6 +1184,7 @@ void CvPlayer::uninit()
 	m_iResearchTotalCostModifierGoldenAge = 0;
 	m_iLiberatedInfluence = 0;
 	m_iExtraUnitPlayerInstances = 0;
+	m_iConquestCasualtiesModifier = 0;
 	m_iWaterTileDamageGlobal = 0;
 	m_iWaterTileMovementReduceGlobal = 0;
 	m_iWaterTileTurnDamageGlobal = 0;
@@ -2944,7 +2947,8 @@ CvCity* CvPlayer::acquireCity(CvCity* pOldCity, bool bConquest, bool bGift, bool
 	{
 		int iPercentPopulationRetained = /*50*/ GC.getCITY_CAPTURE_POPULATION_PERCENT();
 		int iInfluenceReduction = GetCulture()->GetInfluenceCityConquestReduction(eOldOwner);
-		iPercentPopulationRetained += (iInfluenceReduction * (100 - iPercentPopulationRetained) / 100);
+		int iPlayerReduction = GetConquestCasualtiesModifier();
+		iPercentPopulationRetained += (iInfluenceReduction + iPlayerReduction) * (100 - iPercentPopulationRetained) / 100;
 		iPercentPopulationRetained -= GC.getGame().GetGameLeagues()->GetGlobalWarCasualtiesChanges();
 		iPercentPopulationRetained = iPercentPopulationRetained > 100 ? 100 : iPercentPopulationRetained;
 		iPopulation = max(1, iPopulation * iPercentPopulationRetained / 100);
@@ -26846,6 +26850,7 @@ void CvPlayer::processPolicies(PolicyTypes ePolicy, int iChange)
 	ChangeGoldenAgeMeterMod(pPolicy->GetGoldenAgeMeterMod() * iChange);
 	changeGoldenAgeModifier(pPolicy->GetGoldenAgeDurationMod() * iChange);
 	changeWorkerSpeedModifier(pPolicy->GetWorkerSpeedModifier() * iChange);
+	ChangeConquestCasualtiesModifier(pPolicy->GetConquestCasualtiesModifier() * iChange);
 
 	changePolicyModifiers(POLICYMOD_EXTRA_HAPPINESS, pPolicy->GetExtraHappiness() * iChange);
 	changePolicyModifiers(POLICYMOD_EXTRA_HAPPINESS_PER_CITY, pPolicy->GetExtraHappinessPerCity() * iChange);
@@ -28402,6 +28407,7 @@ void CvPlayer::Read(FDataStream& kStream)
 	kStream >> m_iResearchTotalCostModifierGoldenAge;
 	kStream >> m_iLiberatedInfluence;
 	kStream >> m_iExtraUnitPlayerInstances;
+	kStream >> m_iConquestCasualtiesModifier;
 	kStream >> m_iWaterTileDamageGlobal;
 	kStream >> m_iWaterTileMovementReduceGlobal;
 	kStream >> m_iWaterTileTurnDamageGlobal;
@@ -29175,6 +29181,7 @@ void CvPlayer::Write(FDataStream& kStream) const
 	kStream << m_iResearchTotalCostModifierGoldenAge;
 	kStream << m_iLiberatedInfluence;
 	kStream << m_iExtraUnitPlayerInstances;
+	kStream << m_iConquestCasualtiesModifier;
 	kStream << m_iWaterTileDamageGlobal;
 	kStream << m_iWaterTileMovementReduceGlobal;
 	kStream << m_iWaterTileTurnDamageGlobal;
@@ -30285,6 +30292,18 @@ void CvPlayer::ChangeExtraUnitPlayerInstances(int iChange)
 	if (iChange != 0)
 	{
 		SetExtraUnitPlayerInstances(GetExtraUnitPlayerInstances() + iChange);
+	}
+}
+//	--------------------------------------------------------------------------------
+int CvPlayer::GetConquestCasualtiesModifier() const
+{
+	return m_iConquestCasualtiesModifier;
+}
+void CvPlayer::ChangeConquestCasualtiesModifier(int iChange)
+{
+	if (iChange != 0)
+	{
+		m_iConquestCasualtiesModifier += iChange;
 	}
 }
 

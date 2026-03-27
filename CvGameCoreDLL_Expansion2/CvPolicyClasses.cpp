@@ -112,6 +112,7 @@ CvPolicyEntry::CvPolicyEntry(void):
 	m_iTradeMissionGoldModifier(0),
 	m_iFaithCostModifier(0),
 	m_iCulturalPlunderMultiplier(0),
+	m_iConquestCasualtiesModifier(0),
 	m_iStealTechSlowerModifier(0),
 	m_iStealTechFasterModifier(0),
 	m_iCatchSpiesModifier(0),
@@ -443,6 +444,7 @@ bool CvPolicyEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 	m_iTradeMissionGoldModifier = kResults.GetInt("TradeMissionGoldModifier");
 	m_iFaithCostModifier = kResults.GetInt("FaithCostModifier");
 	m_iCulturalPlunderMultiplier = kResults.GetInt("CulturalPlunderMultiplier");
+	m_iConquestCasualtiesModifier = kResults.GetInt("ConquestCasualtiesModifier");
 	m_iStealTechSlowerModifier = kResults.GetInt("StealTechSlowerModifier");
 	m_iStealTechFasterModifier = kResults.GetInt("StealTechFasterModifier");
 	m_iCatchSpiesModifier = kResults.GetInt("CatchSpiesModifier");
@@ -1881,6 +1883,11 @@ int CvPolicyEntry::GetFaithCostModifier() const
 int CvPolicyEntry::GetCulturalPlunderMultiplier() const
 {
 	return m_iCulturalPlunderMultiplier;
+}
+/// How many people should be retained after capturing the city?
+int CvPolicyEntry::GetConquestCasualtiesModifier() const
+{
+	return m_iConquestCasualtiesModifier;
 }
 
 /// How much enemy tech stealing is slowed?

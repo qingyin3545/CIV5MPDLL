@@ -1715,6 +1715,9 @@ public:
 	void SetExtraUnitPlayerInstances(int iValue);
 	void ChangeExtraUnitPlayerInstances(int iChange);
 
+	int GetConquestCasualtiesModifier() const;
+	void ChangeConquestCasualtiesModifier(int iChange);
+
 	int GetWaterTileDamageGlobal() const;
 	void SetWaterTileDamageGlobal(int iValue);
 	void ChangeWaterTileDamageGlobal(int iChange);
@@ -2612,6 +2615,7 @@ protected:
 	int m_iResearchTotalCostModifierGoldenAge;
 	int m_iLiberatedInfluence;
 	int m_iExtraUnitPlayerInstances;
+	int m_iConquestCasualtiesModifier;
 	int m_iWaterTileDamageGlobal;
 	int m_iWaterTileMovementReduceGlobal;
 	int m_iWaterTileTurnDamageGlobal;
