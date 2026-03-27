@@ -1718,7 +1718,6 @@ public:
 	int GetConquestCasualtiesModifier() const;
 	void ChangeConquestCasualtiesModifier(int iChange);
 
-
 	int GetWaterTileDamageGlobal() const;
 	void SetWaterTileDamageGlobal(int iValue);
 	void ChangeWaterTileDamageGlobal(int iChange);

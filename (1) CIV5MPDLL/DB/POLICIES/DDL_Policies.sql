@@ -72,6 +72,7 @@ alter table Policies add HappinessPerPolicy integer default 0;
 alter table Policies add NoResistance boolean default 0;
 alter table Policies add UpgradeAllTerritory boolean default 0;
 alter table Policies add CityCaptureHealGlobal integer default 0;
+alter table Policies add ConquestCasualtiesModifier integer default 0;
 alter table Policies add OriginalCapitalCaptureTech integer default 0;
 alter table Policies add OriginalCapitalCapturePolicy integer default 0;
 alter table Policies add OriginalCapitalCaptureGreatPerson integer default 0;
@@ -112,7 +113,6 @@ create table Policy_GreatPersonOutputModifierPerGWs (
     GreatPersonType text references GreatPersons(Type),
     Modifier integer default 0
 );
-alter table Policies add ConquestCasualtiesModifier integer default 0;
 --******************** New Condition ********************--
 create table PolicyBranch_CivilizationLocked (
     PolicyBranchType text references PolicyBranchTypes(Type),

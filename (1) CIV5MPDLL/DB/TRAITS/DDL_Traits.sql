@@ -76,6 +76,7 @@ alter table Traits add GoldenAgeOnWar boolean default 0;
 alter table Traits add CanConquerUC boolean default 0;
 alter table Traits add FreePolicyWhenFirstConquerMajorCapital int default 0;
 alter table Traits add InstantTourismBombWhenFirstConquerMajorCapital int default 0; -- apply tourism (x turn) pressure to all civs
+alter table Traits add ConquestCasualtiesModifier int default 0;
 
 --******************** Other Bonus ********************--
 alter table Traits add AbleToDualEmpire boolean default 0;
@@ -107,4 +108,3 @@ create table Trait_BuildingClassFaithCost (
 
 alter table Civilizations add SpecialGAText text default 'TXT_KEY_GOLDEN_AGE_ANNOUNCE';
 alter table Civilizations add SpecialGAHelpText text default 'TXT_KEY_TP_GOLDEN_AGE_EFFECT';
-alter table Traits add ConquestCasualtiesModifier int default 0;
